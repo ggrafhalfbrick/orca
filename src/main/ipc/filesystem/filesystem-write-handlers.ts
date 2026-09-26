@@ -37,6 +37,7 @@ export function registerFilesystemWriteHandlers(context: FilesystemHandlerContex
       )
       if (args.connectionId) {
         const provider = requireSshFilesystemProvider(args.connectionId)
+        await checkoutReadOnlyPerforceFileBeforeWrite(store, args.connectionId, args.filePath)
         return provider.writeFile(args.filePath, args.content)
       }
       const filePath = await resolveLocalWriteRequestPath(args.filePath, args.access, store)
@@ -51,7 +52,7 @@ export function registerFilesystemWriteHandlers(context: FilesystemHandlerContex
         }
       }
       await assertLocalWriteTargetIsRegularFile(filePath)
-      await checkoutReadOnlyPerforceFileBeforeWrite(store.getRepos(), filePath)
+      await checkoutReadOnlyPerforceFileBeforeWrite(store, null, filePath)
       await writeFile(filePath, args.content, 'utf-8')
     }
   )
