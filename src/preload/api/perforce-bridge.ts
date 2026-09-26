@@ -8,6 +8,7 @@ export const perforceApi = {
   status: (args) => ipcRenderer.invoke('perforce:status', args),
   history: (args) => ipcRenderer.invoke('perforce:history', args),
   open: (args) => ipcRenderer.invoke('perforce:open', args),
+  edit: (args) => ipcRenderer.invoke('perforce:edit', args),
   close: (args) => ipcRenderer.invoke('perforce:close', args),
   discard: (args) => ipcRenderer.invoke('perforce:discard', args),
   submit: (args) => ipcRenderer.invoke('perforce:submit', args),

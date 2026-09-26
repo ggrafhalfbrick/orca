@@ -2,6 +2,15 @@ import { useCallback, useEffect, useState } from 'react'
 
 // Why: detection shells out to `p4 info` (over SSH for remote folders), so remember answers per workspace.
 const detectionByKey = new Map<string, Promise<boolean>>()
+const knownWorkspaces = new Set<string>()
+
+/** Synchronous answer for key handlers: true only after a positive detection this session. */
+export function isKnownPerforceWorkspace(
+  worktreePath: string,
+  connectionId?: string | null
+): boolean {
+  return knownWorkspaces.has(`${connectionId ?? ''}|${worktreePath}`)
+}
 
 function detectPerforceWorkspace(worktreePath: string, connectionId?: string): Promise<boolean> {
   const key = `${connectionId ?? ''}|${worktreePath}`
@@ -11,8 +20,11 @@ function detectPerforceWorkspace(worktreePath: string, connectionId?: string): P
       .then(() => window.api.perforce.detect({ worktreePath, connectionId }))
       .then((result) => {
         // Only positive answers are remembered so a later p4 setup/login is detected on retry.
-        if (!result.isWorkspace) {
+        if (result.isWorkspace) {
+          knownWorkspaces.add(key)
+        } else {
           detectionByKey.delete(key)
+          knownWorkspaces.delete(key)
         }
         return result.isWorkspace
       })
@@ -37,6 +49,7 @@ export function usePerforceWorkspace(
 
   const redetect = useCallback(() => {
     detectionByKey.delete(key)
+    knownWorkspaces.delete(key)
     setAttempt((n) => n + 1)
   }, [key])
 

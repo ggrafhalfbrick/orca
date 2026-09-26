@@ -65,6 +65,7 @@ export function registerPerforceHandlers(
     b.history(cwd, Math.min(a.limit ?? 30, 200))
   )
   handle<FilesArgs, Result>('open', (b, cwd, a) => b.open(cwd, requireRelativePaths(a.filePaths)))
+  handle<FilesArgs, Result>('edit', (b, cwd, a) => b.edit(cwd, requireRelativePaths(a.filePaths)))
   handle<FilesArgs, Result>('close', (b, cwd, a) => b.close(cwd, requireRelativePaths(a.filePaths)))
   handle<WorktreeArgs & { entries: Pick<PerforceEntry, 'path' | 'group' | 'action'>[] }, Result>(
     'discard',

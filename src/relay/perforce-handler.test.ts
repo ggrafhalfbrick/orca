@@ -31,6 +31,7 @@ describe('PerforceHandler', () => {
         'diff',
         'diffText',
         'discard',
+        'edit',
         'editDescription',
         'history',
         'info',

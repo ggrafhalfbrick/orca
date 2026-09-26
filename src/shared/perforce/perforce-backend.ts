@@ -18,6 +18,7 @@ import {
   isReadOnlyWorkspaceFile,
   closeFilesKeepingContent,
   discardFiles,
+  editFiles,
   reconcileFiles,
   submitChangelist,
   submitDefaultChangelist,
@@ -50,6 +51,8 @@ export type PerforceBackend = {
   diff: (cwd: Cwd, filePath: string) => Promise<GitDiffResult>
   open: (cwd: Cwd, filePaths: Files) => Promise<PerforceOperationResult>
   close: (cwd: Cwd, filePaths: Files) => Promise<PerforceOperationResult>
+  /** `p4 edit`: opens files for edit even when they are unchanged (unlike `open`, which reconciles). */
+  edit: (cwd: Cwd, filePaths: Files) => Promise<PerforceOperationResult>
   discard: (
     cwd: Cwd,
     entries: readonly Pick<PerforceEntry, 'path' | 'group' | 'action'>[]
@@ -100,6 +103,7 @@ export const localPerforceBackend: PerforceBackend = {
   diff: getPerforceDiff,
   open: (cwd, filePaths) => reconcileFiles(cwd, filePaths),
   close: closeFilesKeepingContent,
+  edit: editFiles,
   discard: discardFiles,
   submit: (cwd, changelist, message) =>
     changelist === 'default'

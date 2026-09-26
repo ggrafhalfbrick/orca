@@ -47,6 +47,7 @@ export class PerforceHandler {
     )
     on('diff', (cwd, p) => backend.diff(cwd, requireRelativePath(p.filePath)))
     on('open', (cwd, p) => backend.open(cwd, requireRelativePaths(p.filePaths)))
+    on('edit', (cwd, p) => backend.edit(cwd, requireRelativePaths(p.filePaths)))
     on('close', (cwd, p) => backend.close(cwd, requireRelativePaths(p.filePaths)))
     on('discard', (cwd, p) => backend.discard(cwd, requireDiscardEntries(p.entries)))
     on('submit', (cwd, p) => {

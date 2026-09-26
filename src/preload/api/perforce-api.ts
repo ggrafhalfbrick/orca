@@ -26,6 +26,7 @@ export type PerforceApi = {
   status: (args: WorktreeArgs) => Promise<PerforceStatusResult>
   history: (args: WorktreeArgs & { limit?: number }) => Promise<PerforceHistoryEntry[]>
   open: (args: WorktreeArgs & { filePaths: string[] }) => Result
+  edit: (args: WorktreeArgs & { filePaths: string[] }) => Result
   close: (args: WorktreeArgs & { filePaths: string[] }) => Result
   discard: (
     args: WorktreeArgs & { entries: Pick<PerforceEntry, 'path' | 'group' | 'action'>[] }

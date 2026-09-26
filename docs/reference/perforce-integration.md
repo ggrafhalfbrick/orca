@@ -38,7 +38,12 @@ workspace, and right-click offers **Open shelved file** and **Unshelve file**. R
 Every one of these operations is also a `perforce.*` relay method, so SSH-hosted workspaces support them once the relay
 on the host has been updated (reconnecting the SSH target redeploys it).
 
-Saving a read-only workspace file from Orca's editor first runs `p4 edit` on it.
+Saving a read-only workspace file from Orca's editor first runs `p4 edit` on it (after asking, by default).
+
+Keyboard chords on the active Perforce file (editor or unstaged-diff tab): **Alt+P, Alt+E** opens it for edit (`p4 edit`),
+**Alt+P, Alt+R** reverts its changes. `PerforceChordDetector` (`src/shared/perforce/perforce-file-chord.ts`) is a pure
+two-step detector wired by `app-shell/use-perforce-file-chords.ts`; it only claims Alt+P when a Perforce file is active. The
+shortcut registry supports single combinations only, so these are fixed rather than remappable.
 
 ## Code map
 
