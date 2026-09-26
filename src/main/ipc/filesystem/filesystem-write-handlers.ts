@@ -4,6 +4,7 @@ import type { SshMutationExpectation } from '../../../shared/ssh-types'
 import { assertSshMutationExpectation } from '../../ssh/ssh-connection-generation'
 import { requireSshFilesystemProvider } from '../../providers/ssh-filesystem-dispatch'
 import { tryDeleteWslUncPath } from '../../wsl-unc-delete'
+import { checkoutReadOnlyPerforceFileBeforeWrite } from '../../perforce/perforce-checkout-on-write'
 import type { LocalFileAccess } from '../../../shared/local-file-access'
 import {
   resolveDesktopAuthorizedPath,
@@ -50,6 +51,7 @@ export function registerFilesystemWriteHandlers(context: FilesystemHandlerContex
         }
       }
       await assertLocalWriteTargetIsRegularFile(filePath)
+      await checkoutReadOnlyPerforceFileBeforeWrite(store.getRepos(), filePath)
       await writeFile(filePath, args.content, 'utf-8')
     }
   )
