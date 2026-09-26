@@ -1,6 +1,7 @@
 import { Plus, Undo2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { PerforceEntry } from '../../../../../shared/perforce/perforce-types'
+import { translate } from '@/i18n/i18n'
 
 /** Hover actions on a file row: open (add or edit) and revert. */
 export function PerforceFileActions({
@@ -20,7 +21,11 @@ export function PerforceFileActions({
         <Button
           variant="ghost"
           size="icon-xs"
-          title={entry.group === 'new' ? 'Mark for add' : 'Open for edit'}
+          title={
+            entry.group === 'new'
+              ? translate('perforce.ui.markForAdd', 'Mark for add')
+              : translate('perforce.ui.openForEdit', 'Open for edit')
+          }
           disabled={busy}
           onClick={onOpen}
         >
@@ -30,7 +35,7 @@ export function PerforceFileActions({
       <Button
         variant="ghost"
         size="icon-xs"
-        title="Revert changes"
+        title={translate('perforce.ui.revertChanges', 'Revert changes')}
         disabled={busy}
         onClick={onDiscard}
       >

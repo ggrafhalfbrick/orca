@@ -1,6 +1,7 @@
 import { ArchiveRestore, ArrowDownToLine, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { PerforceWorkspaceInfo } from '../../../../../shared/perforce/perforce-types'
+import { translate } from '@/i18n/i18n'
 
 export function PerforcePanelHeader({
   info,
@@ -29,19 +30,25 @@ export function PerforcePanelHeader({
       <Button
         variant="ghost"
         size="icon-xs"
-        title="Unshelve a changelist…"
+        title={translate('perforce.ui.unshelveAChangelist', 'Unshelve a changelist…')}
         disabled={busy}
         onClick={onUnshelve}
       >
         <ArchiveRestore />
       </Button>
-      <Button variant="ghost" size="icon-xs" title="Refresh" disabled={busy} onClick={onRefresh}>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        title={translate('perforce.ui.refresh', 'Refresh')}
+        disabled={busy}
+        onClick={onRefresh}
+      >
         <RefreshCw />
       </Button>
       <Button
         variant="ghost"
         size="icon-xs"
-        title="Get latest revisions (p4 sync)"
+        title={translate('perforce.ui.getLatestRevisionsP4Sync', 'Get latest revisions (p4 sync)')}
         disabled={busy}
         onClick={onSync}
       >

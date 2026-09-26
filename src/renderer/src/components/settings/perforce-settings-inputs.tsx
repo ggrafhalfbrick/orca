@@ -3,8 +3,10 @@ import { Input } from '../ui/input'
 import { Textarea } from '../ui/textarea'
 import { translate } from '@/i18n/i18n'
 
-export /** Text input that commits on blur/Enter so each keystroke is not a settings write. */
-function CommitInput({
+export const P4_PATH_PLACEHOLDER = '/usr/local/bin/p4'
+
+/** Text input that commits on blur/Enter so each keystroke is not a settings write. */
+export function CommitInput({
   value,
   onCommit,
   placeholder,

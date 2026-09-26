@@ -5,6 +5,7 @@ import { normalizePerforceSettings } from '../../../../../shared/perforce/perfor
 import type { PerforceChordAction } from '../../../../../shared/perforce/perforce-file-chord'
 import { refreshPerforceOpenedFiles } from './perforce-opened-files'
 import { isKnownPerforceWorkspace } from './use-perforce-workspace'
+import { translate } from '@/i18n/i18n'
 
 export type PerforceChordFile = {
   worktreePath: string
@@ -43,9 +44,15 @@ async function openForEdit(file: PerforceChordFile): Promise<void> {
     filePaths: [file.relativePath]
   })
   if (result.success) {
-    toast.success(`Opened for edit: ${file.relativePath}`)
+    toast.success(
+      translate('perforce.ui.openedForEdit', 'Opened for edit: {{path}}', {
+        path: file.relativePath
+      })
+    )
   } else {
-    toast.error(result.error ?? 'Perforce command failed')
+    toast.error(
+      result.error ?? translate('perforce.ui.perforceCommandFailed', 'Perforce command failed')
+    )
   }
 }
 
@@ -54,21 +61,35 @@ async function revertFile(file: PerforceChordFile): Promise<void> {
   const status = await window.api.perforce.status(target)
   const entry = status.entries.find((candidate) => candidate.path === file.relativePath)
   if (!entry) {
-    toast.info(`No changes to revert in ${file.relativePath}`)
+    toast.info(
+      translate('perforce.ui.noChangesToRevert', 'No changes to revert in {{path}}', {
+        path: file.relativePath
+      })
+    )
     return
   }
   const settings = normalizePerforceSettings(useAppStore.getState().settings?.perforce)
   if (
     settings.confirmDestructiveActions &&
-    !window.confirm(`Revert changes to ${file.relativePath}? This cannot be undone.`)
+    !window.confirm(
+      translate(
+        'perforce.ui.revertFileConfirm',
+        'Revert changes to {{path}}? This cannot be undone.',
+        { path: file.relativePath }
+      )
+    )
   ) {
     return
   }
   const result = await window.api.perforce.discard({ ...target, entries: [entry] })
   if (result.success) {
-    toast.success(`Reverted: ${file.relativePath}`)
+    toast.success(
+      translate('perforce.ui.revertedFile', 'Reverted: {{path}}', { path: file.relativePath })
+    )
   } else {
-    toast.error(result.error ?? 'Perforce command failed')
+    toast.error(
+      result.error ?? translate('perforce.ui.perforceCommandFailed', 'Perforce command failed')
+    )
   }
 }
 

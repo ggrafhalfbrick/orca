@@ -8,6 +8,7 @@ import type {
 import type { PerforceSettings } from '../../../../../shared/perforce/perforce-settings'
 import type { ChangelistActions } from './perforce-changelist-section'
 import type { PerforceTarget } from './use-perforce-status'
+import { translate } from '@/i18n/i18n'
 
 type Run = (
   operation: () => Promise<PerforceOperationResult>,
@@ -38,7 +39,12 @@ export function usePerforceChangelistActions({
     filePaths: string[]
   ): Promise<string | null> => {
     if (filePaths.length === 0) {
-      toast.error('Open files in this changelist first.')
+      toast.error(
+        translate(
+          'perforce.ui.openFilesInThisChangelistFirst',
+          'Open files in this changelist first.'
+        )
+      )
       return null
     }
     const result = await api.generateDescription({ ...target, changelist, filePaths })
@@ -57,7 +63,13 @@ export function usePerforceChangelistActions({
     if (settings.shelfAfterSubmit === 'keep-copy') {
       const created = await api.createChangelist({
         ...target,
-        description: `Shelf backup of changelist ${id}`,
+        description: translate(
+          'perforce.ui.shelfBackupDescription',
+          'Shelf backup of changelist {{id}}',
+          {
+            id
+          }
+        ),
         filePaths: []
       })
       if (!created.success || !created.changelist) {

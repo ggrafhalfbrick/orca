@@ -25,6 +25,7 @@ import type {
   PerforceChangelist,
   PerforceShelvedFile
 } from '../../../../../shared/perforce/perforce-types'
+import { translate } from '@/i18n/i18n'
 
 export type ChangelistActions = {
   busy: boolean
@@ -98,7 +99,7 @@ export function PerforceChangelistHeader({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  title="Edit description"
+                  title={translate('perforce.ui.editDescription', 'Edit description')}
                   disabled={busy}
                   onClick={() => {
                     setDraft(changelist.description)
@@ -110,7 +111,7 @@ export function PerforceChangelistHeader({
                 <Button
                   variant="ghost"
                   size="icon-xs"
-                  title="Shelve files"
+                  title={translate('perforce.ui.shelveFiles', 'Shelve files')}
                   disabled={busy || fileCount === 0}
                   onClick={actions.onShelve}
                 >
@@ -121,7 +122,7 @@ export function PerforceChangelistHeader({
                     <Button
                       variant="ghost"
                       size="icon-xs"
-                      title="Unshelve files"
+                      title={translate('perforce.ui.unshelveFiles', 'Unshelve files')}
                       disabled={busy}
                       onClick={actions.onUnshelve}
                     >
@@ -130,7 +131,7 @@ export function PerforceChangelistHeader({
                     <Button
                       variant="ghost"
                       size="icon-xs"
-                      title="Revert shelved files"
+                      title={translate('perforce.ui.revertShelvedFiles', 'Revert shelved files')}
                       disabled={busy}
                       onClick={actions.onDeleteShelf}
                     >
@@ -142,7 +143,10 @@ export function PerforceChangelistHeader({
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    title="Delete empty changelist"
+                    title={translate(
+                      'perforce.ui.deleteEmptyChangelist',
+                      'Delete empty changelist'
+                    )}
                     disabled={busy}
                     onClick={actions.onDelete}
                   >
@@ -154,10 +158,13 @@ export function PerforceChangelistHeader({
                   size="icon-xs"
                   title={
                     fileCount > 0 && shelved > 0
-                      ? 'Revert the shelved files first: Perforce cannot submit a changelist with both opened and shelved files'
+                      ? translate(
+                          'perforce.ui.revertTheShelvedFilesFirstPerforce',
+                          'Revert the shelved files first: Perforce cannot submit a changelist with both opened and shelved files'
+                        )
                       : shelved > 0
-                        ? 'Submit the shelved files'
-                        : 'Submit change'
+                        ? translate('perforce.ui.submitTheShelvedFiles', 'Submit the shelved files')
+                        : translate('perforce.ui.submitChange', 'Submit change')
                   }
                   disabled={
                     busy || (fileCount === 0 && shelved === 0) || (fileCount > 0 && shelved > 0)
@@ -172,9 +179,11 @@ export function PerforceChangelistHeader({
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
-          <ContextMenuItem onSelect={actions.onCopyNumber}>Copy changelist number</ContextMenuItem>
+          <ContextMenuItem onSelect={actions.onCopyNumber}>
+            {translate('perforce.ui.copyChangelistNumber', 'Copy changelist number')}
+          </ContextMenuItem>
           <ContextMenuItem disabled={busy} onSelect={actions.onDeleteWithFiles}>
-            Delete changelist
+            {translate('perforce.ui.deleteChangelist', 'Delete changelist')}
           </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
@@ -198,25 +207,32 @@ export function PerforceChangelistHeader({
                       void actions.onGenerateDescription().then((t) => t && setDraft(t))
                     }
                   >
-                    <Sparkles /> Generate
+                    <Sparkles /> {translate('perforce.ui.generate', 'Generate')}
                   </Button>
                 ) : null}
                 <Button variant="ghost" size="xs" onClick={() => setEditing(false)}>
-                  <X /> Cancel
+                  <X /> {translate('perforce.ui.cancel', 'Cancel')}
                 </Button>
                 <Button
                   size="xs"
                   disabled={busy || draft.trim().length === 0}
                   onClick={() => void save()}
                 >
-                  <Check /> Save
+                  <Check /> {translate('perforce.ui.save', 'Save')}
                 </Button>
               </div>
             </div>
           ) : null}
           <div className="mt-1 text-xs text-muted-foreground">
             <div>
-              Shelved: {shelved} · Opened: {fileCount}
+              {translate(
+                'perforce.ui.shelvedOpenedCounts',
+                'Shelved: {{shelved}} · Opened: {{opened}}',
+                {
+                  shelved,
+                  opened: fileCount
+                }
+              )}
             </div>
             {shelved > 0 ? (
               <div className="-mx-2 mt-0.5 max-h-32 overflow-y-auto scrollbar-sleek text-foreground">

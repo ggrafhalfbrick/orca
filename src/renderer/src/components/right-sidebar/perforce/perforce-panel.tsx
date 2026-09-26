@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useState } from 'react'
 import { FolderPlus, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -20,16 +20,14 @@ import { PerforceFileActions } from './perforce-file-actions'
 import { PerforceFileContextMenu } from './perforce-file-context-menu'
 import { PerforceFileRow } from './perforce-file-row'
 import { PerforcePanelHeader } from './perforce-panel-header'
+import { rowKey, usePerforceGroups } from './use-perforce-groups'
 import { usePerforceSelection } from './use-perforce-selection'
 import { usePerforceDescriptionTemplate } from './use-perforce-description-template'
 import { SectionHeader } from './perforce-section-header'
 import { usePerforceChangelistActions } from './use-perforce-changelist-actions'
 import { usePerforceSettings } from './use-perforce-settings'
 import { usePerforceStatus } from './use-perforce-status'
-
-function rowKey(entry: PerforceEntry): string {
-  return `${entry.group}:${entry.path}`
-}
+import { translate } from '@/i18n/i18n'
 
 export function PerforcePanel({
   worktreeId,
@@ -55,19 +53,7 @@ export function PerforcePanel({
   const api = window.api.perforce
   const template = usePerforceDescriptionTemplate(settings, status, setMessage)
 
-  const groups = useMemo(() => {
-    const entries = status?.entries ?? []
-    const opened = entries.filter((entry) => entry.group === 'opened')
-    return {
-      defaultList: opened.filter((entry) => entry.changelist === 'default'),
-      numbered: (status?.changelists ?? []).map((changelist) => ({
-        changelist,
-        files: opened.filter((entry) => entry.changelist === changelist.id)
-      })),
-      modified: entries.filter((entry) => entry.group === 'modified'),
-      fresh: entries.filter((entry) => entry.group === 'new')
-    }
-  }, [status])
+  const { groups, orderedKeys } = usePerforceGroups(status)
 
   const openEntryDiff = (entry: PerforceEntry): void => {
     openDiff(
@@ -122,17 +108,6 @@ export function PerforcePanel({
       void run(() => api.discard({ ...target, entries }))
     }
   }
-
-  const orderedKeys = useMemo(
-    () =>
-      [
-        ...groups.defaultList,
-        ...groups.numbered.flatMap(({ files }) => files),
-        ...groups.modified,
-        ...groups.fresh
-      ].map((entry) => rowKey(entry)),
-    [groups]
-  )
 
   const openedTargets = (clicked: PerforceEntry): PerforceEntry[] => {
     const picked = (status?.entries ?? []).filter(
@@ -195,7 +170,7 @@ export function PerforcePanel({
   if (!status) {
     return (
       <div className="flex h-full items-center justify-center px-4 text-center text-xs text-muted-foreground">
-        {error ?? 'Loading Perforce workspace…'}
+        {error ?? translate('perforce.ui.loadingPerforceWorkspace', 'Loading Perforce workspace…')}
       </div>
     )
   }
@@ -212,14 +187,23 @@ export function PerforcePanel({
     default:
       groups.defaultList.length > 0 ? (
         <>
-          <SectionHeader title="Default changelist" count={groups.defaultList.length}>
+          <SectionHeader
+            title={translate('perforce.ui.defaultChangelist', 'Default changelist')}
+            count={groups.defaultList.length}
+          >
             <Button
               variant="ghost"
               size="icon-xs"
               title={
                 settings.newChangelistMode === 'empty'
-                  ? 'Create an empty changelist (uses the description above)'
-                  : 'Move to a new changelist (uses the description above)'
+                  ? translate(
+                      'perforce.ui.createAnEmptyChangelistUsesThe',
+                      'Create an empty changelist (uses the description above)'
+                    )
+                  : translate(
+                      'perforce.ui.moveToANewChangelistUses',
+                      'Move to a new changelist (uses the description above)'
+                    )
               }
               disabled={busy || message.trim().length === 0}
               onClick={() =>
@@ -268,7 +252,10 @@ export function PerforcePanel({
     modified:
       groups.modified.length > 0 ? (
         <>
-          <SectionHeader title="Modified, not opened" count={groups.modified.length}>
+          <SectionHeader
+            title={translate('perforce.ui.modifiedNotOpened', 'Modified, not opened')}
+            count={groups.modified.length}
+          >
             <Button
               variant="ghost"
               size="xs"
@@ -277,7 +264,7 @@ export function PerforcePanel({
                 void run(() => api.open({ ...target, filePaths: paths(groups.modified) }))
               }
             >
-              Open all
+              {translate('perforce.ui.openAll', 'Open all')}
             </Button>
           </SectionHeader>
           {renderRows(groups.modified)}
@@ -286,7 +273,10 @@ export function PerforcePanel({
     new:
       groups.fresh.length > 0 ? (
         <>
-          <SectionHeader title="New files" count={groups.fresh.length}>
+          <SectionHeader
+            title={translate('perforce.ui.newFiles', 'New files')}
+            count={groups.fresh.length}
+          >
             <Button
               variant="ghost"
               size="xs"
@@ -295,7 +285,7 @@ export function PerforcePanel({
                 void run(() => api.open({ ...target, filePaths: paths(groups.fresh) }))
               }
             >
-              Add all
+              {translate('perforce.ui.addAll', 'Add all')}
             </Button>
           </SectionHeader>
           {renderRows(groups.fresh)}
@@ -317,7 +307,7 @@ export function PerforcePanel({
         <Textarea
           value={message}
           onChange={(event) => setMessage(event.target.value)}
-          placeholder="Changelist description"
+          placeholder={translate('perforce.ui.changelistDescription', 'Changelist description')}
           rows={3}
           className="min-h-0"
         />
@@ -332,13 +322,16 @@ export function PerforcePanel({
               }
             }}
           >
-            Submit Change
+            {translate('perforce.ui.submitChange2', 'Submit Change')}
           </Button>
           {settings.aiDescriptionEnabled ? (
             <Button
               size="icon-sm"
               variant="outline"
-              title="Generate description with AI"
+              title={translate(
+                'perforce.ui.generateDescriptionWithAi',
+                'Generate description with AI'
+              )}
               disabled={busy || groups.defaultList.length === 0}
               onClick={() =>
                 void generateDescription('default', paths(groups.defaultList)).then(
@@ -354,7 +347,7 @@ export function PerforcePanel({
       <div className="min-h-0 flex-1 overflow-y-auto pb-2 scrollbar-sleek">
         {nothingPending ? (
           <div className="px-4 py-6 text-center text-xs text-muted-foreground">
-            No pending changes
+            {translate('perforce.ui.noPendingChanges', 'No pending changes')}
           </div>
         ) : null}
         {perforceSectionOrder(settings.groupOrder).map((id) => (

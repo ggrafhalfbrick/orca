@@ -15,7 +15,7 @@ import {
 } from './SettingsFormControls'
 import { PerforceAiAgentFields } from './PerforceAiFields'
 import { PerforceConnectionTest } from './PerforceConnectionTest'
-import { CommitInput, TemplateField } from './perforce-settings-inputs'
+import { CommitInput, P4_PATH_PLACEHOLDER, TemplateField } from './perforce-settings-inputs'
 import { getPerforceSettingsCatalog, type PerforceSettingId } from './perforce-search'
 
 type PerforcePaneProps = {
@@ -67,8 +67,6 @@ export function PerforcePane({ settings, updateSettings }: PerforcePaneProps): R
       onChange={(next) => update({ [key]: next })}
     />
   )
-  const l = (key: string, fallback: string): string =>
-    translate(`perforce.settings.${key}`, fallback)
 
   return (
     <div className="space-y-4">
@@ -81,7 +79,7 @@ export function PerforcePane({ settings, updateSettings }: PerforcePaneProps): R
             <CommitInput
               value={perforce.p4Path}
               ariaLabel={text('p4-path').title}
-              placeholder="/usr/local/bin/p4"
+              placeholder={P4_PATH_PLACEHOLDER}
               className="w-72"
               onCommit={(p4Path) => update({ p4Path })}
             />
@@ -145,16 +143,19 @@ export function PerforcePane({ settings, updateSettings }: PerforcePaneProps): R
             perforce.commandTimeoutSeconds,
             'commandTimeoutSeconds',
             5,
-            l('timeouts.command', 'Command timeout'),
-            l('timeouts.commandDescription', 'Applies to ordinary p4 commands.')
+            translate('perforce.settings.timeouts.command', 'Command timeout'),
+            translate(
+              'perforce.settings.timeouts.commandDescription',
+              'Applies to ordinary p4 commands.'
+            )
           )}
           {secondsControl(
             perforce.statusScanTimeoutSeconds,
             'statusScanTimeoutSeconds',
             10,
-            l('timeouts.scan', 'Workspace scan timeout'),
-            l(
-              'timeouts.scanDescription',
+            translate('perforce.settings.timeouts.scan', 'Workspace scan timeout'),
+            translate(
+              'perforce.settings.timeouts.scanDescription',
               'Applies to the reconcile scan that finds unopened changes.'
             )
           )}
@@ -182,12 +183,18 @@ export function PerforcePane({ settings, updateSettings }: PerforcePaneProps): R
               size="sm"
               onChange={(groupOrder) => update({ groupOrder })}
               options={[
-                { value: 'default-first', label: l('group-order.defaultFirst', 'Default first') },
+                {
+                  value: 'default-first',
+                  label: translate('perforce.settings.group-order.defaultFirst', 'Default first')
+                },
                 {
                   value: 'numbered-first',
-                  label: l('group-order.numberedFirst', 'Numbered first')
+                  label: translate('perforce.settings.group-order.numberedFirst', 'Numbered first')
                 },
-                { value: 'unopened-first', label: l('group-order.unopenedFirst', 'Unopened first') }
+                {
+                  value: 'unopened-first',
+                  label: translate('perforce.settings.group-order.unopenedFirst', 'Unopened first')
+                }
               ]}
             />
           }
@@ -197,17 +204,20 @@ export function PerforcePane({ settings, updateSettings }: PerforcePaneProps): R
         'unopened-sections',
         <div>
           <SettingsSwitchRow
-            label={l('unopened.modified', 'Show "Modified, not opened"')}
-            description={l(
-              'unopened.modifiedDescription',
+            label={translate('perforce.settings.unopened.modified', 'Show "Modified, not opened"')}
+            description={translate(
+              'perforce.settings.unopened.modifiedDescription',
               'Files changed or deleted on disk that are not opened for edit.'
             )}
             checked={perforce.showModifiedNotOpened}
             onChange={() => update({ showModifiedNotOpened: !perforce.showModifiedNotOpened })}
           />
           <SettingsSwitchRow
-            label={l('unopened.new', 'Show "New files"')}
-            description={l('unopened.newDescription', 'Files on disk that are not in the depot.')}
+            label={translate('perforce.settings.unopened.new', 'Show "New files"')}
+            description={translate(
+              'perforce.settings.unopened.newDescription',
+              'Files on disk that are not in the depot.'
+            )}
             checked={perforce.showNewFiles}
             onChange={() => update({ showNewFiles: !perforce.showNewFiles })}
           />
@@ -240,8 +250,14 @@ export function PerforcePane({ settings, updateSettings }: PerforcePaneProps): R
               size="sm"
               onChange={(compareAgainst) => update({ compareAgainst })}
               options={[
-                { value: 'have', label: l('compare.have', 'Synced (#have)') },
-                { value: 'head', label: l('compare.head', 'Depot head (#head)') }
+                {
+                  value: 'have',
+                  label: translate('perforce.settings.compare.have', 'Synced (#have)')
+                },
+                {
+                  value: 'head',
+                  label: translate('perforce.settings.compare.head', 'Depot head (#head)')
+                }
               ]}
             />
           }
@@ -260,9 +276,12 @@ export function PerforcePane({ settings, updateSettings }: PerforcePaneProps): R
               size="sm"
               onChange={(saveReadOnlyBehavior) => update({ saveReadOnlyBehavior })}
               options={[
-                { value: 'ask', label: l('save.ask', 'Ask') },
-                { value: 'auto', label: l('save.auto', 'Open automatically') },
-                { value: 'never', label: l('save.never', 'Never') }
+                { value: 'ask', label: translate('perforce.settings.save.ask', 'Ask') },
+                {
+                  value: 'auto',
+                  label: translate('perforce.settings.save.auto', 'Open automatically')
+                },
+                { value: 'never', label: translate('perforce.settings.save.never', 'Never') }
               ]}
             />
           }
@@ -291,8 +310,11 @@ export function PerforcePane({ settings, updateSettings }: PerforcePaneProps): R
                 size="sm"
                 onChange={(newChangelistMode) => update({ newChangelistMode })}
                 options={[
-                  { value: 'move-selected', label: l('new.moveSelected', 'Move selected files') },
-                  { value: 'empty', label: l('new.empty', 'Start empty') }
+                  {
+                    value: 'move-selected',
+                    label: translate('perforce.settings.new.moveSelected', 'Move selected files')
+                  },
+                  { value: 'empty', label: translate('perforce.settings.new.empty', 'Start empty') }
                 ]}
               />
             }
@@ -309,13 +331,16 @@ export function PerforcePane({ settings, updateSettings }: PerforcePaneProps): R
         'submit-confirmation',
         <div>
           <SettingsSwitchRow
-            label={l('submit.confirm', 'Confirm before submitting')}
+            label={translate('perforce.settings.submit.confirm', 'Confirm before submitting')}
             description={text('submit-confirmation').description}
             checked={perforce.confirmSubmit}
             onChange={() => update({ confirmSubmit: !perforce.confirmSubmit })}
           />
           <SettingsSwitchRow
-            label={l('submit.confirmShelved', 'Confirm before submitting shelved files')}
+            label={translate(
+              'perforce.settings.submit.confirmShelved',
+              'Confirm before submitting shelved files'
+            )}
             checked={perforce.confirmShelvedOnlySubmit}
             onChange={() =>
               update({ confirmShelvedOnlySubmit: !perforce.confirmShelvedOnlySubmit })
@@ -347,8 +372,14 @@ export function PerforcePane({ settings, updateSettings }: PerforcePaneProps): R
               size="sm"
               onChange={(shelfAfterSubmit) => update({ shelfAfterSubmit })}
               options={[
-                { value: 'delete', label: l('shelf.delete', 'Delete shelf') },
-                { value: 'keep-copy', label: l('shelf.keepCopy', 'Keep a copy') }
+                {
+                  value: 'delete',
+                  label: translate('perforce.settings.shelf.delete', 'Delete shelf')
+                },
+                {
+                  value: 'keep-copy',
+                  label: translate('perforce.settings.shelf.keepCopy', 'Keep a copy')
+                }
               ]}
             />
           }

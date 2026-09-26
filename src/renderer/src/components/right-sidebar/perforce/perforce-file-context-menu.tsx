@@ -9,10 +9,12 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger
 } from '@/components/ui/context-menu'
+import { perforceChangelistLabel } from './perforce-changelist-label'
 import type {
   PerforceChangelist,
   PerforceEntry
 } from '../../../../../shared/perforce/perforce-types'
+import { translate } from '@/i18n/i18n'
 
 /** Right-click menu for checked-out files: move them between changelists or revert them. */
 export function PerforceFileContextMenu({
@@ -36,22 +38,32 @@ export function PerforceFileContextMenu({
   const everyTargetIn = (changelist: 'default' | number): boolean =>
     targets.every((entry) => entry.changelist === changelist)
   const destinations = [
-    ...(everyTargetIn('default') ? [] : [{ id: 'default' as const, label: 'Default changelist' }]),
+    ...(everyTargetIn('default')
+      ? []
+      : [
+          {
+            id: 'default' as const,
+            label: translate('perforce.ui.defaultChangelist', 'Default changelist')
+          }
+        ]),
     ...changelists
       .filter((changelist) => !everyTargetIn(changelist.id))
       .map((changelist) => ({
         id: changelist.id,
-        label: `Changelist ${changelist.id}${changelist.description ? ` · ${changelist.description.split('\n')[0]}` : ''}`
+        label: perforceChangelistLabel(changelist)
       }))
   ]
-  const noun = targets.length === 1 ? 'file' : `${targets.length} files`
+  const noun =
+    targets.length === 1
+      ? translate('perforce.ui.oneFile', 'file')
+      : translate('perforce.ui.manyFiles', '{{total}} files', { total: targets.length })
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
       <ContextMenuContent className="w-64">
         <ContextMenuSub>
           <ContextMenuSubTrigger disabled={destinations.length === 0}>
-            Move to existing changelist
+            {translate('perforce.ui.moveToExistingChangelist', 'Move to existing changelist')}
           </ContextMenuSubTrigger>
           <ContextMenuSubContent className="max-w-80">
             {destinations.map((destination) => (
@@ -66,16 +78,20 @@ export function PerforceFileContextMenu({
         </ContextMenuSub>
         <ContextMenuSeparator />
         <ContextMenuItem onSelect={onMoveToNewChangelist}>
-          Move {noun} to new changelist…
+          {translate('perforce.ui.moveFilesToNewChangelist', 'Move {{noun}} to new changelist…', {
+            noun
+          })}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem
           disabled={targets.some((entry) => entry.changelist === 'default')}
           onSelect={onShelveChanges}
         >
-          Shelf changes
+          {translate('perforce.ui.shelfChanges', 'Shelf changes')}
         </ContextMenuItem>
-        <ContextMenuItem onSelect={onRevert}>Revert changes</ContextMenuItem>
+        <ContextMenuItem onSelect={onRevert}>
+          {translate('perforce.ui.revertChanges', 'Revert changes')}
+        </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   )

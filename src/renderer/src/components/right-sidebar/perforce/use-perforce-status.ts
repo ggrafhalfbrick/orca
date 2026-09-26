@@ -5,6 +5,7 @@ import type {
   PerforceOperationResult,
   PerforceStatusResult
 } from '../../../../../shared/perforce/perforce-types'
+import { translate } from '@/i18n/i18n'
 
 export type PerforceTarget = { worktreePath: string; connectionId?: string }
 
@@ -47,7 +48,10 @@ export function usePerforceStatus(target: PerforceTarget, refreshIntervalSeconds
       try {
         const result = await operation()
         if (!result.success) {
-          toast.error(result.error ?? 'Perforce command failed')
+          toast.error(
+            result.error ??
+              translate('perforce.ui.perforceCommandFailed', 'Perforce command failed')
+          )
         } else if (successMessage) {
           toast.success(successMessage, result.output ? { description: result.output } : undefined)
         }

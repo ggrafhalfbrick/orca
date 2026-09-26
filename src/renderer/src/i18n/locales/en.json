@@ -13403,7 +13403,8 @@
             "fc3095d2ed": "explorer",
             "aiVaultSessionHistory": "Agents",
             "folderWorkspaces": "Attached worktrees",
-            "parentPrChecks": "PR Checks"
+            "parentPrChecks": "PR Checks",
+            "detectPerforce": "Detect Perforce workspace"
           },
           "right": {
             "panel": {
@@ -19265,5 +19266,191 @@
     "unavailable": "Unable to play this media file. The file may be unavailable or use an unsupported codec.",
     "openFailed": "Could not open this file in the default app.",
     "openDefault": "Open in Default App"
+  },
+  "perforce": {
+    "ui": {
+      "changelistNumber": "Changelist {{id}}",
+      "editDescription": "Edit description",
+      "shelveFiles": "Shelve files",
+      "unshelveFiles": "Unshelve files",
+      "revertShelvedFiles": "Revert shelved files",
+      "deleteEmptyChangelist": "Delete empty changelist",
+      "revertTheShelvedFilesFirstPerforce": "Revert the shelved files first: Perforce cannot submit a changelist with both opened and shelved files",
+      "submitTheShelvedFiles": "Submit the shelved files",
+      "submitChange": "Submit change",
+      "copyChangelistNumber": "Copy changelist number",
+      "deleteChangelist": "Delete changelist",
+      "generate": "Generate",
+      "cancel": "Cancel",
+      "save": "Save",
+      "shelvedOpenedCounts": "Shelved: {{shelved}} · Opened: {{opened}}",
+      "moveToNewChangelist": "Move to new changelist",
+      "newChangelistEmptyDescription": "An empty changelist will be created with this description.",
+      "newChangelistMoveOneDescription": "1 file will be moved into a new changelist with this description.",
+      "newChangelistMoveManyDescription": "{{total}} files will be moved into a new changelist with this description.",
+      "changelistDescription": "Changelist description",
+      "generating": "Generating…",
+      "generateWithAi": "Generate with AI",
+      "createChangelist": "Create changelist",
+      "unshelveChangelist": "Unshelve changelist",
+      "restoreTheShelvedFilesOfAny": "Restore the shelved files of any changelist, including one shelved by another user.",
+      "shelvedChangelistNumber": "Shelved changelist number",
+      "eG12345": "e.g. 12345",
+      "into": "Into",
+      "defaultChangelist": "Default changelist",
+      "unshelve": "Unshelve",
+      "markForAdd": "Mark for add",
+      "openForEdit": "Open for edit",
+      "revertChanges": "Revert changes",
+      "openedForEdit": "Opened for edit: {{path}}",
+      "perforceCommandFailed": "Perforce command failed",
+      "noChangesToRevert": "No changes to revert in {{path}}",
+      "revertFileConfirm": "Revert changes to {{path}}? This cannot be undone.",
+      "revertedFile": "Reverted: {{path}}",
+      "oneFile": "file",
+      "manyFiles": "{{total}} files",
+      "moveToExistingChangelist": "Move to existing changelist",
+      "shelfChanges": "Shelf changes",
+      "unshelveAChangelist": "Unshelve a changelist…",
+      "refresh": "Refresh",
+      "getLatestRevisionsP4Sync": "Get latest revisions (p4 sync)",
+      "loadingPerforceWorkspace": "Loading Perforce workspace…",
+      "createAnEmptyChangelistUsesThe": "Create an empty changelist (uses the description above)",
+      "moveToANewChangelistUses": "Move to a new changelist (uses the description above)",
+      "modifiedNotOpened": "Modified, not opened",
+      "openAll": "Open all",
+      "newFiles": "New files",
+      "addAll": "Add all",
+      "submitChange2": "Submit Change",
+      "generateDescriptionWithAi": "Generate description with AI",
+      "noPendingChanges": "No pending changes",
+      "openShelvedFile": "Open shelved file",
+      "unshelveFile": "Unshelve file",
+      "openFilesInThisChangelistFirst": "Open files in this changelist first.",
+      "shelfBackupDescription": "Shelf backup of changelist {{id}}",
+      "moveFilesToNewChangelist": "Move {{noun}} to new changelist…"
+    },
+    "settings": {
+      "test-connection": {
+        "button": "Test connection",
+        "noWorkspace": "Open a workspace to test its connection.",
+        "title": "Test Connection",
+        "description": "Run p4 info for the current workspace to check the server, user, and client."
+      },
+      "new": {
+        "template": "Description template",
+        "templatePlaceholder": "Description template, e.g. [{user}] ",
+        "moveSelected": "Move selected files",
+        "empty": "Start empty"
+      },
+      "ai": {
+        "instructions": "Instructions",
+        "instructionsPlaceholder": "Extra instructions for the description, e.g. \"Start with the ticket id.\"",
+        "agent": "Agent",
+        "agentDescription": "Runs independently of the Git commit-message agent.",
+        "defaultAgent": "App default agent",
+        "customCommand": "Custom command",
+        "model": "Model",
+        "defaultModel": "Default model",
+        "thinking": "Thinking level",
+        "defaultThinking": "Default",
+        "command": "Command",
+        "args": "Extra CLI arguments",
+        "modelDescription": "Model id passed to the agent. Leave empty for its default.",
+        "commandDescription": "Shell command that reads the prompt and prints the description."
+      },
+      "navTitle": "Perforce",
+      "navDescription": "Connection, Source Control behavior, changelists, and shelves.",
+      "timeouts": {
+        "command": "Command timeout",
+        "commandDescription": "Applies to ordinary p4 commands.",
+        "scan": "Workspace scan timeout",
+        "title": "Command Timeouts",
+        "description": "How long ordinary p4 commands and the workspace scan behind Source Control may run before Orca gives up.",
+        "scanDescription": "Applies to the reconcile scan that finds unopened changes."
+      },
+      "group-order": {
+        "defaultFirst": "Default first",
+        "numberedFirst": "Numbered first",
+        "unopenedFirst": "Unopened first",
+        "title": "Source Control Group Order",
+        "description": "Choose which Perforce section appears first: default changelist, numbered changelists, or unopened files."
+      },
+      "unopened": {
+        "modified": "Show \"Modified, not opened\"",
+        "new": "Show \"New files\"",
+        "newDescription": "Files on disk that are not in the depot.",
+        "modifiedDescription": "Files changed or deleted on disk that are not opened for edit."
+      },
+      "compare": {
+        "have": "Synced (#have)",
+        "head": "Depot head (#head)"
+      },
+      "save": {
+        "ask": "Ask",
+        "auto": "Open automatically",
+        "never": "Never"
+      },
+      "submit": {
+        "confirm": "Confirm before submitting",
+        "confirmShelved": "Confirm before submitting shelved files"
+      },
+      "shelf": {
+        "delete": "Delete shelf",
+        "keepCopy": "Keep a copy"
+      },
+      "p4-path": {
+        "title": "p4 Executable",
+        "description": "Path to the p4 command-line client. Leave empty to find it automatically."
+      },
+      "p4-environment": {
+        "title": "Connection Overrides",
+        "description": "Set P4PORT, P4USER, P4CLIENT, or P4CONFIG when they are not provided by p4 set or a P4CONFIG file. Empty fields are left alone. Applies to local and SSH workspaces."
+      },
+      "p4-ignore": {
+        "title": "Ignore File",
+        "description": "Use an ignore file (P4IGNORE) so ignored files do not appear under New files."
+      },
+      "unopened-sections": {
+        "title": "Unopened File Sections",
+        "description": "Show files modified on disk but not opened, and new files. Turning both off skips the slow reconcile scan."
+      },
+      "refresh-interval": {
+        "title": "Auto-refresh",
+        "description": "How often Source Control and tab markers re-read the workspace. Turn off to refresh manually."
+      },
+      "compare-against": {
+        "title": "Compare Against",
+        "description": "Diff files against the revision you last synced (#have) or the latest depot revision (#head)."
+      },
+      "save-read-only": {
+        "title": "Saving Files Not Opened for Edit",
+        "description": "What happens when you save a read-only workspace file: ask first, open it for edit automatically, or never."
+      },
+      "edited-tab-prefix": {
+        "title": "Edited Tab Marker",
+        "description": "Show an E before the name of editor tabs for files opened for edit."
+      },
+      "new-changelist": {
+        "title": "New Changelists",
+        "description": "Description template for new changelists ({user} and {client} are replaced), and whether a new changelist starts empty or takes the selected files."
+      },
+      "submit-confirmation": {
+        "title": "Submit Confirmation",
+        "description": "Ask before submitting a changelist. Submitting a shelved-only changelist unshelves it first, so that has its own prompt."
+      },
+      "destructive-confirmation": {
+        "title": "Confirm Destructive Actions",
+        "description": "Ask before reverting files, reverting shelved files, or deleting a changelist."
+      },
+      "shelf-after-submit": {
+        "title": "Shelf After Submit",
+        "description": "Perforce cannot submit a changelist that still has a shelf. Choose whether the shelf is deleted or first copied into a new shelved changelist."
+      },
+      "ai-description": {
+        "title": "AI Changelist Descriptions",
+        "description": "Show a button that drafts a changelist description from its diff, with its own agent, model, and instructions (separate from Git)."
+      }
+    }
   }
 }

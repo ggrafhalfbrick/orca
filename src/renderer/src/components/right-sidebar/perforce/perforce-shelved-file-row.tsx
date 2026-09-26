@@ -5,6 +5,7 @@ import {
   ContextMenuTrigger
 } from '@/components/ui/context-menu'
 import type { PerforceShelvedFile } from '../../../../../shared/perforce/perforce-types'
+import { translate } from '@/i18n/i18n'
 
 /** Shelved file row: click diffs it against the workspace; right-click opens it without a diff. */
 export function PerforceShelvedFileRow({
@@ -42,9 +43,11 @@ export function PerforceShelvedFileRow({
       </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem disabled={!mapped} onSelect={onOpen}>
-          Open shelved file
+          {translate('perforce.ui.openShelvedFile', 'Open shelved file')}
         </ContextMenuItem>
-        <ContextMenuItem onSelect={onUnshelve}>Unshelve file</ContextMenuItem>
+        <ContextMenuItem onSelect={onUnshelve}>
+          {translate('perforce.ui.unshelveFile', 'Unshelve file')}
+        </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   )

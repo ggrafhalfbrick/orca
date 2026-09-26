@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Sparkles } from 'lucide-react'
+import { perforceChangelistLabel } from './perforce-changelist-label'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -20,6 +21,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { PerforceChangelist } from '../../../../../shared/perforce/perforce-types'
+import { translate } from '@/i18n/i18n'
 
 /** Asks for a changelist description; nothing is created until it is confirmed and accepted. */
 export function NewChangelistDialog({
@@ -71,18 +73,32 @@ export function NewChangelistDialog({
         }}
       >
         <DialogHeader>
-          <DialogTitle>Move to new changelist</DialogTitle>
+          <DialogTitle>
+            {translate('perforce.ui.moveToNewChangelist', 'Move to new changelist')}
+          </DialogTitle>
           <DialogDescription>
             {fileCount === 0
-              ? 'An empty changelist will be created with this description.'
-              : `${fileCount === 1 ? '1 file' : `${fileCount} files`} will be moved into a new changelist with this description.`}
+              ? translate(
+                  'perforce.ui.newChangelistEmptyDescription',
+                  'An empty changelist will be created with this description.'
+                )
+              : fileCount === 1
+                ? translate(
+                    'perforce.ui.newChangelistMoveOneDescription',
+                    '1 file will be moved into a new changelist with this description.'
+                  )
+                : translate(
+                    'perforce.ui.newChangelistMoveManyDescription',
+                    '{{total}} files will be moved into a new changelist with this description.',
+                    { total: fileCount }
+                  )}
           </DialogDescription>
         </DialogHeader>
         <Textarea
           ref={textareaRef}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
-          placeholder="Changelist description"
+          placeholder={translate('perforce.ui.changelistDescription', 'Changelist description')}
           rows={4}
         />
         <DialogFooter>
@@ -93,17 +109,20 @@ export function NewChangelistDialog({
               disabled={pending || generating}
               onClick={() => void generate()}
             >
-              <Sparkles /> {generating ? 'Generating…' : 'Generate with AI'}
+              <Sparkles />{' '}
+              {generating
+                ? translate('perforce.ui.generating', 'Generating…')
+                : translate('perforce.ui.generateWithAi', 'Generate with AI')}
             </Button>
           ) : null}
           <Button variant="ghost" onClick={onCancel}>
-            Cancel
+            {translate('perforce.ui.cancel', 'Cancel')}
           </Button>
           <Button
             disabled={pending || generating || description.trim().length === 0}
             onClick={() => void submit()}
           >
-            Create changelist
+            {translate('perforce.ui.createChangelist', 'Create changelist')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -138,33 +157,42 @@ export function UnshelveDialog({
     <Dialog open onOpenChange={(open) => !open && onCancel()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Unshelve changelist</DialogTitle>
+          <DialogTitle>
+            {translate('perforce.ui.unshelveChangelist', 'Unshelve changelist')}
+          </DialogTitle>
           <DialogDescription>
-            Restore the shelved files of any changelist, including one shelved by another user.
+            {translate(
+              'perforce.ui.restoreTheShelvedFilesOfAny',
+              'Restore the shelved files of any changelist, including one shelved by another user.'
+            )}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="p4-unshelve-source">Shelved changelist number</Label>
+          <Label htmlFor="p4-unshelve-source">
+            {translate('perforce.ui.shelvedChangelistNumber', 'Shelved changelist number')}
+          </Label>
           <Input
             id="p4-unshelve-source"
             autoFocus
             inputMode="numeric"
             value={source}
             onChange={(event) => setSource(event.target.value.trim())}
-            placeholder="e.g. 12345"
+            placeholder={translate('perforce.ui.eG12345', 'e.g. 12345')}
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="p4-unshelve-target">Into</Label>
+          <Label htmlFor="p4-unshelve-target">{translate('perforce.ui.into', 'Into')}</Label>
           <Select value={target} onValueChange={setTarget}>
             <SelectTrigger id="p4-unshelve-target" className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="default">Default changelist</SelectItem>
+              <SelectItem value="default">
+                {translate('perforce.ui.defaultChangelist', 'Default changelist')}
+              </SelectItem>
               {changelists.map((changelist) => (
                 <SelectItem key={changelist.id} value={String(changelist.id)}>
-                  {`Changelist ${changelist.id}${changelist.description ? ` · ${changelist.description.split('\n')[0]}` : ''}`}
+                  {perforceChangelistLabel(changelist)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -172,10 +200,10 @@ export function UnshelveDialog({
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onCancel}>
-            Cancel
+            {translate('perforce.ui.cancel', 'Cancel')}
           </Button>
           <Button disabled={pending || !valid} onClick={() => void submit()}>
-            Unshelve
+            {translate('perforce.ui.unshelve', 'Unshelve')}
           </Button>
         </DialogFooter>
       </DialogContent>
