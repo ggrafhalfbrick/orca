@@ -20,6 +20,7 @@ import { translate } from '@/i18n/i18n'
 export function PerforceFileContextMenu({
   targets,
   changelists,
+  onOpen,
   onMoveToChangelist,
   onMoveToNewChangelist,
   onRevert,
@@ -29,6 +30,7 @@ export function PerforceFileContextMenu({
   /** Opened files the menu acts on (the selection, or the clicked row). */
   targets: PerforceEntry[]
   changelists: PerforceChangelist[]
+  onOpen: () => void
   onMoveToChangelist: (changelist: 'default' | number) => void
   onMoveToNewChangelist: () => void
   onRevert: () => void
@@ -81,6 +83,10 @@ export function PerforceFileContextMenu({
           {translate('perforce.ui.moveFilesToNewChangelist', 'Move {{noun}} to new changelist…', {
             noun
           })}
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={onOpen}>
+          {translate('perforce.ui.openFile', 'Open file')}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem

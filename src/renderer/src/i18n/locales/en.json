@@ -19298,6 +19298,7 @@
       "eG12345": "e.g. 12345",
       "into": "Into",
       "defaultChangelist": "Default changelist",
+      "newChangelist": "New changelist",
       "unshelve": "Unshelve",
       "markForAdd": "Mark for add",
       "openForEdit": "Open for edit",
@@ -19328,7 +19329,8 @@
       "unshelveFile": "Unshelve file",
       "openFilesInThisChangelistFirst": "Open files in this changelist first.",
       "shelfBackupDescription": "Shelf backup of changelist {{id}}",
-      "moveFilesToNewChangelist": "Move {{noun}} to new changelist…"
+      "moveFilesToNewChangelist": "Move {{noun}} to new changelist…",
+      "openFile": "Open file"
     },
     "settings": {
       "test-connection": {

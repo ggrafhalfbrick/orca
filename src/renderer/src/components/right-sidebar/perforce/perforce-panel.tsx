@@ -45,6 +45,7 @@ export function PerforcePanel({
     settings.refreshIntervalSeconds
   )
   const openDiff = useAppStore((s) => s.openDiff)
+  const openFile = useAppStore((s) => s.openFile)
   const [message, setMessage] = useState('')
   const [newChangelistPaths, setNewChangelistPaths] = useState<string[] | null>(null)
   const [unshelveOpen, setUnshelveOpen] = useState(false)
@@ -82,13 +83,8 @@ export function PerforcePanel({
     )
   }
   const paths = (entries: PerforceEntry[]): string[] => entries.map((entry) => entry.path)
-  const { ask, generateDescription, shelveChanges, buildActions } = usePerforceChangelistActions({
-    target,
-    run,
-    busy,
-    settings,
-    openShelvedFile
-  })
+  const { ask, generateDescription, shelveChanges, buildActions, unshelve, unshelveIntoNew } =
+    usePerforceChangelistActions({ target, run, busy, settings, openShelvedFile })
 
   const submitDefault = async (): Promise<void> => {
     const ok = await run(
@@ -149,6 +145,15 @@ export function PerforcePanel({
           key={rowKey(entry)}
           targets={targets}
           changelists={status?.changelists ?? []}
+          onOpen={() =>
+            openFile({
+              filePath: joinPath(worktreePath, entry.path),
+              relativePath: entry.path,
+              worktreeId,
+              language: detectLanguage(entry.path),
+              mode: 'edit'
+            })
+          }
           onMoveToChangelist={(changelist) =>
             void run(() =>
               api.moveToChangelist({
@@ -381,17 +386,8 @@ export function PerforcePanel({
         <UnshelveDialog
           changelists={status.changelists}
           onCancel={() => setUnshelveOpen(false)}
-          onUnshelve={(source, changelist) =>
-            run(
-              () =>
-                api.unshelveFrom({
-                  ...target,
-                  sourceChangelist: source,
-                  changelist
-                }),
-              `Unshelved changelist ${source}`
-            )
-          }
+          onUnshelve={unshelve}
+          onUnshelveIntoNew={unshelveIntoNew}
         />
       ) : null}
     </div>

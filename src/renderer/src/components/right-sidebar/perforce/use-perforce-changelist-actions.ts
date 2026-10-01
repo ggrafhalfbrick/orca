@@ -215,5 +215,28 @@ export function usePerforceChangelistActions({
       )
   })
 
-  return { ask, generateDescription, shelveChanges, buildActions }
+  const unshelve = (source: number, changelist: 'default' | number): Promise<boolean> =>
+    run(
+      () => api.unshelveFrom({ ...target, sourceChangelist: source, changelist }),
+      `Unshelved changelist ${source}`
+    )
+
+  const unshelveIntoNew = async (source: number, description: string): Promise<boolean> => {
+    let newCl: number | undefined
+    const created = await run(() =>
+      api.createChangelist({ ...target, description, filePaths: [] }).then((r) => {
+        newCl = r.changelist
+        return r
+      })
+    )
+    if (!created || newCl == null) {
+      return false
+    }
+    return run(
+      () => api.unshelveFrom({ ...target, sourceChangelist: source, changelist: newCl! }),
+      `Unshelved changelist ${source}`
+    )
+  }
+
+  return { ask, generateDescription, shelveChanges, buildActions, unshelve, unshelveIntoNew }
 }

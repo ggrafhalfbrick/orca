@@ -130,24 +130,34 @@ export function NewChangelistDialog({
   )
 }
 
-/** Unshelves a shelf by changelist number (own or another user's) into the default or an existing changelist. */
+/** Unshelves a shelf by changelist number (own or another user's) into the default, existing, or new changelist. */
 export function UnshelveDialog({
   changelists,
   onCancel,
-  onUnshelve
+  onUnshelve,
+  onUnshelveIntoNew
 }: {
   changelists: PerforceChangelist[]
   onCancel: () => void
   onUnshelve: (source: number, target: 'default' | number) => Promise<boolean>
+  onUnshelveIntoNew: (source: number, description: string) => Promise<boolean>
 }) {
   const [source, setSource] = useState('')
-  const [target, setTarget] = useState('default')
+  const [target, setTarget] = useState('new')
   const [pending, setPending] = useState(false)
   const sourceId = Number(source)
   const valid = Number.isInteger(sourceId) && sourceId > 0
+  const buildNewDescription = (): string => {
+    const sourceCl = changelists.find((cl) => cl.id === sourceId)
+    const firstLine = sourceCl?.description.split('\n')[0] ?? ''
+    return firstLine ? `Unshelved from ${sourceId}: ${firstLine}` : `Unshelved from ${sourceId}`
+  }
   const submit = async (): Promise<void> => {
     setPending(true)
-    const ok = await onUnshelve(sourceId, target === 'default' ? 'default' : Number(target))
+    const ok =
+      target === 'new'
+        ? await onUnshelveIntoNew(sourceId, buildNewDescription())
+        : await onUnshelve(sourceId, target === 'default' ? 'default' : Number(target))
     setPending(false)
     if (ok) {
       onCancel()
@@ -187,6 +197,9 @@ export function UnshelveDialog({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="new">
+                {translate('perforce.ui.newChangelist', 'New changelist')}
+              </SelectItem>
               <SelectItem value="default">
                 {translate('perforce.ui.defaultChangelist', 'Default changelist')}
               </SelectItem>

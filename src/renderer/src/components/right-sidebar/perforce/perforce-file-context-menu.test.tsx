@@ -53,11 +53,13 @@ const changelist = (id: number, description: string): PerforceChangelist => ({
 function render(targets: PerforceEntry[], changelists: PerforceChangelist[]) {
   const onMove = vi.fn()
   const onNew = vi.fn()
+  const onOpen = vi.fn()
   const onRevert = vi.fn()
   const markup = renderToStaticMarkup(
     <PerforceFileContextMenu
       targets={targets}
       changelists={changelists}
+      onOpen={onOpen}
       onMoveToChangelist={onMove}
       onMoveToNewChangelist={onNew}
       onRevert={onRevert}
@@ -66,7 +68,7 @@ function render(targets: PerforceEntry[], changelists: PerforceChangelist[]) {
       <div>row</div>
     </PerforceFileContextMenu>
   )
-  return { markup, onMove, onNew, onRevert }
+  return { markup, onMove, onNew, onOpen, onRevert }
 }
 
 describe('PerforceFileContextMenu', () => {
@@ -105,8 +107,14 @@ describe('PerforceFileContextMenu', () => {
 
   it('reports the new-changelist choice', () => {
     const { onNew } = render([entry('a.txt', 'default')], [])
-    captured.items.at(-3)?.onSelect?.()
+    captured.items.at(-4)?.onSelect?.()
     expect(onNew).toHaveBeenCalledTimes(1)
+  })
+
+  it('reports the open-file choice', () => {
+    const { onOpen } = render([entry('a.txt', 'default')], [])
+    captured.items.at(-3)?.onSelect?.()
+    expect(onOpen).toHaveBeenCalledTimes(1)
   })
 
   it('reports the revert choice', () => {
