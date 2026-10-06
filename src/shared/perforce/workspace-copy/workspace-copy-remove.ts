@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { WorkspaceCopyError } from './workspace-copy-errors'
 import type { WorkspaceCopyHost } from './workspace-copy-host'
 import { withSourceLock } from './workspace-copy-lock'
+import { holdWorkspaceScansUnder } from '../perforce-workspace-scan'
 import { assertCopyName } from './workspace-copy-names'
 import { p4OrThrow } from './workspace-copy-p4'
 import { processesUnder } from './workspace-copy-processes'
@@ -110,49 +111,64 @@ export async function removeWorkspaceCopy(
     if (refusal) {
       throw new WorkspaceCopyError('refused', refusal)
     }
-    const aside = await moveFolderAside(host, plan)
-    let perforce: { deletedChanges: number[]; deletedShelves: number[] } = {
-      deletedChanges: [],
-      deletedShelves: []
-    }
-    if (plan.clientExists) {
-      try {
-        perforce = await cleanUpPerforce(host, plan, options)
-      } catch (error) {
-        const restored = aside
-          ? await rename(aside, plan.copyRoot).then(
-              () => true,
-              () => false
-            )
-          : true
-        const where = restored ? 'The folder was left in place.' : `The folder is at ${aside}.`
-        const message = error instanceof Error ? error.message : String(error)
-        throw new WorkspaceCopyError('perforce', `${message} ${where}`)
-      }
-    }
-    await rm(plan.markerPath, { force: true })
-    const { streamDeleted, note } = await disposeChildStream(host, plan)
-    if (aside) {
-      const deletion = host.removeTree(aside)
-      if (completion.awaitFolderDeletion) {
-        await deletion
-      } else {
-        // Leftovers are retried by the next listing.
-        deletion.catch(() => {})
-      }
-    }
-    return {
-      name,
-      client: plan.client,
-      clientDeleted: plan.clientExists,
-      folderDeleted: aside !== null,
-      revertedFiles: plan.openFiles.count,
-      deletedChanges: perforce.deletedChanges,
-      deletedShelves: perforce.deletedShelves,
-      streamDeleted,
-      note
+    // Why: the Source Control panel's scan runs inside the copy and would keep it open.
+    const releaseScans = await holdWorkspaceScansUnder(plan.copyRoot)
+    try {
+      return await removeHeldCopy(host, plan, options, completion)
+    } finally {
+      releaseScans()
     }
   })
+}
+
+async function removeHeldCopy(
+  host: WorkspaceCopyHost,
+  plan: RemovalPlan,
+  options: WorkspaceCopyRemovalOptions,
+  completion: { awaitFolderDeletion?: boolean }
+): Promise<WorkspaceCopyRemovalResult> {
+  const aside = await moveFolderAside(host, plan)
+  let perforce: { deletedChanges: number[]; deletedShelves: number[] } = {
+    deletedChanges: [],
+    deletedShelves: []
+  }
+  if (plan.clientExists) {
+    try {
+      perforce = await cleanUpPerforce(host, plan, options)
+    } catch (error) {
+      const restored = aside
+        ? await rename(aside, plan.copyRoot).then(
+            () => true,
+            () => false
+          )
+        : true
+      const where = restored ? 'The folder was left in place.' : `The folder is at ${aside}.`
+      const message = error instanceof Error ? error.message : String(error)
+      throw new WorkspaceCopyError('perforce', `${message} ${where}`)
+    }
+  }
+  await rm(plan.markerPath, { force: true })
+  const { streamDeleted, note } = await disposeChildStream(host, plan)
+  if (aside) {
+    const deletion = host.removeTree(aside)
+    if (completion.awaitFolderDeletion) {
+      await deletion
+    } else {
+      // Leftovers are retried by the next listing.
+      deletion.catch(() => {})
+    }
+  }
+  return {
+    name: plan.name,
+    client: plan.client,
+    clientDeleted: plan.clientExists,
+    folderDeleted: aside !== null,
+    revertedFiles: plan.openFiles.count,
+    deletedChanges: perforce.deletedChanges,
+    deletedShelves: perforce.deletedShelves,
+    streamDeleted,
+    note
+  }
 }
 
 async function disposeChildStream(

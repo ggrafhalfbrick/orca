@@ -38,6 +38,7 @@ import type {
   PerforceOperationResult,
   PerforceStatusResult
 } from './perforce-types'
+import { invalidateWorkspaceScan } from './perforce-workspace-scan'
 
 type Cwd = string
 type Files = readonly string[]
@@ -96,32 +97,46 @@ export type PerforceBackend = {
   info: (cwd: Cwd) => ReturnType<typeof getPerforceInfo>
 }
 
+/** The operation changes which files are opened or what is on disk: the next status rescans. */
+function rescansAfter<A extends unknown[], R>(
+  operation: (cwd: Cwd, ...args: A) => Promise<R>
+): (cwd: Cwd, ...args: A) => Promise<R> {
+  return async (cwd, ...args) => {
+    try {
+      return await operation(cwd, ...args)
+    } finally {
+      invalidateWorkspaceScan(cwd)
+    }
+  }
+}
+
 export const localPerforceBackend: PerforceBackend = {
   detect: detectPerforceWorkspace,
   status: getPerforceStatus,
   history: getPerforceHistory,
   diff: getPerforceDiff,
-  open: (cwd, filePaths) => reconcileFiles(cwd, filePaths),
-  close: closeFilesKeepingContent,
-  edit: editFiles,
-  discard: discardFiles,
-  submit: (cwd, changelist, message) =>
+  open: rescansAfter((cwd, filePaths: Files) => reconcileFiles(cwd, filePaths)),
+  close: rescansAfter(closeFilesKeepingContent),
+  edit: rescansAfter(editFiles),
+  discard: rescansAfter(discardFiles),
+  submit: rescansAfter((cwd, changelist: Target, message?: string) =>
     changelist === 'default'
       ? submitDefaultChangelist(cwd, message ?? '')
-      : submitChangelist(cwd, changelist),
-  sync: syncLatest,
+      : submitChangelist(cwd, changelist)
+  ),
+  sync: rescansAfter(syncLatest),
   shelve: shelveChangelist,
-  unshelve: unshelveChangelist,
+  unshelve: rescansAfter(unshelveChangelist),
   deleteShelf,
-  unshelveFiles,
-  shelveAndRevertFiles,
-  unshelveFrom,
+  unshelveFiles: rescansAfter(unshelveFiles),
+  shelveAndRevertFiles: rescansAfter(shelveAndRevertFiles),
+  unshelveFrom: rescansAfter(unshelveFrom),
   createChangelist: createChangelistWithFiles,
   editDescription: editChangelistDescription,
   moveToChangelist: moveFilesToChangelist,
   deleteChangelist: deleteEmptyChangelist,
-  deleteChangelistWithFiles,
-  checkoutIfReadOnly,
+  deleteChangelistWithFiles: rescansAfter(deleteChangelistWithFiles),
+  checkoutIfReadOnly: rescansAfter(checkoutIfReadOnly),
   isReadOnlyFile: isReadOnlyWorkspaceFile,
   diffText: getPerforceDiffText,
   info: getPerforceInfo

@@ -26,6 +26,13 @@ Orca can drive a Perforce (Helix Core) client workspace from the Source Control 
 Row actions: click to diff against `#have`; **Open** runs `p4 reconcile` (add/edit/delete as the disk dictates);
 **Revert changes** reverts opened files, force-syncs modified ones, and deletes new ones. The header has Refresh and Get Latest (`p4 sync`).
 
+The two unopened sections come from one `p4 reconcile -n -a -e -m -d` scan (`perforce-workspace-scan.ts`). Even a
+preview takes the client's write lock and costs a server round trip per file (about 1.5 minutes for a large Unity
+project), so scans of a folder never overlap, the next one waits three times as long as the last took, and status
+answers from the last scan in between. Orca's own opens, reverts, submits and syncs make the next status rescan. `-m`
+skips the digest of files whose modification time matches the have list; in a workspace copy, whose have list comes
+from `p4 flush`, it rarely can. Deleting a copy stops scans inside it first.
+
 Selection: Cmd/Ctrl-click toggles a row, Shift-click selects a range. Right-clicking a checked-out file (or the
 selection) offers **Move to existing changelist** (a list of the other pending changelists, plus Default) and
 **Move to new changelist…**, which asks for a description first and only then creates the changelist and moves the

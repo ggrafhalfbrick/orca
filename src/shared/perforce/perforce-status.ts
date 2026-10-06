@@ -15,6 +15,7 @@ import { currentPerforceSettings } from './p4-settings-context'
 import { parseShelvedDiffPath } from './perforce-shelved-paths'
 import { parseTaggedOutput } from './p4-tagged-output'
 import { detectPerforceWorkspace, toPosix } from './perforce-detection'
+import { HELD_SCAN_MESSAGE, isWorkspaceScanHeld, scanWorkspace } from './perforce-workspace-scan'
 
 const MAX_TEXT_DIFF_BYTES = 5 * 1024 * 1024
 
@@ -171,18 +172,26 @@ async function runReconcilePreview(cwd: string): Promise<P4CommandResult> {
   const settings = currentPerforceSettings()
   const flags = [
     ...(settings.showNewFiles ? ['-a'] : []),
-    ...(settings.showModifiedNotOpened ? ['-e', '-d'] : [])
+    // -m: skip the digest of files whose modification time matches the have list.
+    ...(settings.showModifiedNotOpened ? ['-e', '-m', '-d'] : [])
   ]
   if (flags.length === 0) {
     return { code: 0, stdout: '', stderr: '' }
   }
-  return runP4(['-ztag', 'reconcile', '-n', ...flags, '...'], {
-    cwd,
-    timeoutMs: settings.statusScanTimeoutSeconds * 1000
-  })
+  return scanWorkspace(cwd, settings.refreshIntervalSeconds * 500, (signal) =>
+    runP4(['-ztag', 'reconcile', '-n', ...flags, '...'], {
+      cwd,
+      signal,
+      timeoutMs: settings.statusScanTimeoutSeconds * 1000
+    })
+  )
 }
 
 export async function getPerforceStatus(cwd: string): Promise<PerforceStatusResult> {
+  // Why first: every p4 below runs in the folder, and a copy being deleted must not be held open.
+  if (isWorkspaceScanHeld(cwd)) {
+    throw new Error(HELD_SCAN_MESSAGE)
+  }
   const detected = await detectPerforceWorkspace(cwd)
   if (!detected.isWorkspace) {
     throw new Error(detected.message ?? 'Not a Perforce workspace')

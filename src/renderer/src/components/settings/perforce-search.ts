@@ -101,7 +101,7 @@ export const getPerforceSettingsCatalog = createLocalizedCatalog((): PerforceCat
     translate('perforce.settings.refresh-interval.title', 'Auto-refresh'),
     translate(
       'perforce.settings.refresh-interval.description',
-      'How often Source Control and tab markers re-read the workspace. Turn off to refresh manually.'
+      'How often Source Control and tab markers re-read the workspace. The scan for unopened files then rests three times as long as it took, so a large workspace is scanned less often. Turn off to refresh manually.'
     ),
     ['perforce', 'refresh', 'poll', 'interval', 'auto refresh']
   ),
