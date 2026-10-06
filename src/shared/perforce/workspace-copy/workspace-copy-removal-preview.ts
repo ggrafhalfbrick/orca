@@ -11,6 +11,7 @@ import {
   unescapeP4Path
 } from './workspace-copy-p4'
 import { processesUnder } from './workspace-copy-processes'
+import { isCopyOwnStream } from './workspace-copy-stream-choice'
 import {
   isPathUnder,
   normalizePath,
@@ -69,7 +70,7 @@ export async function planWorkspaceCopyRemoval(
   }
   const stream = record?.Stream || null
   let childStream: WorkspaceCopyRemovalPreview['childStream'] = null
-  if (stream && stream.toLowerCase() === names.childStream?.toLowerCase()) {
+  if (stream && isCopyOwnStream(stream, name)) {
     const streamRecord = await findStream(host, stream, source.root)
     childStream = {
       stream,

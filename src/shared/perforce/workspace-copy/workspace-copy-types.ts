@@ -3,9 +3,11 @@
 /** `same-stream`: the source's stream; `child`: a sparse stream of its own; `other-stream`: an existing stream. */
 export type WorkspaceCopyMode = 'same-stream' | 'child' | 'other-stream'
 
+/** `child`: a new stream of its own under `parent` (default: the workspace's stream), as a Git branch;
+ *  `same-stream` / `stream`: work directly on the workspace's stream or another existing one. */
 export type WorkspaceCopyStreamChoice =
+  | { kind: 'child'; parent?: string }
   | { kind: 'same-stream' }
-  | { kind: 'child' }
   | { kind: 'stream'; stream: string }
 
 export type WorkspaceCopySourceSummary = {
@@ -60,7 +62,6 @@ export type WorkspaceCopyCreateResult = {
   mode: WorkspaceCopyMode
   /** Why this stream, in words for the user. */
   streamChoice: string
-  pinnedChange: number | null
   source: WorkspaceCopySourceSummary
   markerPath: string
   unityProjects: string[]

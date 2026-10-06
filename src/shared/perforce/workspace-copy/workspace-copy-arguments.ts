@@ -15,18 +15,31 @@ export function requireCopyName(value: unknown): string {
   return value
 }
 
+function isDepotStream(value: unknown): value is string {
+  return typeof value === 'string' && /^\/\/[^\s@#*%]+$/.test(value)
+}
+
 function requireStreamChoice(value: unknown): WorkspaceCopyStreamChoice {
   if (value === undefined) {
-    return { kind: 'same-stream' }
+    return { kind: 'child' }
   }
   if (typeof value !== 'object' || value === null || !('kind' in value)) {
     throw new Error('Invalid stream choice')
   }
-  if (value.kind === 'same-stream' || value.kind === 'child') {
-    return { kind: value.kind }
+  if (value.kind === 'same-stream') {
+    return { kind: 'same-stream' }
+  }
+  if (value.kind === 'child') {
+    const parent = 'parent' in value ? value.parent : undefined
+    if (parent === undefined) {
+      return { kind: 'child' }
+    }
+    if (isDepotStream(parent)) {
+      return { kind: 'child', parent }
+    }
   }
   const stream = 'stream' in value ? value.stream : undefined
-  if (value.kind === 'stream' && typeof stream === 'string' && /^\/\/[^\s@#*%]+$/.test(stream)) {
+  if (value.kind === 'stream' && isDepotStream(stream)) {
     return { kind: 'stream', stream }
   }
   throw new Error('Invalid stream choice')

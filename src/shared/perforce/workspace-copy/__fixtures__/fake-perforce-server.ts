@@ -253,7 +253,7 @@ export class FakePerforceServer {
   private streamCommand(rest: string[], options: P4RunOptions): P4CommandResult {
     if (rest[0] === '-o') {
       return ok(
-        `Stream:\t${rest.at(-1)}\n\nParent:\t${rest[rest.indexOf('-P') + 1]}\n\nType:\tsparsedev\n\nPaths:\n\tshare ...\n`
+        `Stream:\t${rest.at(-1)}\n\nParent:\t${rest[rest.indexOf('-P') + 1]}\n\nType:\tsparsedev\n\nPaths:\n\tshare ... @300\n`
       )
     }
     if (rest[0] === '-i') {

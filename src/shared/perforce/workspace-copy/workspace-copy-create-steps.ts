@@ -58,11 +58,14 @@ export async function assertCopyBinding(
   }
 }
 
+/** What a create has made so far; a failure removes exactly these. */
+export type CreatedParts = { folder: boolean; stream: string | null; client: boolean }
+
 export async function rollBack(
   host: WorkspaceCopyHost,
   source: CopySource,
   names: WorkspaceCopyNames,
-  created: { folder: boolean; stream: boolean; client: boolean },
+  created: CreatedParts,
   error: unknown
 ): Promise<Error> {
   const left: string[] = []
@@ -74,12 +77,12 @@ export async function rollBack(
       left.push(`client ${names.client}`)
     }
   }
-  if (created.stream && names.childStream) {
+  if (created.stream) {
     const deleted = await host
-      .p4(['stream', '-d', names.childStream], { cwd: source.root })
+      .p4(['stream', '-d', created.stream], { cwd: source.root })
       .catch(() => null)
     if (deleted?.code !== 0) {
-      left.push(`stream ${names.childStream}`)
+      left.push(`stream ${created.stream}`)
     }
   }
   if (created.folder && (await pathExists(names.copyRoot))) {

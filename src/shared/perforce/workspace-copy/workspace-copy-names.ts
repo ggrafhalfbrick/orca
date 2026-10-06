@@ -13,8 +13,6 @@ export type WorkspaceCopyNames = {
   copyRoot: string
   markerPath: string
   client: string
-  /** The copy's own stream when it gets one (`--child`), or the stream an earlier copy of this name kept. */
-  childStream: string | null
 }
 
 export function assertCopyName(name: string): void {
@@ -89,7 +87,6 @@ export function copyNamesFor(
     copiesDir,
     copyRoot: join(copiesDir, name),
     markerPath: markerPathFor(copiesDir, name),
-    client: `${copyClientPrefix(source.client)}${name}`,
-    childStream: source.stream ? `${source.stream}_wt_${name}` : null
+    client: `${copyClientPrefix(source.client)}${name}`
   }
 }

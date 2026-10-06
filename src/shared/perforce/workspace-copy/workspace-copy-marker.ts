@@ -39,7 +39,6 @@ export function buildMarker(args: {
   names: WorkspaceCopyNames
   stream: string
   mode: WorkspaceCopyMode
-  pinnedChange: number | null
   unityVersionControlBinding: string | null
 }): WorkspaceCopyMarker {
   const now = new Date().toISOString()
@@ -52,7 +51,7 @@ export function buildMarker(args: {
     client: names.client,
     stream,
     mode,
-    pinnedChange: args.pinnedChange,
+    pinnedChange: null,
     source: { client: source.client, root: source.root, stream: source.stream },
     plan: null,
     task: null,

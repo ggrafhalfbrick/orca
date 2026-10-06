@@ -44,6 +44,7 @@ export function mergeRuntimeFolderWorkspace(
     path: isPerforceCopyWorktreeIdForRepo(repo, worktreeId)
       ? (splitWorktreeId(worktreeId)?.worktreePath ?? repo.path)
       : repo.path,
+    ...(meta.perforceStream ? { perforceStream: meta.perforceStream } : {}),
     head: '',
     branch: '',
     isBare: false,

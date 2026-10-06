@@ -1,5 +1,6 @@
 import { mkdir } from 'node:fs/promises'
 import {
+  type CreatedParts,
   assertCopyBinding,
   assertNameFree,
   robocopyFailure,
@@ -30,7 +31,7 @@ import {
   restoreTrackedInExcluded
 } from './workspace-copy-restore'
 import type { CopySource } from './workspace-copy-source'
-import { createChildStream, createCopyClient } from './workspace-copy-specs'
+import { createCopyClient, createCopyStream } from './workspace-copy-specs'
 import { resolveStreamChoice, type ResolvedStreamChoice } from './workspace-copy-stream-choice'
 import type {
   WorkspaceCopyCreateOptions,
@@ -78,12 +79,7 @@ async function createLocked(
 ): Promise<WorkspaceCopyCreateResult> {
   const names = copyNamesFor(source, options.name)
   await assertNameFree(host, names, source.root)
-  const choice = await resolveStreamChoice(
-    host,
-    source,
-    names,
-    options.stream ?? { kind: 'same-stream' }
-  )
+  const choice = await resolveStreamChoice(host, source, names, options.stream ?? { kind: 'child' })
   const sourceOpened = await openedRecords(host, source.client, source.root)
   const projects = await findUnityProjects(source.root)
   for (const project of await unityProjectsOpenInEditor(host, projects)) {
@@ -92,7 +88,7 @@ async function createLocked(
     )
   }
   const seconds: Record<string, number> = { checks: elapsed(started) }
-  const created = { folder: false, stream: false, client: false }
+  const created: CreatedParts = { folder: false, stream: null, client: false }
   try {
     await mkdir(names.copiesDir, { recursive: true })
     created.folder = true
@@ -154,7 +150,6 @@ async function createLocked(
       names,
       stream: choice.stream,
       mode: choice.mode,
-      pinnedChange: choice.pinnedChange,
       unityVersionControlBinding: binding
     })
     await writeMarker(names.markerPath, marker)
@@ -173,7 +168,6 @@ async function createLocked(
       stream: choice.stream,
       mode: choice.mode,
       streamChoice: choice.reason,
-      pinnedChange: choice.pinnedChange,
       source: {
         client: source.client,
         root: source.root,
@@ -206,16 +200,16 @@ async function createClientAndAdopt(
   source: CopySource,
   names: WorkspaceCopyNames,
   choice: ResolvedStreamChoice,
-  created: { stream: boolean; client: boolean },
+  created: CreatedParts,
   onProgress: Progress
 ): Promise<void> {
-  if (choice.createStream && choice.pinnedChange !== null) {
+  if (choice.createUnder) {
     onProgress({
       phase: 'creating-client',
-      message: `Creating stream ${choice.stream} pinned at change ${choice.pinnedChange}`
+      message: `Creating stream ${choice.stream} under ${choice.createUnder}`
     })
-    await createChildStream(host, source, choice.stream, choice.pinnedChange)
-    created.stream = true
+    await createCopyStream(host, source, choice.stream, choice.createUnder)
+    created.stream = choice.stream
   }
   onProgress({
     phase: 'creating-client',
@@ -227,13 +221,9 @@ async function createClientAndAdopt(
     phase: 'adopting',
     message: 'Recording the copied files in the new client (nothing is downloaded)'
   })
-  // A same-stream copy takes the source's have-list; a new child stream its pinned change; another
-  // stream its head, after which alignToStream fetches only what differs.
-  const revision = choice.align
-    ? ''
-    : choice.createStream
-      ? `@${choice.pinnedChange}`
-      : `@${source.client}`
+  // A same-stream copy takes the source's have-list; any other stream its head, after which
+  // alignToStream fetches only the files that differ.
+  const revision = choice.align ? '' : `@${source.client}`
   await p4OrThrow(
     host,
     ['-q', '-c', names.client, 'flush', `//${names.client}/...${revision}`],

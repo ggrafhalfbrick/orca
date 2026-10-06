@@ -161,8 +161,14 @@ async function disposeChildStream(
     return { streamDeleted: false, note: null }
   }
   if (child.submittedChanges === 0) {
-    await p4OrThrow(host, ['stream', '-d', child.stream], plan.source.root)
-    return { streamDeleted: true, note: null }
+    // Why a note: the client and folder are already gone, and deleting streams can be admin-only.
+    const deleted = await host.p4(['stream', '-d', child.stream], { cwd: plan.source.root })
+    return deleted.code === 0
+      ? { streamDeleted: true, note: null }
+      : {
+          streamDeleted: false,
+          note: `Could not delete the copy's stream ${child.stream}: ${deleted.stderr.trim() || deleted.stdout.trim()}`
+        }
   }
   return {
     streamDeleted: false,

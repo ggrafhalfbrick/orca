@@ -53,6 +53,7 @@ export function mergeFolderWorkspace(repo: Repo, worktreeId: string, meta: Workt
       ? { projectHostSetupId: meta.projectHostSetupId }
       : {}),
     path: folderRepoWorktreePath(repo, worktreeId),
+    ...(meta.perforceStream ? { perforceStream: meta.perforceStream } : {}),
     head: '',
     branch: '',
     isBare: false,

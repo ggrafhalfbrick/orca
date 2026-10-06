@@ -67,7 +67,12 @@ describe('createWorkspaceCopy (same stream)', () => {
     const host = createFakeCopyHost(server, base)
     const phases: string[] = []
 
-    const result = await createWorkspaceCopy(host, ws, { name: 'one' }, (p) => phases.push(p.phase))
+    const result = await createWorkspaceCopy(
+      host,
+      ws,
+      { name: 'one', stream: { kind: 'same-stream' } },
+      (p) => phases.push(p.phase)
+    )
 
     const copyRoot = join(base, 'ws.wt', 'one')
     expect(result.copyRoot).toBe(copyRoot)
@@ -166,21 +171,33 @@ describe('createWorkspaceCopy (same stream)', () => {
 })
 
 describe('createWorkspaceCopy (other streams)', () => {
-  it('puts a child copy on a new sparse stream pinned at the synced change', async () => {
+  it('puts each copy on a stream of its own under the workspace stream by default', async () => {
+    const host = createFakeCopyHost(server, base)
+    server.addStream(STREAM, { ...FILES, 'a.txt': 4 })
+
+    const result = await createWorkspaceCopy(host, ws, { name: 'kid' })
+
+    expect(result).toMatchObject({ mode: 'child', stream: `${STREAM}_wt_kid` })
+    expect(server.streams.has(`${STREAM}_wt_kid`)).toBe(true)
+    expect(server.client('src_wt_kid')?.stream).toBe(`${STREAM}_wt_kid`)
+    // Branched at the parent's latest change: the file submitted since the source synced is fetched.
+    expect(await readFile(join(base, 'ws.wt', 'kid', 'a.txt'), 'utf8')).toBe(
+      depotContent('a.txt', 4)
+    )
+    expect(server.calls).toContainEqual(['-q', '-c', 'src_wt_kid', 'flush', '//src_wt_kid/...'])
+  })
+
+  it('branches from another parent stream when asked', async () => {
+    server.addStream('//s/dev', { ...FILES, 'dev-only.txt': 1 }, STREAM)
     const host = createFakeCopyHost(server, base)
 
     const result = await createWorkspaceCopy(host, ws, {
-      name: 'kid',
-      stream: { kind: 'child' }
+      name: 'feat',
+      stream: { kind: 'child', parent: '//s/dev' }
     })
 
-    expect(result).toMatchObject({
-      mode: 'child',
-      stream: `${STREAM}_wt_kid`,
-      pinnedChange: 100
-    })
-    expect(server.streams.has(`${STREAM}_wt_kid`)).toBe(true)
-    expect(server.client('src_wt_kid')?.stream).toBe(`${STREAM}_wt_kid`)
+    expect(result).toMatchObject({ mode: 'child', stream: '//s/dev_wt_feat' })
+    expect(existsSync(join(base, 'ws.wt', 'feat', 'dev-only.txt'))).toBe(true)
   })
 
   it('fetches only the files that differ when the copy goes on another stream', async () => {
