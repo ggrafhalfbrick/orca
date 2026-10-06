@@ -21,6 +21,7 @@ import {
   createWorktreeRemovalRegistry,
   type WorktreeIpcContext
 } from './worktrees/worktree-ipc-context'
+import { registerPerforceCopyHandlers } from './worktrees/perforce-copies/register-perforce-copy-handlers'
 
 registerDetectedWorktreeScanInvalidation()
 
@@ -55,7 +56,13 @@ const WORKTREE_HANDLER_CHANNELS = [
   'hooks:inspectSetupScriptImports',
   'hooks:createIssueCommandRunner',
   'hooks:readIssueCommand',
-  'hooks:writeIssueCommand'
+  'hooks:writeIssueCommand',
+  'perforce:copyReadiness',
+  'perforce:listCopies',
+  'perforce:syncCopies',
+  'perforce:createCopy',
+  'perforce:previewCopyRemoval',
+  'perforce:removeCopy'
 ] as const
 
 export function registerWorktreeHandlers(
@@ -97,4 +104,5 @@ export function registerWorktreeHandlers(
   registerWorktreeHookRunnerHandler(context)
   registerWorktreeHookInspectionHandler(context)
   registerWorktreeHookFileHandlers(context)
+  registerPerforceCopyHandlers(context)
 }

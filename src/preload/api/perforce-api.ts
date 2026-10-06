@@ -5,6 +5,16 @@ import type {
   PerforceOperationResult,
   PerforceStatusResult
 } from '../../shared/perforce/perforce-types'
+import type {
+  PerforceCopyCreated,
+  WorkspaceCopyIpcResult,
+  WorkspaceCopyListResult,
+  WorkspaceCopyProgressEvent,
+  WorkspaceCopyReadiness,
+  WorkspaceCopyRemovalPreview,
+  WorkspaceCopyRemovalResult,
+  WorkspaceCopyStreamChoice
+} from '../../shared/perforce/workspace-copy/workspace-copy-types'
 
 type WorktreeArgs = { worktreePath: string; connectionId?: string }
 type Result = Promise<PerforceOperationResult>
@@ -50,4 +60,29 @@ export type PerforceApi = {
     args: WorktreeArgs & { filePaths: string[]; changelist: 'default' | number }
   ) => Result
   deleteChangelist: (args: WorktreeArgs & { changelist: number }) => Result
+  /** Workspace copies of the Perforce folder project `repoId`. */
+  copyReadiness: (args: {
+    repoId: string
+  }) => Promise<WorkspaceCopyIpcResult<WorkspaceCopyReadiness>>
+  listCopies: (args: { repoId: string }) => Promise<WorkspaceCopyIpcResult<WorkspaceCopyListResult>>
+  /** Lists copies and brings the sidebar in line (adopts outside-made copies, drops vanished ones). */
+  syncCopies: (args: { repoId: string }) => Promise<WorkspaceCopyIpcResult<WorkspaceCopyListResult>>
+  createCopy: (args: {
+    repoId: string
+    /** Omitted for one-click creation: main picks the first free `copy-<n>`. */
+    name?: string
+    stream?: WorkspaceCopyStreamChoice
+    operationId: string
+  }) => Promise<WorkspaceCopyIpcResult<PerforceCopyCreated>>
+  previewCopyRemoval: (args: {
+    repoId: string
+    name: string
+  }) => Promise<WorkspaceCopyIpcResult<WorkspaceCopyRemovalPreview>>
+  removeCopy: (args: {
+    repoId: string
+    name: string
+    revertOpenFiles?: boolean
+    deleteShelves?: boolean
+  }) => Promise<WorkspaceCopyIpcResult<WorkspaceCopyRemovalResult>>
+  onCopyProgress: (callback: (event: WorkspaceCopyProgressEvent) => void) => () => void
 }

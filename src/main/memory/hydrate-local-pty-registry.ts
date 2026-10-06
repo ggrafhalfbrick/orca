@@ -11,7 +11,7 @@ import type { DaemonPtyAdapter } from '../daemon/daemon-pty-adapter'
 import type { DaemonPtyRouter } from '../daemon/daemon-pty-router'
 import type { DegradedDaemonPtyProvider } from '../daemon/degraded-daemon-pty-provider'
 import type { SessionInfo } from '../daemon/types'
-import { isFolderWorkspaceIdForRepo } from '../ipc/worktrees/folder-workspace-model'
+import { isFolderRepoWorktreeIdForRepo } from '../ipc/worktrees/folder-workspace-model'
 import type { Store } from '../persistence'
 import { readAllWorktreeMetaForHost } from '../persistence/host-qualified-worktree-meta'
 import { getLocalProjectWorktreeGitOptions } from '../project-runtime-git-options'
@@ -242,7 +242,7 @@ function getVerifiedFolderWorktreeIds(
       repo &&
       isFolderRepo(repo) &&
       hasLocalAuthority &&
-      isFolderWorkspaceIdForRepo(repo, worktreeId)
+      isFolderRepoWorktreeIdForRepo(repo, worktreeId)
     ) {
       verified.add(worktreeId)
     }

@@ -41,6 +41,12 @@ export type PerforceSettings = {
   aiAgentArgs: string
   /** Extra instructions appended to the description prompt. */
   aiInstructions: string
+  /** Workspace copies: leave each Unity project's Library/PackageCache out (Unity refills it). */
+  copySkipPackageCache: boolean
+  /** Workspace copies: workspace-relative folders to leave out, one per line. */
+  copyExcludedFolders: string
+  /** Workspace copies: refuse to make one when the drive has less free space, in GB. */
+  copyMinFreeSpaceGb: number
 }
 
 export const DEFAULT_PERFORCE_SETTINGS: PerforceSettings = {
@@ -72,7 +78,10 @@ export const DEFAULT_PERFORCE_SETTINGS: PerforceSettings = {
   aiThinkingLevel: '',
   aiCustomCommand: '',
   aiAgentArgs: '',
-  aiInstructions: ''
+  aiInstructions: '',
+  copySkipPackageCache: false,
+  copyExcludedFolders: '',
+  copyMinFreeSpaceGb: 10
 }
 
 const MAX_TEXT_LENGTH = 4096
@@ -155,8 +164,19 @@ export function normalizePerforceSettings(value: unknown): PerforceSettings {
     aiInstructions:
       typeof raw.aiInstructions === 'string'
         ? raw.aiInstructions.slice(0, MAX_TEXT_LENGTH * 4)
-        : d.aiInstructions
+        : d.aiInstructions,
+    copySkipPackageCache: flag(raw.copySkipPackageCache, d.copySkipPackageCache),
+    copyExcludedFolders: text(raw.copyExcludedFolders, d.copyExcludedFolders),
+    copyMinFreeSpaceGb: bounded(raw.copyMinFreeSpaceGb, d.copyMinFreeSpaceGb, 0, 4096)
   }
+}
+
+/** The copy-excluded folders setting as a list (one per line or comma-separated). */
+export function copyExcludedFolderList(settings: PerforceSettings): string[] {
+  return settings.copyExcludedFolders
+    .split(/[\r\n,]+/)
+    .map((folder) => folder.trim())
+    .filter(Boolean)
 }
 
 /** Section order for the Source Control panel; each id appears exactly once. */

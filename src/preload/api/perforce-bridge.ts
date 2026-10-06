@@ -1,5 +1,6 @@
 import { ipcRenderer } from 'electron'
 import type { PreloadApi } from '../api-types'
+import type { WorkspaceCopyProgressEvent } from '../../shared/perforce/workspace-copy/workspace-copy-types'
 
 export const perforceApi = {
   info: (args) => ipcRenderer.invoke('perforce:info', args),
@@ -24,5 +25,17 @@ export const perforceApi = {
   editDescription: (args) => ipcRenderer.invoke('perforce:editDescription', args),
   createChangelist: (args) => ipcRenderer.invoke('perforce:createChangelist', args),
   moveToChangelist: (args) => ipcRenderer.invoke('perforce:moveToChangelist', args),
-  deleteChangelist: (args) => ipcRenderer.invoke('perforce:deleteChangelist', args)
+  deleteChangelist: (args) => ipcRenderer.invoke('perforce:deleteChangelist', args),
+  copyReadiness: (args) => ipcRenderer.invoke('perforce:copyReadiness', args),
+  listCopies: (args) => ipcRenderer.invoke('perforce:listCopies', args),
+  syncCopies: (args) => ipcRenderer.invoke('perforce:syncCopies', args),
+  createCopy: (args) => ipcRenderer.invoke('perforce:createCopy', args),
+  previewCopyRemoval: (args) => ipcRenderer.invoke('perforce:previewCopyRemoval', args),
+  removeCopy: (args) => ipcRenderer.invoke('perforce:removeCopy', args),
+  onCopyProgress: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, data: WorkspaceCopyProgressEvent) =>
+      callback(data)
+    ipcRenderer.on('perforce:copyProgress', listener)
+    return () => ipcRenderer.removeListener('perforce:copyProgress', listener)
+  }
 } satisfies PreloadApi['perforce']
