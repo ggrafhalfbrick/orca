@@ -179,6 +179,11 @@ export function registerPluginHandlers(
     return pluginService.invokeCommand(parsed.pluginKey, parsed.commandId, parsed.args)
   })
 
+  ipcMain.handle('plugins:invokeTaskSource', async (_event, args: unknown) => {
+    await pluginService.whenReady()
+    return pluginService.invokeTaskSource(args)
+  })
+
   ipcMain.handle('plugins:install', async (_event, args: unknown) => {
     await pluginService.whenReady()
     const parsed = parsePluginInstallArgs(args)

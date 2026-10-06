@@ -14,6 +14,11 @@ type SmartCreateNames = {
   displayName: string | undefined
 }
 
+export type QuickSubmitOptions = {
+  /** Draft typed into the agent after launch (not sent for folder-group targets). */
+  agentDraft?: string
+}
+
 export type FullSubmitSource = {
   submitLinkedWorkItem: LinkedWorkItemSummary | null
   submitLinkedIssueNumber: number | null
@@ -88,7 +93,8 @@ export type ComposerSubmitModel = {
     workspaceNameSeed: string,
     workspaceRunContext: WorktreeCreationRequest['workspaceRunContext'],
     repoId: string,
-    selectedRepo: Repo
+    selectedRepo: Repo,
+    agentDraft?: string
   ) => Promise<void>
   prepareFullSubmit: (
     resolution: PendingSmartGitHubSubmitResolution
@@ -108,6 +114,6 @@ export type ComposerSubmitModel = {
   ) => QuickSubmitSource | null
   resetForNextCreate: () => void
   submit: () => Promise<void>
-  submitQuick: (agent: TuiAgent | null) => Promise<void>
+  submitQuick: (agent: TuiAgent | null, options?: QuickSubmitOptions) => Promise<void>
   submitFolderTarget: (requestedAgent: TuiAgent | null) => Promise<void>
 }

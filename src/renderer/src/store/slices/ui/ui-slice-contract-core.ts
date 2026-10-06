@@ -10,6 +10,7 @@ import type { LaunchSource } from '../../../../../shared/telemetry-events'
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
 import type { ExecutionHostId } from '../../../../../shared/execution-host'
 import type { TaskResumeState, TopLevelView } from '../../../../../shared/ui-chrome-types'
+import type { PluginTaskSourceRef } from '../../../../../shared/plugins/plugin-task-source-ref'
 
 export type PendingSidebarWorktreeReveal = {
   worktreeId: string
@@ -67,6 +68,7 @@ export type TaskPageData = {
   openLinearSourceContext?: TaskSourceContext | null
   openJiraIssue?: JiraIssue
   openJiraSourceContext?: TaskSourceContext | null
+  pluginTaskSource?: PluginTaskSourceRef
 }
 
 export type NewWorkspaceDraft = {

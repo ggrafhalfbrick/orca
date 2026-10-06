@@ -7,6 +7,11 @@ import type { PluginLanguagePackRegistration } from '../../shared/plugins/plugin
 import type { PluginChangeEvent } from '../../shared/plugins/plugin-change-event'
 import type { PluginManifest } from '../../shared/plugins/plugin-manifest'
 import type { PluginMarketplaceGitSource } from '../../shared/plugins/plugin-marketplace'
+import type {
+  PluginTaskDetail,
+  PluginTaskListParamsInput,
+  PluginTaskListResult
+} from '../../shared/plugins/plugin-task-source'
 
 /** Panel contribution as surfaced by the main-process plugin service. */
 export type PluginHostPanel = {
@@ -54,6 +59,8 @@ export type PluginHostListEntry = {
     keybindings: { key: string; when: 'global' | 'worktree' }[]
   }[]
   hasWorker: boolean
+  /** Absent from hosts that predate plugin task sources. */
+  taskSources?: { id: string; title: string; icon?: string }[]
   vmRecipes?: {
     id: string
     name: string
@@ -155,6 +162,17 @@ export type PluginsApi = {
     commandId: string
     args?: unknown
   }) => Promise<unknown>
+  /** Lists a plugin task source; main validates the worker's answer. */
+  listTaskSourceItems: (args: {
+    pluginKey: string
+    sourceId: string
+    params: PluginTaskListParamsInput
+  }) => Promise<PluginTaskListResult>
+  getTaskSourceItem: (args: {
+    pluginKey: string
+    sourceId: string
+    itemId: string
+  }) => Promise<PluginTaskDetail>
   /** Relays a sandboxed panel's bridge request to main, which enforces the
    *  plugin's consented capabilities before executing. */
   panelAction: (args: {

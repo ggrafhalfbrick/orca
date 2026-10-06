@@ -1862,12 +1862,16 @@
         "addSshHostHint": "Use an existing machine over SSH",
         "addRemoteOrcaServer": "Add Remote Orca Server",
         "addRemoteOrcaServerHint": "Pair another Orca runtime",
-        "hostConnectionFailed": "Connection failed"
+        "hostConnectionFailed": "Connection failed",
+        "agentDraftLabel": "Agent prompt",
+        "agentDraftHelp": "Typed into the agent as a draft. Review it there before sending."
       },
       "NewWorkspaceComposerModal": {
         "createWorktree": "Create worktree",
         "createWorkspace": "Create workspace",
-        "fa90f739a5": "Choose the project, workspace name, and agent before creating the workspace."
+        "fa90f739a5": "Choose the project, workspace name, and agent before creating the workspace.",
+        "agentDraftFolderGroup": "Folder workspaces do not take an agent prompt, so this one will not be sent.",
+        "agentDraftNoAgent": "Pick an agent to send this prompt."
       },
       "PullRequestPage": {
         "2560588245": "Failed to request reviewer",
@@ -2453,7 +2457,17 @@
         "linearModeHasWorktreeTooltip": "Linear tickets linked to an Orca workspace",
         "linearEmptyHasWorktree": "No Linear tickets are linked to an Orca workspace yet. Start work from a Linear issue to see it here.",
         "linearOpenAttachedWorkspace": "Open workspace attached to {{value0}}",
-        "linearWorktreesColumn": "Workspaces"
+        "linearWorktreesColumn": "Workspaces",
+        "pluginTaskDetailDescription": "Preview and start work from the selected task.",
+        "pluginTaskOpenLink": "Open link",
+        "pluginTaskCloseDetail": "Close",
+        "pluginTaskNoBody": "No description provided.",
+        "pluginTaskRefresh": "Refresh {{value0}}",
+        "pluginTaskSearch": "Search {{value0}}",
+        "pluginTaskNotStartable": "This task cannot start a workspace",
+        "pluginTaskSourceContext": "{{value0}} · plugin",
+        "pluginTaskEmpty": "No tasks found",
+        "pluginTaskEmptyHint": "Try different search terms or filters."
       },
       "Terminal": {
         "73768427cf": "Close",
@@ -11786,7 +11800,8 @@
             "storage": "Store data in the plugin's own storage folder",
             "secrets": "Store and read secrets in the plugin's own encrypted vault",
             "eventsSubscribe": "Get notified when worktrees are created or removed and when agent status changes",
-            "settingsOwn": "Read and change the plugin's own settings"
+            "settingsOwn": "Read and change the plugin's own settings",
+            "tasksProvide": "Add task lists to the Tasks page; starting a task opens Create workspace with the plugin's suggested name, base and agent prompt for you to review"
           },
           "decisionFailed": "Could not save the permission decision. Try again."
         },

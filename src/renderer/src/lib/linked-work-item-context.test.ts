@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildAgentPromptWithContext } from './new-workspace'
 import {
+  appendAgentLaunchDraft,
   buildContainedLinkedContextBlock,
   buildLinearLaunchContextBlock,
   getLaunchableWorkItemDraftContent,
@@ -232,6 +233,22 @@ describe('resolveQuickCreateLinkedWorkItemPrompt', () => {
       prompt: '',
       draftPrompt: 'note\n\nhttps://github.com/acme/repo/issues/42'
     })
+  })
+})
+
+describe('appendAgentLaunchDraft', () => {
+  it('leaves the linked draft alone without an agent draft', () => {
+    expect(appendAgentLaunchDraft('note\n\nhttps://example.com/1', '   ')).toBe(
+      'note\n\nhttps://example.com/1'
+    )
+    expect(appendAgentLaunchDraft(null, undefined)).toBeNull()
+  })
+
+  it('drafts the agent prompt alone or after the linked draft', () => {
+    expect(appendAgentLaunchDraft(null, '  Implement the plan.  ')).toBe('Implement the plan.\n')
+    expect(appendAgentLaunchDraft('note\n\nhttps://example.com/1\n', 'Implement the plan.')).toBe(
+      'note\n\nhttps://example.com/1\n\nImplement the plan.\n'
+    )
   })
 })
 
