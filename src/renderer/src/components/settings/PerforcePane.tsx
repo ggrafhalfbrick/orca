@@ -15,6 +15,7 @@ import {
 } from './SettingsFormControls'
 import { PerforceAiAgentFields } from './PerforceAiFields'
 import { PerforceConnectionTest } from './PerforceConnectionTest'
+import { PerforceCopySettingsFields } from './PerforceCopySettingsFields'
 import { CommitInput, P4_PATH_PLACEHOLDER, TemplateField } from './perforce-settings-inputs'
 import { getPerforceSettingsCatalog, type PerforceSettingId } from './perforce-search'
 
@@ -398,6 +399,10 @@ export function PerforcePane({ settings, updateSettings }: PerforcePaneProps): R
             <PerforceAiAgentFields perforce={perforce} update={update} />
           ) : null}
         </div>
+      )}
+      {setting(
+        'workspace-copies',
+        <PerforceCopySettingsFields perforce={perforce} update={update} />
       )}
     </div>
   )

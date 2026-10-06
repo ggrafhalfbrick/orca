@@ -19,6 +19,7 @@ export type PerforceSettingId =
   | 'destructive-confirmation'
   | 'shelf-after-submit'
   | 'ai-description'
+  | 'workspace-copies'
 
 type PerforceCatalogEntry = SettingsSearchEntry & { id: PerforceSettingId }
 
@@ -175,6 +176,12 @@ export const getPerforceSettingsCatalog = createLocalizedCatalog((): PerforceCat
       'Show a button that drafts a changelist description from its diff, with its own agent, model, and instructions (separate from Git).'
     ),
     ['perforce', 'ai', 'description', 'agent', 'model', 'prompt', 'instructions', 'generate']
+  ),
+  entry(
+    'workspace-copies',
+    'Workspace Copies',
+    'Copy-on-write copies of a stream workspace on a Windows Dev Drive, made from the project menu: what to leave out and how much free space to keep.',
+    ['perforce', 'copy', 'worktree', 'dev drive', 'refs', 'unity', 'clone', 'workspace']
   )
 ])
 

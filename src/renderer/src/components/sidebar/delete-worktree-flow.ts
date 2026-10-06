@@ -1,3 +1,4 @@
+import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import { getAllWorktreesFromState, getWorktreeOnHostFromState } from '@/store/selectors'
 import { toWorktreeRemovalTarget } from '../../../../shared/worktree/removal'
@@ -11,6 +12,7 @@ import { resolveSshWorkspaceForget } from './ssh-workspace-forget-resolution'
 import { isPairedWebClientWindow } from '@/lib/desktop-window-chrome'
 import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
 import { getRepoExecutionHostId } from '../../../../shared/execution-host'
+import { getPerforceCopyDeleteTarget } from '../perforce-copies/perforce-copy-target'
 import {
   resolveWorktreeBatchDeleteTargets,
   toWorktreeDeleteIdentities,
@@ -61,6 +63,12 @@ export function runWorktreeDelete(worktreeId: string, options: WorktreeDeleteOpt
       displayName: repo?.displayName ?? target.displayName,
       ...(hostId ? { hostId } : {})
     })
+    return
+  }
+  const perforceCopy = getPerforceCopyDeleteTarget(state.repos, target)
+  if (perforceCopy) {
+    // Why: deleting a copy also deletes its Perforce client and maybe shelves, so it always confirms with the full list.
+    state.openModal('delete-perforce-copy', perforceCopy)
     return
   }
   if (target.hostId) {
@@ -132,6 +140,22 @@ export function runWorktreeBatchDelete(
 
   if (targets.length === 0) {
     showNoDeletableWorkspacesToast()
+    return false
+  }
+
+  const perforceCopies = targets.flatMap((target) => {
+    const copy = getPerforceCopyDeleteTarget(state.repos, target)
+    return copy ? [copy] : []
+  })
+  if (perforceCopies.length > 0) {
+    // Why: each copy's deletion reaches the Perforce server, so it is reviewed on its own.
+    if (targets.length === 1) {
+      state.openModal('delete-perforce-copy', perforceCopies[0])
+      return true
+    }
+    toast.error('Delete Perforce copies one at a time', {
+      description: 'Each one shows what it removes from this computer and from Perforce first.'
+    })
     return false
   }
 

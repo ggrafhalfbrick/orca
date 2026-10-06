@@ -4,7 +4,7 @@ import { getPerforcePaneSearchEntries, getPerforceSettingsCatalog } from './perf
 describe('Perforce settings search catalog', () => {
   it('describes every setting with a unique id and searchable text', () => {
     const catalog = getPerforceSettingsCatalog()
-    expect(catalog).toHaveLength(16)
+    expect(catalog).toHaveLength(17)
     expect(new Set(catalog.map((item) => item.id)).size).toBe(catalog.length)
     for (const item of catalog) {
       expect(item.title.length).toBeGreaterThan(0)

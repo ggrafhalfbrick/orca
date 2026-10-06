@@ -45,10 +45,14 @@ export function CommitInput({
 
 export function TemplateField({
   value,
-  onCommit
+  onCommit,
+  ariaLabel,
+  placeholder
 }: {
   value: string
   onCommit: (value: string) => void
+  ariaLabel?: string
+  placeholder?: string
 }): React.JSX.Element {
   const [draft, setDraft] = useState(value)
   const [seen, setSeen] = useState(value)
@@ -60,11 +64,14 @@ export function TemplateField({
     <Textarea
       value={draft}
       rows={3}
-      aria-label={translate('perforce.settings.new.template', 'Description template')}
-      placeholder={translate(
-        'perforce.settings.new.templatePlaceholder',
-        'Description template, e.g. [{user}] '
-      )}
+      aria-label={ariaLabel ?? translate('perforce.settings.new.template', 'Description template')}
+      placeholder={
+        placeholder ??
+        translate(
+          'perforce.settings.new.templatePlaceholder',
+          'Description template, e.g. [{user}] '
+        )
+      }
       className="min-h-0"
       onChange={(event) => setDraft(event.target.value)}
       onBlur={() => draft !== value && onCommit(draft)}
