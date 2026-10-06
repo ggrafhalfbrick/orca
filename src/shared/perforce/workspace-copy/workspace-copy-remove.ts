@@ -9,6 +9,7 @@ import { p4OrThrow } from './workspace-copy-p4'
 import { processesUnder } from './workspace-copy-processes'
 import { planWorkspaceCopyRemoval, type RemovalPlan } from './workspace-copy-removal-preview'
 import { resolveCopySource } from './workspace-copy-source'
+import { renameFileWithWindowsRetryAsync } from '../../windows-retry-file-operations'
 import type {
   WorkspaceCopyRemovalOptions,
   WorkspaceCopyRemovalPreview,
@@ -16,6 +17,8 @@ import type {
 } from './workspace-copy-types'
 
 export const REMOVING_PREFIX = '.removing-'
+// ~5 s: the copy's terminals and agent sessions were just stopped, and Windows frees their folder only as they exit.
+const MOVE_ASIDE_ATTEMPTS = 15
 
 /** Why removal would refuse with these options, or null; callers check it before tearing anything down. */
 export function copyRemovalRefusal(
@@ -45,7 +48,7 @@ async function moveFolderAside(host: WorkspaceCopyHost, plan: RemovalPlan): Prom
     `${REMOVING_PREFIX}${plan.name}-${randomBytes(4).toString('hex')}`
   )
   try {
-    await rename(plan.copyRoot, aside)
+    await renameFileWithWindowsRetryAsync(plan.copyRoot, aside, () => true, MOVE_ASIDE_ATTEMPTS)
     return aside
   } catch (error) {
     const holders = await processesUnder(host, plan.copyRoot)
@@ -53,7 +56,7 @@ async function moveFolderAside(host: WorkspaceCopyHost, plan: RemovalPlan): Prom
     const code = error instanceof Error && 'code' in error ? String(error.code) : ''
     throw new WorkspaceCopyError(
       'refused',
-      `Windows would not move ${plan.copyRoot} (${code || 'in use'}); a program has files open in it.${named} Close it and try again. Nothing was changed.`
+      `Windows would not move ${plan.copyRoot} (${code || 'in use'}); a program has files open in it.${named || ' Look for an editor, Unity, a terminal or an Explorer window open there.'} Close it and try again. Nothing was changed.`
     )
   }
 }
