@@ -1,6 +1,7 @@
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import { PerforceCopyDeleteDialog, type PerforceCopyDeleteTarget } from './PerforceCopyDeleteDialog'
+import { translate } from '@/i18n/i18n'
 
 function readTarget(data: Record<string, unknown>): PerforceCopyDeleteTarget | null {
   const { repoId, sourcePath, copyName } = data
@@ -21,9 +22,14 @@ export default function PerforceCopyDeleteModal() {
       target={target}
       onClose={closeModal}
       onDeleted={(result) => {
-        toast.success(`Deleted Perforce copy ${result.name}`, {
-          description: result.note ?? undefined
-        })
+        toast.success(
+          translate('perforce.copies.deleted', 'Deleted Perforce copy {{name}}', {
+            name: result.name
+          }),
+          {
+            description: result.note ?? undefined
+          }
+        )
       }}
     />
   )

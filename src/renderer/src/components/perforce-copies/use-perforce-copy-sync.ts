@@ -5,8 +5,9 @@ import { isFolderRepo } from '../../../../shared/repo-kind'
 const synced = new Set<string>()
 
 /**
- * Once per session per Perforce folder project: lists its copies so ones made outside Orca (the
- * p4-worktree tool) join the sidebar and deleted ones leave it. Main notifies the sidebar on change.
+ * Once per session per folder project: marks one inside a Perforce workspace as a Perforce project,
+ * then lists its copies so ones made outside Orca (the p4-worktree tool) join the sidebar and deleted
+ * ones leave it. Main notifies the sidebar on change.
  */
 export function usePerforceCopySync(): void {
   const repos = useAppStore((s) => s.repos)
@@ -18,9 +19,9 @@ export function usePerforceCopySync(): void {
       }
       synced.add(key)
       void window.api.perforce
-        .detect({ worktreePath: repo.path, connectionId: repo.connectionId ?? undefined })
+        .detectProject({ repoId: repo.id })
         .then((detected) =>
-          detected.isWorkspace ? window.api.perforce.syncCopies({ repoId: repo.id }) : null
+          detected.ok && detected.value ? window.api.perforce.syncCopies({ repoId: repo.id }) : null
         )
         // Why: a folder that is not a Perforce workspace, or an unreachable server, is not an error here.
         .catch(() => synced.delete(key))

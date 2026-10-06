@@ -13,6 +13,7 @@ import { isPairedWebClientWindow } from '@/lib/desktop-window-chrome'
 import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
 import { getRepoExecutionHostId } from '../../../../shared/execution-host'
 import { getPerforceCopyDeleteTarget } from '../perforce-copies/perforce-copy-target'
+import { translate } from '@/i18n/i18n'
 import {
   resolveWorktreeBatchDeleteTargets,
   toWorktreeDeleteIdentities,
@@ -153,9 +154,15 @@ export function runWorktreeBatchDelete(
       state.openModal('delete-perforce-copy', perforceCopies[0])
       return true
     }
-    toast.error('Delete Perforce copies one at a time', {
-      description: 'Each one shows what it removes from this computer and from Perforce first.'
-    })
+    toast.error(
+      translate('perforce.copies.deleteOneAtATime', 'Delete Perforce copies one at a time'),
+      {
+        description: translate(
+          'perforce.copies.deleteOneAtATimeDescription',
+          'Each one shows what it removes from this computer and from Perforce first.'
+        )
+      }
+    )
     return false
   }
 

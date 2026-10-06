@@ -180,7 +180,7 @@ export const getPerforceSettingsCatalog = createLocalizedCatalog((): PerforceCat
   entry(
     'workspace-copies',
     'Workspace Copies',
-    'Copy-on-write copies of a stream workspace on a Windows Dev Drive, made with Use worktree in Create workspace: the default, what to leave out and how much free space to keep.',
+    'Copy-on-write copies of a stream workspace on a Windows Dev Drive, made by Create workspace in a Perforce project: what to leave out and how much free space to keep.',
     ['perforce', 'copy', 'worktree', 'dev drive', 'refs', 'unity', 'clone', 'workspace']
   )
 ])

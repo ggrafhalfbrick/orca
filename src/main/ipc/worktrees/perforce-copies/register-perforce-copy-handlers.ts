@@ -10,9 +10,11 @@ import type {
   WorkspaceCopyIpcResult,
   WorkspaceCopyRemovalResult
 } from '../../../../shared/perforce/workspace-copy/workspace-copy-types'
-import { isFolderRepo } from '../../../../shared/repo-kind'
+import { isFolderRepo, isPerforceRepo } from '../../../../shared/repo-kind'
 import type { Repo } from '../../../../shared/repo-types'
 import { resolveWorkspaceCopyBackend } from '../../../perforce/perforce-copy-backend'
+import { resolvePerforceBackend } from '../../../perforce/perforce-ssh-backend'
+import { notifyReposChanged } from '../../repos/repos-changed-notification'
 import {
   invalidateAuthorizedRootsCache,
   resolveRegisteredWorktreePath
@@ -81,6 +83,20 @@ export function registerPerforceCopyHandlers(context: WorktreeIpcContext): void 
   handle('copyReadiness', (b, dir) => b.readiness(dir, settings().copyMinFreeSpaceGb * GB))
   handle('listCopies', (b, dir) => b.list(dir))
   handle('listCopyStreams', (b, dir) => b.streams(dir))
+  // Marks a folder project inside a Perforce workspace as a Perforce project. Never unmarks: a server
+  // that does not answer is no evidence the folder stopped being a Perforce workspace.
+  handle('detectProject', async (_b, dir, repo) => {
+    if (isPerforceRepo(repo)) {
+      return true
+    }
+    const detected = await resolvePerforceBackend(repo.connectionId).detect(dir)
+    if (!detected.isWorkspace) {
+      return false
+    }
+    store.updateRepo(repo.id, { vcs: 'perforce' })
+    notifyReposChanged(context.mainWindow)
+    return true
+  })
   handle('syncCopies', async (b, dir, repo) => {
     const listing = await b.list(dir)
     if (syncCopyWorktrees(store, repo, listing)) {

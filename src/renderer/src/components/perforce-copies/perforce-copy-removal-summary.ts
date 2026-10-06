@@ -1,3 +1,4 @@
+import { translate } from '@/i18n/i18n'
 import type {
   WorkspaceCopyRemovalOptions,
   WorkspaceCopyRemovalPreview
@@ -23,38 +24,85 @@ export function summarizeCopyRemoval(
 ): CopyRemovalSummary {
   const deletes: string[] = []
   const keeps: string[] = [
-    `Your workspace ${sourceRoot}, its client and its checked-out files are not touched.`
+    translate(
+      'perforce.copies.keepsSource',
+      'Your workspace {{folder}}, its client and its checked-out files are not touched.',
+      { folder: sourceRoot }
+    )
   ]
   if (preview.folderExists) {
-    deletes.push(`The folder ${preview.copyRoot} and everything in it.`)
+    deletes.push(
+      translate('perforce.copies.deletesFolder', 'The folder {{folder}} and everything in it.', {
+        folder: preview.copyRoot
+      })
+    )
   }
   if (preview.openFiles.count > 0 && options.revertOpenFiles) {
     deletes.push(
-      `The changes in ${preview.openFiles.count} checked-out file(s): they are reverted, then deleted with the folder.`
+      translate(
+        'perforce.copies.deletesOpenFiles',
+        'The changes in {{files}} checked-out file(s): they are reverted, then deleted with the folder.',
+        { files: preview.openFiles.count }
+      )
     )
   }
   for (const change of preview.pendingChanges) {
     if (change.shelvedFiles === 0) {
-      deletes.push(`Pending changelist ${change.change}${quoted(change.description)}.`)
+      deletes.push(
+        translate(
+          'perforce.copies.deletesPending',
+          'Pending changelist {{change}}{{description}}.',
+          {
+            change: change.change,
+            description: quoted(change.description)
+          }
+        )
+      )
     } else if (options.deleteShelves) {
       deletes.push(
-        `Changelist ${change.change}${quoted(change.description)} and its ${change.shelvedFiles} shelved file(s).`
+        translate(
+          'perforce.copies.deletesShelved',
+          'Changelist {{change}}{{description}} and its {{files}} shelved file(s).',
+          {
+            change: change.change,
+            description: quoted(change.description),
+            files: change.shelvedFiles
+          }
+        )
       )
     }
   }
   if (preview.clientExists) {
-    deletes.push(`The Perforce client ${preview.client} on the server.`)
+    deletes.push(
+      translate('perforce.copies.deletesClient', 'The Perforce client {{client}} on the server.', {
+        client: preview.client
+      })
+    )
   }
   if (preview.childStream) {
     const { stream, submittedChanges, parent } = preview.childStream
     if (submittedChanges === 0) {
-      deletes.push(`The copy's own stream ${stream} (nothing was submitted to it).`)
+      deletes.push(
+        translate(
+          'perforce.copies.deletesStream',
+          "The copy's own stream {{stream}} (nothing was submitted to it).",
+          { stream }
+        )
+      )
     } else {
       keeps.push(
-        `The stream ${stream}: it has submitted work. Bring it into ${parent ?? 'its parent'} with p4 copy -S ${stream}, then delete the stream.`
+        translate(
+          'perforce.copies.keepsStream',
+          'The stream {{stream}}: it has submitted work. Bring it into {{parent}} with p4 copy -S {{stream}}, then delete the stream.',
+          { stream, parent: parent ?? translate('perforce.copies.itsParent', 'its parent') }
+        )
       )
     }
   }
-  deletes.push(`The copy's marker file ${preview.markerPath}.`)
+  deletes.push(
+    translate('perforce.copies.deletesMarker', "The copy's marker file {{file}}.", {
+      file: preview.markerPath
+    })
+  )
   return { deletes, keeps }
 }

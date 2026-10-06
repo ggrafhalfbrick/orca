@@ -56,7 +56,8 @@ export async function createPerforceCopyWorkspace(
   )
   const meta = store.setWorktreeMeta(worktreeId, {
     instanceId: randomUUID(),
-    ...folderWorkspaceCreateMeta(args, repo, store, Date.now())
+    ...folderWorkspaceCreateMeta(args, repo, store, Date.now()),
+    perforceStream: copy.stream
   })
   invalidateAuthorizedRootsCache()
   return {

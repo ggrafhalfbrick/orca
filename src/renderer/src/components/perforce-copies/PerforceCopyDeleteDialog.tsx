@@ -11,6 +11,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { translate } from '@/i18n/i18n'
 import type {
   WorkspaceCopyRemovalPreview,
   WorkspaceCopyRemovalResult
@@ -104,17 +105,26 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
     <Dialog open={target !== null} onOpenChange={(open) => !open && !pending && onClose()}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Delete Perforce copy “{target?.copyName}”?</DialogTitle>
+          <DialogTitle>
+            {translate('perforce.copies.deleteTitle', 'Delete Perforce copy “{{name}}”?', {
+              name: target?.copyName ?? ''
+            })}
+          </DialogTitle>
           <DialogDescription>
-            This deletes the copy on this computer and its client on the Perforce server. It cannot
-            be undone.
+            {translate(
+              'perforce.copies.deleteDescription',
+              'This deletes the copy on this computer, its client on the Perforce server and its own stream if nothing was submitted to it. It cannot be undone.'
+            )}
           </DialogDescription>
         </DialogHeader>
 
         {!preview && !loadError ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <LoaderCircle className="size-4 animate-spin" />
-            Checking the copy for checked-out files, changelists and shelves…
+            {translate(
+              'perforce.copies.checkingCopy',
+              'Checking the copy for checked-out files, changelists and shelves…'
+            )}
           </div>
         ) : null}
         {loadError ? <p className="text-sm text-destructive">{loadError}</p> : null}
@@ -123,8 +133,11 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
           <div className="flex max-h-[55vh] min-w-0 flex-col gap-3 overflow-x-hidden overflow-y-auto scrollbar-sleek text-sm">
             {!preview.clientExists ? (
               <p className="text-muted-foreground">
-                The client {preview.client} is no longer on the server; only files on this computer
-                are left to delete.
+                {translate(
+                  'perforce.copies.clientGone',
+                  'The client {{client}} is no longer on the server; only files on this computer are left to delete.',
+                  { client: preview.client }
+                )}
               </p>
             ) : null}
             {preview.openFiles.count > 0 ? (
@@ -132,10 +145,16 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
                 id="perforce-copy-revert"
                 checked={revertOpenFiles}
                 onChange={setRevertOpenFiles}
-                label="Revert them and lose their changes"
+                label={translate(
+                  'perforce.copies.revertOptIn',
+                  'Revert them and lose their changes'
+                )}
               >
-                {preview.openFiles.count} file(s) are checked out in this copy. Submit or shelve
-                anything you want to keep first.
+                {translate(
+                  'perforce.copies.openFilesWarning',
+                  '{{files}} file(s) are checked out in this copy. Submit or shelve anything you want to keep first.',
+                  { files: preview.openFiles.count }
+                )}
                 <FileSample files={preview.openFiles.sample} total={preview.openFiles.count} />
               </OptInWarning>
             ) : null}
@@ -144,23 +163,46 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
                 id="perforce-copy-shelves"
                 checked={deleteShelves}
                 onChange={setDeleteShelves}
-                label="Delete the shelved files too"
+                label={translate('perforce.copies.shelvesOptIn', 'Delete the shelved files too')}
               >
-                {shelved
-                  .map((change) => `Changelist ${change.change} has ${change.shelvedFiles}`)
-                  .join('; ')}{' '}
-                shelved file(s). Anyone who has not unshelved them yet loses them.
+                {translate(
+                  'perforce.copies.shelvesWarning',
+                  '{{changes}} shelved file(s). Anyone who has not unshelved them yet loses them.',
+                  {
+                    changes: shelved
+                      .map((change) =>
+                        translate(
+                          'perforce.copies.changelistHas',
+                          'Changelist {{change}} has {{files}}',
+                          {
+                            change: change.change,
+                            files: change.shelvedFiles
+                          }
+                        )
+                      )
+                      .join('; ')
+                  }
+                )}
               </OptInWarning>
             ) : null}
             {preview.processesHoldingFolder.length > 0 ? (
               <p className="flex gap-2 text-muted-foreground">
                 <TriangleAlert className="mt-0.5 size-4 shrink-0" />
-                Close these programs first; Windows will not delete a folder they have open:{' '}
-                {preview.processesHoldingFolder.join(', ')}.
+                {translate(
+                  'perforce.copies.closePrograms',
+                  'Close these programs first; Windows will not delete a folder they have open: {{programs}}.',
+                  { programs: preview.processesHoldingFolder.join(', ') }
+                )}
               </p>
             ) : null}
-            <SummaryList title="Deleted" items={summary.deletes} />
-            <SummaryList title="Kept" items={summary.keeps} />
+            <SummaryList
+              title={translate('perforce.copies.deletedHeading', 'Deleted')}
+              items={summary.deletes}
+            />
+            <SummaryList
+              title={translate('perforce.copies.keptHeading', 'Kept')}
+              items={summary.keeps}
+            />
           </div>
         ) : null}
 
@@ -168,7 +210,7 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
 
         <DialogFooter>
           <Button variant="ghost" onClick={onClose} disabled={pending}>
-            Cancel
+            {translate('perforce.copies.cancel', 'Cancel')}
           </Button>
           <Button
             variant="destructive"
@@ -176,7 +218,11 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
             onClick={() => void confirm()}
             disabled={blocked || pending}
           >
-            {pending ? <LoaderCircle className="size-4 animate-spin" /> : 'Delete copy'}
+            {pending ? (
+              <LoaderCircle className="size-4 animate-spin" />
+            ) : (
+              translate('perforce.copies.deleteCopy', 'Delete copy')
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -219,7 +265,13 @@ function FileSample({ files, total }: { files: string[]; total: number }) {
           {file}
         </li>
       ))}
-      {total > files.length ? <li>and {total - files.length} more</li> : null}
+      {total > files.length ? (
+        <li>
+          {translate('perforce.copies.andMore', 'and {{more}} more', {
+            more: total - files.length
+          })}
+        </li>
+      ) : null}
     </ul>
   )
 }

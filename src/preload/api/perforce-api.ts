@@ -65,6 +65,8 @@ export type PerforceApi = {
   listCopies: (args: { repoId: string }) => Promise<WorkspaceCopyIpcResult<WorkspaceCopyListResult>>
   /** Streams in the workspace's depot, for the create-workspace stream picker. */
   listCopyStreams: (args: { repoId: string }) => Promise<WorkspaceCopyIpcResult<PerforceStreamList>>
+  /** Marks a folder project inside a Perforce workspace as a Perforce project; true when it is one. */
+  detectProject: (args: { repoId: string }) => Promise<WorkspaceCopyIpcResult<boolean>>
   /** Lists copies and brings the sidebar in line (adopts outside-made copies, drops vanished ones). */
   syncCopies: (args: { repoId: string }) => Promise<WorkspaceCopyIpcResult<WorkspaceCopyListResult>>
   previewCopyRemoval: (args: {

@@ -10,27 +10,31 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import type {
   WorkspaceCopyListEntry,
   WorkspaceCopyListResult
 } from '../../../../shared/perforce/workspace-copy/workspace-copy-types'
 
-/** The copy's state in words; anything but "Ready" is something Clean up (Delete) resolves. */
-export function copyStatus(copy: WorkspaceCopyListEntry, serverChecked: boolean): string {
+/** The copy's state in words; null is ready, anything else is something Delete cleans up. */
+export function copyProblem(copy: WorkspaceCopyListEntry, serverChecked: boolean): string | null {
   if (!copy.folderExists && !copy.clientExists) {
-    return 'Only the marker file is left'
+    return translate('perforce.copies.onlyMarkerLeft', 'Only the marker file is left')
   }
   if (!copy.folderExists) {
-    return 'Folder missing; client still on the server'
+    return translate('perforce.copies.folderMissing', 'Folder missing; client still on the server')
   }
   if (serverChecked && !copy.clientExists) {
-    return 'Client deleted on the server; folder left behind'
+    return translate(
+      'perforce.copies.clientDeleted',
+      'Client deleted on the server; folder left behind'
+    )
   }
-  return 'Ready'
+  return null
 }
 
-/** Lists every copy of a Perforce folder project, including leftovers, each with Delete. */
+/** Lists every copy of a Perforce project, including leftovers, each with Delete. */
 export default function PerforceCopiesModal() {
   const modalData = useAppStore((s) => s.modalData)
   const closeModal = useAppStore((s) => s.closeModal)
@@ -75,51 +79,69 @@ export default function PerforceCopiesModal() {
     <Dialog open onOpenChange={(open) => !open && closeModal()}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Perforce copies</DialogTitle>
+          <DialogTitle>{translate('perforce.copies.title', 'Perforce copies')}</DialogTitle>
           <DialogDescription>
             {listing
-              ? `Copies of ${listing.source.client} in ${listing.copiesDir}, including any made with the p4-worktree tool.`
-              : 'Copies of this workspace, including any made with the p4-worktree tool.'}
+              ? translate(
+                  'perforce.copies.listDescription',
+                  'Copies of {{client}} in {{folder}}, including any made with the p4-worktree tool.',
+                  { client: listing.source.client, folder: listing.copiesDir }
+                )
+              : translate(
+                  'perforce.copies.listDescriptionPending',
+                  'Copies of this workspace, including any made with the p4-worktree tool.'
+                )}
           </DialogDescription>
         </DialogHeader>
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         {listing && !listing.serverChecked ? (
           <p className="text-sm text-muted-foreground">
-            The Perforce server could not be asked ({listing.serverError}); showing what is on disk.
+            {translate(
+              'perforce.copies.serverUnreachable',
+              'The Perforce server could not be asked ({{error}}); showing what is on disk.',
+              { error: listing.serverError }
+            )}
           </p>
         ) : null}
         {!listing && loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <LoaderCircle className="size-4 animate-spin" />
-            Reading copies from disk and the Perforce server…
+            {translate(
+              'perforce.copies.reading',
+              'Reading copies from disk and the Perforce server…'
+            )}
           </div>
         ) : null}
         {listing && listing.copies.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No copies yet. Turn on Use worktree in Create workspace to make one.
+            {translate(
+              'perforce.copies.none',
+              'No copies yet. Each workspace you create in this project gets its own copy.'
+            )}
           </p>
         ) : null}
         {listing && listing.copies.length > 0 ? (
           <ul className="flex max-h-[55vh] flex-col divide-y divide-border overflow-y-auto scrollbar-sleek rounded-md border border-border text-sm">
             {listing.copies.map((copy) => {
-              const status = copyStatus(copy, listing.serverChecked)
+              const problem = copyProblem(copy, listing.serverChecked)
               return (
                 <li key={copy.name} className="flex items-center gap-3 px-3 py-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="truncate font-medium">{copy.name}</span>
-                      <Badge variant={status === 'Ready' ? 'secondary' : 'destructive'}>
-                        {status}
+                      <Badge variant={problem ? 'destructive' : 'secondary'}>
+                        {problem ?? translate('perforce.copies.statusReady', 'Ready')}
                       </Badge>
                     </div>
                     <div className="truncate text-xs text-muted-foreground">
-                      {copy.stream ?? 'stream unknown'} · {copy.client}
+                      {copy.stream ?? translate('perforce.copies.streamUnknown', 'stream unknown')}{' '}
+                      · {copy.client}
                     </div>
                   </div>
                   <Button variant="ghost" size="sm" onClick={() => remove(copy)}>
                     <Trash2 className="size-3.5" />
-                    Delete…
+                    {translate('perforce.copies.deleteEllipsis', 'Delete…')}
                   </Button>
                 </li>
               )
@@ -130,10 +152,10 @@ export default function PerforceCopiesModal() {
         <DialogFooter>
           <Button variant="ghost" onClick={() => void load()} disabled={loading}>
             <RefreshCw className="size-3.5" />
-            Refresh
+            {translate('perforce.copies.refresh', 'Refresh')}
           </Button>
           <Button variant="secondary" onClick={closeModal}>
-            Close
+            {translate('perforce.copies.close', 'Close')}
           </Button>
         </DialogFooter>
       </DialogContent>

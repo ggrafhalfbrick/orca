@@ -29,6 +29,7 @@ export const perforceApi = {
   listCopies: (args) => ipcRenderer.invoke('perforce:listCopies', args),
   listCopyStreams: (args) => ipcRenderer.invoke('perforce:listCopyStreams', args),
   syncCopies: (args) => ipcRenderer.invoke('perforce:syncCopies', args),
+  detectProject: (args) => ipcRenderer.invoke('perforce:detectProject', args),
   previewCopyRemoval: (args) => ipcRenderer.invoke('perforce:previewCopyRemoval', args),
   removeCopy: (args) => ipcRenderer.invoke('perforce:removeCopy', args)
 } satisfies PreloadApi['perforce']

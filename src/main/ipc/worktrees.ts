@@ -61,6 +61,7 @@ const WORKTREE_HANDLER_CHANNELS = [
   'perforce:listCopies',
   'perforce:listCopyStreams',
   'perforce:syncCopies',
+  'perforce:detectProject',
   'perforce:previewCopyRemoval',
   'perforce:removeCopy'
 ] as const

@@ -16,3 +16,8 @@ export function uniqueCopyName(name: string, taken: Iterable<string>): string {
     }
   }
 }
+
+/** A stream's last path segment (`//depot/main_wt_fix` → `main_wt_fix`); streams in a depot share the prefix. */
+export function streamShortName(stream: string): string {
+  return stream.slice(stream.lastIndexOf('/') + 1) || stream
+}

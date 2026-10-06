@@ -63,7 +63,11 @@ describe('syncCopyWorktrees', () => {
     expect(changed).toBe(true)
     const id = `repo-1::${join(COPIES, 'made-by-tool')}`
     expect(Object.keys(meta)).toEqual([id])
-    expect(meta[id]).toMatchObject({ displayName: 'made-by-tool', orcaCreationSource: 'desktop' })
+    expect(meta[id]).toMatchObject({
+      displayName: 'made-by-tool',
+      orcaCreationSource: 'desktop',
+      perforceStream: '//g/dev'
+    })
     expect(meta[id]?.createdAt).toBe(Date.parse('2026-10-01T08:54:41.000Z'))
   })
 
@@ -77,7 +81,7 @@ describe('syncCopyWorktrees', () => {
 
   it('reports no change when the sidebar already matches', () => {
     const id = `repo-1::${join(COPIES, 'copy-1')}`
-    const { store } = memoryStore({ [id]: { displayName: 'copy-1' } })
+    const { store } = memoryStore({ [id]: { displayName: 'copy-1', perforceStream: '//g/dev' } })
     expect(
       syncCopyWorktrees(
         store,

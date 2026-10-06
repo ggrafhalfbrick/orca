@@ -9,29 +9,35 @@ import {
   CommandList
 } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
 import { COMBOBOX_FIELD_SHELL } from '../new-workspace/type-ahead-combobox-styles'
 import type {
   PerforceStreamList,
   WorkspaceCopyStreamChoice
 } from '../../../../shared/perforce/workspace-copy/workspace-copy-types'
-
-/** A stream's last path segment; every stream in the picker shares the depot prefix. */
-function streamName(stream: string): string {
-  return stream.slice(stream.lastIndexOf('/') + 1) || stream
-}
+import { streamShortName } from '../../../../shared/perforce/workspace-copy/workspace-copy-name-rules'
 
 function choiceLabel(choice: WorkspaceCopyStreamChoice, sourceStream: string): string {
-  if (choice.kind === 'child') {
-    return 'A new stream of its own (sparse child)'
+  if (choice.kind === 'same-stream') {
+    return translate('perforce.copies.directlyOnStream', '{{stream}} directly (no new stream)', {
+      stream: streamShortName(sourceStream)
+    })
   }
-  if (choice.kind === 'stream') {
-    return streamName(choice.stream)
-  }
-  return sourceStream ? `Same stream (${streamName(sourceStream)})` : 'Same stream'
+  const parent = choice.kind === 'child' ? (choice.parent ?? sourceStream) : choice.stream
+  return translate('perforce.copies.newStreamFrom', 'New stream from {{stream}}', {
+    stream: streamShortName(parent)
+  })
 }
 
-/** Searchable stream picker: the workspace's stream, a new child stream, or any stream in the depot. */
+function isSelected(value: WorkspaceCopyStreamChoice, stream: string, sourceStream: string) {
+  return value.kind === 'child' && (value.parent ?? sourceStream) === stream
+}
+
+/**
+ * "Create from" for a Perforce project: the parent stream the new workspace's own stream branches
+ * from (the workspace's stream by default), as Git branches from a base, or its stream directly.
+ */
 export function PerforceStreamPicker({
   repoId,
   value,
@@ -71,7 +77,10 @@ export function PerforceStreamPicker({
     setOpen(false)
   }
   const sourceStream = list?.sourceStream ?? ''
-  const selectedStream = value.kind === 'stream' ? value.stream : null
+  const parents = list
+    ? [sourceStream, ...list.streams.map((entry) => entry.stream).filter((s) => s !== sourceStream)]
+    : []
+  const typeOf = new Map(list?.streams.map((entry) => [entry.stream, entry.type]) ?? [])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -95,58 +104,70 @@ export function PerforceStreamPicker({
         className="flex w-[var(--radix-popover-trigger-width)] min-w-[17rem] flex-col"
       >
         <Command>
-          <CommandInput placeholder="Search streams…" />
+          <CommandInput
+            placeholder={translate('perforce.copies.searchStreams', 'Search streams…')}
+          />
           <CommandList>
-            <CommandEmpty>No matching stream.</CommandEmpty>
-            <CommandGroup>
-              <CommandItem value="same stream" onSelect={() => select({ kind: 'same-stream' })}>
-                <Check
-                  className={cn(
-                    'size-3.5',
-                    value.kind === 'same-stream' ? 'opacity-100' : 'opacity-0'
-                  )}
-                />
-                <span className="truncate">
-                  {choiceLabel({ kind: 'same-stream' }, sourceStream)}
-                </span>
-              </CommandItem>
-              <CommandItem
-                value="new stream of its own sparse child"
-                onSelect={() => select({ kind: 'child' })}
-              >
-                <Check
-                  className={cn('size-3.5', value.kind === 'child' ? 'opacity-100' : 'opacity-0')}
-                />
-                <span className="truncate">{choiceLabel({ kind: 'child' }, sourceStream)}</span>
-              </CommandItem>
-            </CommandGroup>
+            <CommandEmpty>
+              {translate('perforce.copies.noMatchingStream', 'No matching stream.')}
+            </CommandEmpty>
             {!list && !error ? (
               <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
                 <LoaderCircle className="size-3.5 animate-spin" />
-                Loading streams…
+                {translate('perforce.copies.loadingStreams', 'Loading streams…')}
               </div>
             ) : null}
             {error ? <p className="px-3 py-2 text-xs text-destructive">{error}</p> : null}
-            {list && list.streams.length > 0 ? (
-              <CommandGroup heading="Existing streams">
-                {list.streams
-                  .filter((entry) => entry.stream !== sourceStream)
-                  .map((entry) => (
-                    <CommandItem
-                      key={entry.stream}
-                      value={entry.stream}
-                      onSelect={() => select({ kind: 'stream', stream: entry.stream })}
-                    >
-                      <Check
-                        className={cn(
-                          'size-3.5',
-                          selectedStream === entry.stream ? 'opacity-100' : 'opacity-0'
-                        )}
-                      />
-                      <span className="min-w-0 flex-1 truncate">{entry.name}</span>
-                      <span className="shrink-0 text-xs text-muted-foreground">{entry.type}</span>
-                    </CommandItem>
-                  ))}
+            {parents.length > 0 ? (
+              <CommandGroup
+                heading={translate('perforce.copies.newStreamFromHeading', 'New stream from')}
+              >
+                {parents.map((stream) => (
+                  <CommandItem
+                    key={stream}
+                    value={stream}
+                    onSelect={() =>
+                      select(
+                        stream === sourceStream
+                          ? { kind: 'child' }
+                          : { kind: 'child', parent: stream }
+                      )
+                    }
+                  >
+                    <Check
+                      className={cn(
+                        'size-3.5',
+                        isSelected(value, stream, sourceStream) ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                    <span className="min-w-0 flex-1 truncate">{streamShortName(stream)}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {stream === sourceStream
+                        ? translate('perforce.copies.thisWorkspace', 'this workspace')
+                        : typeOf.get(stream)}
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ) : null}
+            {list ? (
+              <CommandGroup
+                heading={translate('perforce.copies.directlyHeading', 'Work directly on')}
+              >
+                <CommandItem
+                  value={`${sourceStream} directly`}
+                  onSelect={() => select({ kind: 'same-stream' })}
+                >
+                  <Check
+                    className={cn(
+                      'size-3.5',
+                      value.kind === 'same-stream' ? 'opacity-100' : 'opacity-0'
+                    )}
+                  />
+                  <span className="truncate">
+                    {choiceLabel({ kind: 'same-stream' }, sourceStream)}
+                  </span>
+                </CommandItem>
               </CommandGroup>
             ) : null}
           </CommandList>

@@ -1,11 +1,9 @@
 import { useEffect, useId, useState } from 'react'
 import { LoaderCircle, TriangleAlert } from 'lucide-react'
-import { SwitchIndicator } from '@/components/ui/switch'
+import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
-import { normalizePerforceSettings } from '../../../../shared/perforce/perforce-settings'
 import type { WorkspaceCopyReadiness } from '../../../../shared/perforce/workspace-copy/workspace-copy-types'
-import { isFolderRepo } from '../../../../shared/repo-kind'
-import { usePerforceWorkspace } from '../right-sidebar/perforce/use-perforce-workspace'
+import { isPerforceRepo } from '../../../../shared/repo-kind'
 import { usePerforceCopyComposerChoiceStore } from './perforce-copy-composer-choice'
 import { PerforceStreamPicker } from './PerforceStreamPicker'
 
@@ -13,23 +11,41 @@ function gb(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(1)} GB`
 }
 
-/** One line on whether a copy can be made here, from the readiness check's own results. */
+/** One line on where the copy goes, from the readiness check's own results. */
 function ReadinessLine({ readiness }: { readiness: WorkspaceCopyReadiness | null }) {
   if (!readiness) {
     return (
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <LoaderCircle className="size-3.5 animate-spin" />
-        Checking the drive and Perforce…
+        {translate('perforce.copies.checkingDrive', 'Checking the drive and Perforce…')}
       </p>
     )
   }
   if (readiness.problems.length > 0) {
-    return <p className="text-xs text-destructive">{readiness.problems.join(' ')}</p>
+    return (
+      <p className="text-xs text-destructive">
+        {readiness.problems.join(' ')}{' '}
+        {translate(
+          'perforce.copies.sharesFolderInstead',
+          'This workspace will share the project folder instead of getting its own copy.'
+        )}
+      </p>
+    )
   }
   const facts = [
-    readiness.blockCloning === 'verified' ? 'Block cloning verified' : null,
-    readiness.fileSystemFreeBytes !== null ? `${gb(readiness.fileSystemFreeBytes)} free` : null,
-    readiness.copiesDir ? `copies go in ${readiness.copiesDir}` : null
+    readiness.blockCloning === 'verified'
+      ? translate('perforce.copies.blockCloningVerified', 'Block cloning verified')
+      : null,
+    readiness.fileSystemFreeBytes !== null
+      ? translate('perforce.copies.freeOnDrive', '{{size}} free', {
+          size: gb(readiness.fileSystemFreeBytes)
+        })
+      : null,
+    readiness.copiesDir
+      ? translate('perforce.copies.copiesGoIn', 'copies go in {{folder}}', {
+          folder: readiness.copiesDir
+        })
+      : null
   ].filter(Boolean)
   return (
     <div className="space-y-1 text-xs text-muted-foreground">
@@ -45,93 +61,64 @@ function ReadinessLine({ readiness }: { readiness: WorkspaceCopyReadiness | null
 }
 
 /**
- * "Use worktree" for a folder project inside a Perforce stream workspace: the new workspace becomes a
- * Perforce copy with its own client, as Git projects get a worktree. Renders nothing elsewhere.
+ * Create from, for a Perforce project: each new workspace is a Perforce copy on a stream of its own,
+ * as each new Git workspace is a worktree on a branch of its own. Renders nothing for other projects.
  */
 export function PerforceCopyComposerOption({ repoId }: { repoId: string }) {
-  const repo = useAppStore((s) => s.repos.find((candidate) => candidate.id === repoId) ?? null)
-  const defaultOn = useAppStore(
-    (s) => normalizePerforceSettings(s.settings?.perforce).copyUseWorktreeByDefault
-  )
-  const eligible = repo !== null && isFolderRepo(repo)
-  const { isPerforce } = usePerforceWorkspace(
-    eligible ? repo.path : null,
-    repo?.connectionId,
-    eligible
-  )
+  const isPerforce = useAppStore((s) => {
+    const repo = s.repos.find((candidate) => candidate.id === repoId)
+    return repo ? isPerforceRepo(repo) : false
+  })
   const choice = usePerforceCopyComposerChoiceStore((s) => s.byRepo[repoId])
   const setChoice = usePerforceCopyComposerChoiceStore((s) => s.setChoice)
   const [readiness, setReadiness] = useState<WorkspaceCopyReadiness | null>(null)
-  const streamLabelId = useId()
+  const labelId = useId()
 
   useEffect(() => {
-    if (isPerforce && !choice) {
-      setChoice(repoId, { enabled: defaultOn })
-    }
-  }, [isPerforce, choice, defaultOn, repoId, setChoice])
-
-  const enabled = isPerforce && choice?.enabled === true
-  useEffect(() => {
-    if (!enabled) {
+    if (!isPerforce) {
       return
     }
     let cancelled = false
     setReadiness(null)
     void window.api.perforce.copyReadiness({ repoId }).then((result) => {
-      if (!cancelled) {
-        setReadiness(
-          result.ok
-            ? result.value
-            : {
-                ready: false,
-                problems: [result.error],
-                warnings: [],
-                source: null,
-                copiesDir: null,
-                windowsBuild: null,
-                fileSystemFreeBytes: null,
-                blockCloning: null
-              }
-        )
+      if (cancelled) {
+        return
       }
+      const value: WorkspaceCopyReadiness = result.ok
+        ? result.value
+        : {
+            ready: false,
+            problems: [result.error],
+            warnings: [],
+            source: null,
+            copiesDir: null,
+            windowsBuild: null,
+            fileSystemFreeBytes: null,
+            blockCloning: null
+          }
+      setReadiness(value)
+      setChoice(repoId, { ready: value.ready })
     })
     return () => {
       cancelled = true
     }
-  }, [enabled, repoId])
+  }, [isPerforce, repoId, setChoice])
 
-  if (!isPerforce || !choice) {
+  if (!isPerforce) {
     return null
   }
   return (
-    <div className="min-w-0 space-y-2">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={choice.enabled}
-        onClick={() => setChoice(repoId, { enabled: !choice.enabled })}
-        className="group flex w-fit cursor-pointer items-center gap-2 rounded-md text-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-      >
-        <SwitchIndicator checked={choice.enabled} />
-        <span className="font-medium text-muted-foreground transition-colors group-hover:text-foreground">
-          Use worktree
-        </span>
-        <span className="text-muted-foreground/70">Perforce copy with its own client</span>
-      </button>
-      {choice.enabled ? (
-        <div className="space-y-1.5">
-          <span id={streamLabelId} className="block text-xs font-medium text-muted-foreground">
-            Stream
-          </span>
-          <PerforceStreamPicker
-            repoId={repoId}
-            labelId={streamLabelId}
-            value={choice.stream}
-            onChange={(stream) => setChoice(repoId, { stream })}
-          />
-          <ReadinessLine readiness={readiness} />
-        </div>
-      ) : null}
+    <div className="min-w-0 space-y-1.5">
+      <span id={labelId} className="block text-xs font-medium text-muted-foreground">
+        {translate('perforce.copies.createFrom', 'Create from')}
+      </span>
+      <PerforceStreamPicker
+        repoId={repoId}
+        labelId={labelId}
+        value={choice?.stream ?? { kind: 'child' }}
+        onChange={(stream) => setChoice(repoId, { stream })}
+      />
+      <ReadinessLine readiness={readiness} />
     </div>
   )
 }

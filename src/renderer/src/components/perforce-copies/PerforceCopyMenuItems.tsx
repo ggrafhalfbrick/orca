@@ -1,20 +1,14 @@
 import { Layers } from 'lucide-react'
 import { DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
+import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
-import { isFolderRepo } from '../../../../shared/repo-kind'
+import { isPerforceRepo } from '../../../../shared/repo-kind'
 import type { Repo } from '../../../../shared/repo-types'
-import { usePerforceWorkspace } from '../right-sidebar/perforce/use-perforce-workspace'
 
-/** Project-menu entry for a folder project inside a Perforce workspace; copies are made with Use worktree. */
+/** Project-menu entry for a Perforce project; its copies are made with Create workspace. */
 export function PerforceCopyMenuItems({ repo }: { repo: Repo }) {
-  const eligible = isFolderRepo(repo)
-  const { isPerforce } = usePerforceWorkspace(
-    eligible ? repo.path : null,
-    repo.connectionId,
-    eligible
-  )
   const openModal = useAppStore((s) => s.openModal)
-  if (!isPerforce) {
+  if (!isPerforceRepo(repo)) {
     return null
   }
   return (
@@ -22,7 +16,7 @@ export function PerforceCopyMenuItems({ repo }: { repo: Repo }) {
       <DropdownMenuSeparator />
       <DropdownMenuItem onSelect={() => openModal('perforce-copies', { repoId: repo.id })}>
         <Layers className="size-3.5" />
-        Manage Perforce copies…
+        {translate('perforce.copies.manage', 'Manage Perforce copies…')}
       </DropdownMenuItem>
     </>
   )

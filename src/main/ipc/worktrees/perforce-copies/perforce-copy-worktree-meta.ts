@@ -68,8 +68,13 @@ export function syncCopyWorktrees(
     const path = copyWorktreePath(repo, listing.source.root, copy.copyRoot)
     const worktreeId = getPerforceCopyWorktreeId(repo, path)
     live.add(worktreeId)
-    if (!store.getWorktreeMeta(worktreeId)) {
+    const existing = store.getWorktreeMeta(worktreeId)
+    if (!existing) {
       recordCopyWorktree(store, repo, path, copy.name, createdAtOf(copy))
+      changed = true
+    }
+    if (copy.stream && existing?.perforceStream !== copy.stream) {
+      store.setWorktreeMeta(worktreeId, { perforceStream: copy.stream })
       changed = true
     }
   }

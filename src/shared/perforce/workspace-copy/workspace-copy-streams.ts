@@ -1,4 +1,5 @@
 import type { WorkspaceCopyHost } from './workspace-copy-host'
+import { streamShortName } from './workspace-copy-name-rules'
 import { p4Tagged } from './workspace-copy-p4'
 import { resolveCopySource } from './workspace-copy-source'
 import type { PerforceStreamList } from './workspace-copy-types'
@@ -22,7 +23,7 @@ export async function listCopyStreams(
     .filter((record) => record.Stream?.startsWith('//'))
     .map((record) => ({
       stream: record.Stream,
-      name: record.Name ?? record.Stream.slice(record.Stream.lastIndexOf('/') + 1),
+      name: record.Name ?? streamShortName(record.Stream),
       type: record.Type ?? '',
       parent: record.Parent && record.Parent !== 'none' ? record.Parent : null
     }))

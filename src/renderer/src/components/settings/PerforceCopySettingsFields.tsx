@@ -1,3 +1,4 @@
+import { translate } from '@/i18n/i18n'
 import {
   DEFAULT_PERFORCE_SETTINGS,
   type PerforceSettings
@@ -15,15 +16,12 @@ export function PerforceCopySettingsFields({
 }): React.JSX.Element {
   return (
     <div>
-      <SettingsSwitchRow
-        label="Use worktree by default"
-        description="Start Create workspace with Use worktree on for folder projects in a Perforce stream workspace, so each new workspace is its own copy."
-        checked={perforce.copyUseWorktreeByDefault}
-        onChange={() => update({ copyUseWorktreeByDefault: !perforce.copyUseWorktreeByDefault })}
-      />
       <NumberField
-        label="Minimum free space"
-        description="Refuse to make a copy when the drive has less free space than this. A new copy takes about 1 GB, but opening it in Unity writes several GB more."
+        label={translate('perforce.copies.minFreeSpace', 'Minimum free space')}
+        description={translate(
+          'perforce.copies.minFreeSpaceDescription',
+          'Refuse to make a copy when the drive has less free space than this. A new copy takes about 1 GB, but opening it in Unity writes several GB more.'
+        )}
         value={perforce.copyMinFreeSpaceGb}
         defaultValue={DEFAULT_PERFORCE_SETTINGS.copyMinFreeSpaceGb}
         min={0}
@@ -33,20 +31,29 @@ export function PerforceCopySettingsFields({
         onChange={(copyMinFreeSpaceGb) => update({ copyMinFreeSpaceGb })}
       />
       <SettingsSwitchRow
-        label="Leave out Unity's package cache"
-        description="Skips each Unity project's Library/PackageCache; Unity refills it on first open. On a Dev Drive copying it is cheaper and opens faster, so this is off by default."
+        label={translate('perforce.copies.skipPackageCache', "Leave out Unity's package cache")}
+        description={translate(
+          'perforce.copies.skipPackageCacheDescription',
+          "Skips each Unity project's Library/PackageCache; Unity refills it on first open. On a Dev Drive copying it is cheaper and opens faster, so this is off by default."
+        )}
         checked={perforce.copySkipPackageCache}
         onChange={() => update({ copySkipPackageCache: !perforce.copySkipPackageCache })}
       />
       <SettingsRow
         alignTop
-        label="Folders to leave out"
-        description="Workspace-relative folders a copy does not take, one per line (for example tool state such as .jarvis). Files Perforce tracks in them come back from the depot."
+        label={translate('perforce.copies.excludedFolders', 'Folders to leave out')}
+        description={translate(
+          'perforce.copies.excludedFoldersDescription',
+          'Workspace-relative folders a copy does not take, one per line (for example tool state such as .jarvis). Files Perforce tracks in them come back from the depot.'
+        )}
         control={
           <TemplateField
             value={perforce.copyExcludedFolders}
-            ariaLabel="Folders to leave out of copies"
-            placeholder=".jarvis"
+            ariaLabel={translate(
+              'perforce.copies.excludedFoldersAria',
+              'Folders to leave out of copies'
+            )}
+            placeholder={translate('perforce.copies.excludedFoldersPlaceholder', '.jarvis')}
             onCommit={(copyExcludedFolders) => update({ copyExcludedFolders })}
           />
         }
