@@ -23,6 +23,7 @@ describe('PerforceCopyHandler', () => {
       'perforce.copyReadiness',
       'perforce.createCopy',
       'perforce.listCopies',
+      'perforce.listCopyStreams',
       'perforce.previewCopyRemoval',
       'perforce.removeCopy'
     ])

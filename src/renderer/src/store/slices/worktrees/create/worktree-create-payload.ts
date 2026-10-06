@@ -18,6 +18,7 @@ export type CreateWorktreeCallOptions = {
   displayNameKind?: CreateWorktreeArgs['displayNameKind']
   /** Parent picked in the composer. Sets sidebar nesting only; ignored if it no longer exists. */
   parentWorktreeId?: string
+  perforceCopy?: CreateWorktreeArgs['perforceCopy']
   provisionedRoot?: {
     runtimeId: string
     executionHostId: ExecutionHostId
@@ -96,7 +97,8 @@ function sharedCreateFields(
       : {}),
     ...(options?.automationProvenanceRequest
       ? { automationProvenanceRequest: options.automationProvenanceRequest }
-      : {})
+      : {}),
+    ...(options?.perforceCopy ? { perforceCopy: options.perforceCopy } : {})
   }
 }
 

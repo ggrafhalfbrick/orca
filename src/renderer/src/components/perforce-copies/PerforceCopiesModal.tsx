@@ -97,7 +97,7 @@ export default function PerforceCopiesModal() {
         ) : null}
         {listing && listing.copies.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No copies yet. Use New Perforce copy in the project menu.
+            No copies yet. Turn on Use worktree in Create workspace to make one.
           </p>
         ) : null}
         {listing && listing.copies.length > 0 ? (

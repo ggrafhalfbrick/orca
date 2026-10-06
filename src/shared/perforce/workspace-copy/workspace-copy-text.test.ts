@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { formatP4Spec, parseP4Spec } from './p4-spec'
 import { parseRobocopySummary, robocopyArguments } from './workspace-copy-files'
 import { createWorkspaceCopyHost, parseWindowsBuild } from './workspace-copy-host'
-import { suggestCopyName } from './workspace-copy-name-rules'
+import { uniqueCopyName } from './workspace-copy-name-rules'
 import { toCopyName } from './workspace-copy-names'
 import { processesUnder } from './workspace-copy-processes'
 import { removeUnityWorkspaceEntry, setConfigClient, setIdeBindings } from './workspace-copy-rebind'
@@ -43,8 +43,12 @@ describe('copy names', () => {
     expect(toCopyName('!!!')).toMatch(/^wt-[0-9a-f]{8}$/)
   })
 
-  it('suggests the first free numbered name', () => {
-    expect(suggestCopyName(['copy-1', 'COPY-2', 'other'])).toBe('copy-3')
+  it('keeps a free name and numbers a taken one within 24 characters', () => {
+    expect(uniqueCopyName('fix-login', ['other'])).toBe('fix-login')
+    expect(uniqueCopyName('fix-login', ['FIX-LOGIN', 'fix-login-2'])).toBe('fix-login-3')
+    expect(uniqueCopyName('a-very-long-copy-name-xx', ['a-very-long-copy-name-xx'])).toBe(
+      'a-very-long-copy-name-2'
+    )
   })
 })
 

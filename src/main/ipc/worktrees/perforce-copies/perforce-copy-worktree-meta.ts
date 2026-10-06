@@ -23,7 +23,7 @@ export function copyWorktreePath(repo: Repo, sourceRoot: string, copyRoot: strin
 }
 
 /** Records a copy as a worktree of `repo`; creation metadata makes it a visible Orca workspace. */
-export function recordCopyWorktree(
+function recordCopyWorktree(
   store: Store,
   repo: Repo,
   worktreePath: string,

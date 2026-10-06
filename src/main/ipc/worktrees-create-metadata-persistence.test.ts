@@ -45,8 +45,8 @@ const WORKTREE_HANDLER_CHANNELS = [
   'hooks:writeIssueCommand',
   'perforce:copyReadiness',
   'perforce:listCopies',
+  'perforce:listCopyStreams',
   'perforce:syncCopies',
-  'perforce:createCopy',
   'perforce:previewCopyRemoval',
   'perforce:removeCopy'
 ] as const

@@ -15,6 +15,12 @@ export function PerforceCopySettingsFields({
 }): React.JSX.Element {
   return (
     <div>
+      <SettingsSwitchRow
+        label="Use worktree by default"
+        description="Start Create workspace with Use worktree on for folder projects in a Perforce stream workspace, so each new workspace is its own copy."
+        checked={perforce.copyUseWorktreeByDefault}
+        onChange={() => update({ copyUseWorktreeByDefault: !perforce.copyUseWorktreeByDefault })}
+      />
       <NumberField
         label="Minimum free space"
         description="Refuse to make a copy when the drive has less free space than this. A new copy takes about 1 GB, but opening it in Unity writes several GB more."

@@ -4,7 +4,9 @@ import { listWorkspaceCopies } from './workspace-copy-list'
 import { checkCopyReadiness } from './workspace-copy-readiness'
 import { previewWorkspaceCopyRemoval } from './workspace-copy-removal-preview'
 import { removeWorkspaceCopy } from './workspace-copy-remove'
+import { listCopyStreams } from './workspace-copy-streams'
 import type {
+  PerforceStreamList,
   WorkspaceCopyCreateOptions,
   WorkspaceCopyCreateResult,
   WorkspaceCopyListResult,
@@ -30,6 +32,7 @@ export type WorkspaceCopyBackend = {
     name: string,
     options: WorkspaceCopyRemovalOptions
   ) => Promise<WorkspaceCopyRemovalResult>
+  streams: (cwd: string) => Promise<PerforceStreamList>
 }
 
 export function createLocalWorkspaceCopyBackend(host: WorkspaceCopyHost): WorkspaceCopyBackend {
@@ -43,6 +46,7 @@ export function createLocalWorkspaceCopyBackend(host: WorkspaceCopyHost): Worksp
     list: (cwd) => listWorkspaceCopies(host, cwd),
     create: (cwd, options, onProgress) => createWorkspaceCopy(host, cwd, options, onProgress),
     previewRemoval: (cwd, name) => previewWorkspaceCopyRemoval(host, cwd, name),
-    remove: (cwd, name, options) => removeWorkspaceCopy(host, cwd, name, options)
+    remove: (cwd, name, options) => removeWorkspaceCopy(host, cwd, name, options),
+    streams: (cwd) => listCopyStreams(host, cwd)
   }
 }

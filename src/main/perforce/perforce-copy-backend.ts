@@ -47,7 +47,8 @@ function createLocalBackend(): WorkspaceCopyBackend {
     list: scoped(backend.list),
     create: scoped(backend.create),
     previewRemoval: scoped(backend.previewRemoval),
-    remove: scoped(backend.remove)
+    remove: scoped(backend.remove),
+    streams: scoped(backend.streams)
   }
 }
 
@@ -84,7 +85,8 @@ function createSshBackend(connectionId: string): WorkspaceCopyBackend {
     // Progress is not streamed over the relay; the pending row stays indeterminate.
     create: (cwd, options) => call('createCopy', cwd, { options }),
     previewRemoval: (cwd, name) => call('previewCopyRemoval', cwd, { name }),
-    remove: (cwd, name, options) => call('removeCopy', cwd, { name, options })
+    remove: (cwd, name, options) => call('removeCopy', cwd, { name, options }),
+    streams: (cwd) => call('listCopyStreams', cwd, {})
   }
 }
 

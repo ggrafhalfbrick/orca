@@ -37,6 +37,7 @@ import {
 } from './new-workspace/new-workspace-composer-card-props'
 import { getSshStatusLabel } from './new-workspace/new-workspace-composer-ssh-status'
 import { useComposerFileDragOver } from './new-workspace/use-composer-file-drag-over'
+import { PerforceCopyComposerOption } from './perforce-copies/PerforceCopyComposerOption'
 
 // Why lazy: this pulls the ~41 KB project-location browser onto the boot graph, and nothing
 // reaches it without an explicit "Set location" click. Shared with the warm below so both hit
@@ -319,6 +320,7 @@ export default function NewWorkspaceComposerCard(
           selectedProjectName={selectedProjectName}
         />
         <NewWorkspaceComposerNameSection {...props} onNamePlainEnter={handleNamePlainEnter} />
+        <PerforceCopyComposerOption repoId={props.repoId} />
         <NewWorkspaceComposerAgentSection
           {...props}
           createDisabled={props.createDisabled || sparseEditing}

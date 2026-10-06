@@ -16,23 +16,25 @@ Agents (or people) work in a copy without touching the original workspace.
 
 ## Using it
 
-The project menu (`…`) of a folder project inside a Perforce workspace shows:
+Git projects get a worktree for every new workspace. For a folder project inside a Perforce stream
+workspace, **Create workspace** shows **Use worktree**: turned on, the new workspace is a Perforce copy
+named after it (`<root>.wt\<name>`, with its own client), and its agent starts there. Under it, a
+searchable **Stream** picker offers the workspace's stream, a new sparse child stream of its own, or any
+stream in the depot, and a line reports the readiness check (block cloning, free space, warnings).
+Progress shows in the pending workspace row; a toast reports the disk the copy used and offers the
+Unity binding line. Turned off, Create workspace adds a second session on the project folder as before.
 
-- **New Perforce copy**: one click. Picks the next free name (`copy-1`, …), same stream. Progress shows
-  as stage labels in a toast; the copy opens when done.
-- **New Perforce copy…**: shows the readiness check (client, stream, free space, block cloning), then
-  asks for a name and a stream: the same stream, a new sparse child stream of its own, or another
-  existing stream.
-- **Manage Perforce copies…**: every copy of the workspace, including ones made with the p4-worktree
-  tool and leftovers (a folder whose client is gone, a client whose folder is gone), each with Delete.
+The project menu (`…`) has **Manage Perforce copies…**: every copy of the workspace, including ones
+made with the p4-worktree tool and leftovers (a folder whose client is gone, a client whose folder is
+gone), each with Delete.
 
 Deleting a copy, from the sidebar, the context menu or the manage dialog, always opens the Perforce
 copy confirmation. It lists what is deleted and what is kept, and needs explicit opt-ins before it
 reverts checked-out files or deletes shelves. The generic worktree delete, the CLI and batch delete
 refuse a copy (`PERFORCE_COPY_GENERIC_REMOVAL_MESSAGE`).
 
-Settings › Perforce › Workspace Copies: minimum free space (default 10 GB), leaving out Unity's
-`Library/PackageCache`, and extra folders to leave out.
+Settings › Perforce › Workspace Copies: Use worktree by default, minimum free space (default 10 GB),
+leaving out Unity's `Library/PackageCache`, and extra folders to leave out.
 
 ## How a copy is made
 
@@ -82,7 +84,9 @@ session and from Manage), and the tool's `list` and `remove` work on Orca's copi
   (`workspace-copy-host.ts`: p4, robocopy, free space, process list), and tests against a fake server.
 - `src/relay/perforce-copy-handler.ts`: the same operations as `perforce.*` relay methods for SSH hosts.
 - `src/main/perforce/perforce-copy-backend.ts`: local vs SSH backend.
-- `src/main/ipc/worktrees/perforce-copies/`: `perforce:*Copy*` IPC, sidebar metadata and removal gates.
+- `src/main/ipc/worktrees/perforce-copies/`: the Use worktree branch of `worktrees:create`
+  (`perforce-copy-workspace-creation.ts`), `perforce:*Copy*` IPC, sidebar metadata and removal gates.
 - `src/shared/worktree/perforce-copy-worktree.ts`: copy worktree ids (`${repoId}::<root>.wt\<name>`).
   Folder-project listings, authorized roots, PTY rehydration and the runtime listing include them.
-- `src/renderer/src/components/perforce-copies/`: menu items, create/manage/delete dialogs, sync hook.
+- `src/renderer/src/components/perforce-copies/`: the composer's Use worktree option and stream picker,
+  manage/delete dialogs, the success toast, sync hook.

@@ -41,6 +41,8 @@ export type PerforceSettings = {
   aiAgentArgs: string
   /** Extra instructions appended to the description prompt. */
   aiInstructions: string
+  /** Workspace copies: "Use worktree" starts on in Create workspace for Perforce folder projects. */
+  copyUseWorktreeByDefault: boolean
   /** Workspace copies: leave each Unity project's Library/PackageCache out (Unity refills it). */
   copySkipPackageCache: boolean
   /** Workspace copies: workspace-relative folders to leave out, one per line. */
@@ -79,6 +81,7 @@ export const DEFAULT_PERFORCE_SETTINGS: PerforceSettings = {
   aiCustomCommand: '',
   aiAgentArgs: '',
   aiInstructions: '',
+  copyUseWorktreeByDefault: false,
   copySkipPackageCache: false,
   copyExcludedFolders: '',
   copyMinFreeSpaceGb: 10
@@ -165,6 +168,7 @@ export function normalizePerforceSettings(value: unknown): PerforceSettings {
       typeof raw.aiInstructions === 'string'
         ? raw.aiInstructions.slice(0, MAX_TEXT_LENGTH * 4)
         : d.aiInstructions,
+    copyUseWorktreeByDefault: flag(raw.copyUseWorktreeByDefault, d.copyUseWorktreeByDefault),
     copySkipPackageCache: flag(raw.copySkipPackageCache, d.copySkipPackageCache),
     copyExcludedFolders: text(raw.copyExcludedFolders, d.copyExcludedFolders),
     copyMinFreeSpaceGb: bounded(raw.copyMinFreeSpaceGb, d.copyMinFreeSpaceGb, 0, 4096)

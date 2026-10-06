@@ -164,7 +164,23 @@ export type WorkspaceCopyRemovalResult = {
 /** Copy IPC results carry the engine's message instead of Electron's wrapped error. */
 export type WorkspaceCopyIpcResult<T> = { ok: true; value: T } | { ok: false; error: string }
 
-export type WorkspaceCopyProgressEvent = { operationId: string; progress: WorkspaceCopyProgress }
+export type PerforceStreamEntry = {
+  stream: string
+  name: string
+  type: string
+  parent: string | null
+}
 
-/** A copy made from the desktop: the engine's result and the sidebar worktree it became. */
-export type PerforceCopyCreated = { copy: WorkspaceCopyCreateResult; worktreeId: string }
+/** Streams a copy can go on, for the stream picker; `sourceStream` is the workspace's own. */
+export type PerforceStreamList = { sourceStream: string; streams: PerforceStreamEntry[] }
+
+/** What the create-workspace flow reports about a copy it made, for the success toast. */
+export type PerforceCopyCreateSummary = {
+  name: string
+  copyRoot: string
+  stream: string
+  streamChoice: string
+  space: WorkspaceCopySpace
+  warnings: string[]
+  unityVersionControlBinding: string | null
+}

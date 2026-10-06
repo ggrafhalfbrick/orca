@@ -35,7 +35,6 @@ export type UISliceContextual = {
     | 'edit-meta'
     | 'delete-worktree'
     | 'delete-perforce-copy'
-    | 'perforce-copy-create'
     | 'perforce-copies'
     | 'preserved-branch-review'
     | 'forget-ssh-workspace'

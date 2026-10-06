@@ -27,6 +27,7 @@ export class PerforceCopyHandler {
       backend.readiness(cwd, typeof p.minFreeBytes === 'number' ? p.minFreeBytes : undefined)
     )
     on('listCopies', (cwd) => backend.list(cwd))
+    on('listCopyStreams', (cwd) => backend.streams(cwd))
     on('createCopy', (cwd, p) => backend.create(cwd, requireCreateOptions(p.options)))
     on('previewCopyRemoval', (cwd, p) => backend.previewRemoval(cwd, requireCopyName(p.name)))
     on('removeCopy', (cwd, p) =>

@@ -1,21 +1,14 @@
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { getRepoExecutionHostId } from '../../../../shared/execution-host'
-import {
-  copyExcludedFolderList,
-  normalizePerforceSettings
-} from '../../../../shared/perforce/perforce-settings'
+import { normalizePerforceSettings } from '../../../../shared/perforce/perforce-settings'
 import {
   requireCopyName,
-  requireCreateOptions,
   requireRemovalOptions
 } from '../../../../shared/perforce/workspace-copy/workspace-copy-arguments'
 import type { WorkspaceCopyBackend } from '../../../../shared/perforce/workspace-copy/workspace-copy-backend'
 import type {
-  PerforceCopyCreated,
   WorkspaceCopyIpcResult,
-  WorkspaceCopyProgressEvent,
-  WorkspaceCopyRemovalResult,
-  WorkspaceCopyStreamChoice
+  WorkspaceCopyRemovalResult
 } from '../../../../shared/perforce/workspace-copy/workspace-copy-types'
 import { isFolderRepo } from '../../../../shared/repo-kind'
 import type { Repo } from '../../../../shared/repo-types'
@@ -29,15 +22,9 @@ import {
   removeWorktreeMetadataAndTransientState,
   stopPtysForDestructiveWorktreeRemoval
 } from '../removal/worktree-removal-ownership'
-import { suggestCopyName } from '../../../../shared/perforce/workspace-copy/workspace-copy-name-rules'
 import { copyRemovalRefusal } from '../../../../shared/perforce/workspace-copy/workspace-copy-remove'
 import type { WorktreeIpcContext } from '../worktree-ipc-context'
-import {
-  copyWorktreeIdForName,
-  copyWorktreePath,
-  recordCopyWorktree,
-  syncCopyWorktrees
-} from './perforce-copy-worktree-meta'
+import { copyWorktreeIdForName, syncCopyWorktrees } from './perforce-copy-worktree-meta'
 
 type RepoArgs = { repoId: string }
 type CopyArgs = RepoArgs & { name: string }
@@ -93,37 +80,13 @@ export function registerPerforceCopyHandlers(context: WorktreeIpcContext): void 
 
   handle('copyReadiness', (b, dir) => b.readiness(dir, settings().copyMinFreeSpaceGb * GB))
   handle('listCopies', (b, dir) => b.list(dir))
+  handle('listCopyStreams', (b, dir) => b.streams(dir))
   handle('syncCopies', async (b, dir, repo) => {
     const listing = await b.list(dir)
     if (syncCopyWorktrees(store, repo, listing)) {
       changed(context, repo)
     }
     return listing
-  })
-  handle<
-    RepoArgs & { name?: string; stream?: WorkspaceCopyStreamChoice; operationId: string },
-    PerforceCopyCreated
-  >('createCopy', async (b, dir, repo, args, event) => {
-    const current = settings()
-    // One-click creation names no copy; take the first free `copy-<n>`, counting leftovers on the server.
-    const name = args.name ?? suggestCopyName((await b.list(dir)).copies.map((c) => c.name))
-    const options = requireCreateOptions({
-      name,
-      stream: args.stream,
-      skipPackageCache: current.copySkipPackageCache,
-      extraExcludedFolders: copyExcludedFolderList(current),
-      minFreeBytes: current.copyMinFreeSpaceGb * GB
-    })
-    const copy = await b.create(dir, options, (progress) => {
-      if (!event.sender.isDestroyed()) {
-        const payload: WorkspaceCopyProgressEvent = { operationId: args.operationId, progress }
-        event.sender.send('perforce:copyProgress', payload)
-      }
-    })
-    const path = copyWorktreePath(repo, copy.source.root, copy.copyRoot)
-    const worktreeId = recordCopyWorktree(store, repo, path, copy.name)
-    changed(context, repo)
-    return { copy, worktreeId }
   })
   handle<CopyArgs, Awaited<ReturnType<WorkspaceCopyBackend['previewRemoval']>>>(
     'previewCopyRemoval',
