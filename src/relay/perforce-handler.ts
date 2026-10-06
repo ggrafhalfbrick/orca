@@ -16,7 +16,7 @@ import {
 
 type Params = Record<string, unknown>
 
-function requireCwd(params: Params): string {
+export function requireCwd(params: Params): string {
   const raw = params.cwd
   if (typeof raw !== 'string' || raw.includes('\0')) {
     throw new Error('Invalid Perforce workspace path')

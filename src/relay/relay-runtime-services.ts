@@ -14,6 +14,7 @@ import { GitResponseStreamRegistry } from './git-response-stream'
 import { PreflightHandler } from './preflight-handler'
 import { ExternalAutomationsHandler } from './external-automations-handler'
 import { PortScanHandler } from './port-scan-handler'
+import { PerforceCopyHandler } from './perforce-copy-handler'
 import { PerforceHandler } from './perforce-handler'
 import { AgentExecHandler } from './agent-exec-handler'
 import { WorkspaceSessionHandler } from './workspace-session-handler'
@@ -107,6 +108,7 @@ export class RelayRuntimeServices {
       agentExecHandler,
       workspaceSessionHandler,
       new PerforceHandler(dispatcher),
+      new PerforceCopyHandler(dispatcher),
       new AiVaultHandler(dispatcher, {
         hostPlatform,
         service: this.aiVaultService ?? undefined

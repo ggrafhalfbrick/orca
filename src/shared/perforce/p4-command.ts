@@ -75,6 +75,9 @@ export type P4RunOptions = {
   input?: string
   timeoutMs?: number
   signal?: AbortSignal
+  maxOutputBytes?: number
+  /** Throw instead of returning clipped output (callers that diff whole have-lists). */
+  requireCompleteOutput?: boolean
 }
 
 /** Runs `p4 <args>` in `cwd`; a non-zero exit is returned, not thrown. */
@@ -93,10 +96,13 @@ export async function runP4(
     input: options.input,
     signal: options.signal,
     timeoutMs: options.timeoutMs ?? settings.commandTimeoutSeconds * 1000,
-    maxOutputBytes: P4_MAX_OUTPUT_BYTES
+    maxOutputBytes: options.maxOutputBytes ?? P4_MAX_OUTPUT_BYTES
   })
   if (result.timedOut) {
     throw new Error(`p4 ${args[0] ?? ''} timed out`)
+  }
+  if (result.outputTruncated && options.requireCompleteOutput) {
+    throw new Error(`p4 ${args[0] ?? ''} printed more output than Orca can read`)
   }
   return { code: result.code, stdout: result.stdout, stderr: result.stderr }
 }
