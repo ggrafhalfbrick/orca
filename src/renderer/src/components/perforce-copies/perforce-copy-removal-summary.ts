@@ -30,6 +30,20 @@ export function summarizeCopyRemoval(
       { folder: sourceRoot }
     )
   ]
+  const ended = (preview.holders ?? []).filter((holder) =>
+    options.endHolders?.some(
+      (consent) => consent.pid === holder.pid && consent.startedAt === holder.startedAt
+    )
+  )
+  if (ended.length > 0) {
+    deletes.push(
+      translate(
+        'perforce.copies.endsPrograms',
+        'Ends {{programs}} first; anything unsaved in them is lost.',
+        { programs: ended.map((holder) => holder.name).join(', ') }
+      )
+    )
+  }
   if (preview.folderExists) {
     deletes.push(
       translate('perforce.copies.deletesFolder', 'The folder {{folder}} and everything in it.', {

@@ -6,7 +6,13 @@ import { windowsSystem32Binary } from '../../child-process/windows-system-binary
 import { transientLockRemovalOptions } from '../../windows-transient-lock-removal'
 import { runP4, type P4CommandResult, type P4RunOptions } from '../p4-command'
 
-export type HostProcess = { pid: number; name: string; commandLine: string }
+export type HostProcess = {
+  pid: number
+  name: string
+  commandLine: string
+  /** Start time (ms), when the host can read it. */
+  startedAt?: number | null
+}
 
 export type ProcessOutput = {
   code: number | null
@@ -24,6 +30,8 @@ export type WorkspaceCopyHost = {
   removeTree: (path: string) => Promise<void>
   /** Optional: names Unity editors on the source and processes holding a copy's folder. */
   listProcesses?: () => Promise<HostProcess[]>
+  /** Ends one process if it is still the one listed (same pid and start time); true once it is gone. */
+  endProcess?: (process: HostProcess) => Promise<boolean>
 }
 
 // Why: a whole have-list of a large game workspace (166k files) runs to tens of MB.
@@ -37,7 +45,7 @@ export function parseWindowsBuild(osRelease: string): number | null {
 }
 
 export function createWorkspaceCopyHost(
-  overrides: Partial<Pick<WorkspaceCopyHost, 'removeTree' | 'listProcesses'>> = {}
+  overrides: Partial<Pick<WorkspaceCopyHost, 'removeTree' | 'listProcesses' | 'endProcess'>> = {}
 ): WorkspaceCopyHost {
   return {
     p4: (args, options) =>
@@ -74,6 +82,7 @@ export function createWorkspaceCopyHost(
           process.platform === 'win32' ? toNamespacedPath(path) : path,
           transientLockRemovalOptions()
         )),
-    listProcesses: overrides.listProcesses
+    listProcesses: overrides.listProcesses,
+    endProcess: overrides.endProcess
   }
 }

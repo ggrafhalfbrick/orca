@@ -1,7 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { LoaderCircle, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -10,12 +9,17 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 import { translate } from '@/i18n/i18n'
 import type {
   WorkspaceCopyRemovalPreview,
   WorkspaceCopyRemovalResult
 } from '../../../../shared/perforce/workspace-copy/workspace-copy-types'
+import {
+  FileSample,
+  HoldersWarning,
+  OptInWarning,
+  SummaryList
+} from './perforce-copy-delete-sections'
 import { summarizeCopyRemoval } from './perforce-copy-removal-summary'
 
 export type PerforceCopyDeleteTarget = {
@@ -33,32 +37,47 @@ type Props = {
 
 /**
  * Asks before deleting a Perforce workspace copy, listing exactly what goes and what stays. Checked-out
- * files and shelves each need their own opt-in; nothing is deleted until the user confirms.
+ * files, shelves and programs holding the copy each need their own opt-in; nothing is deleted until
+ * the user confirms.
  */
 export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) {
   const [preview, setPreview] = useState<WorkspaceCopyRemovalPreview | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [revertOpenFiles, setRevertOpenFiles] = useState(false)
   const [deleteShelves, setDeleteShelves] = useState(false)
+  const [endHolders, setEndHolders] = useState(false)
+  const [checks, setChecks] = useState(0)
+  const [checking, setChecking] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const [shownTarget, setShownTarget] = useState(target)
+  if (shownTarget !== target) {
+    // Why during render: another copy must never show this one's preview or choices, even briefly.
+    setShownTarget(target)
     setPreview(null)
-    setLoadError(null)
-    setError(null)
     setRevertOpenFiles(false)
     setDeleteShelves(false)
+  }
+
+  // Why not reset above: Check again re-reads the copy without undoing the user's other choices.
+  useEffect(() => {
+    setLoadError(null)
+    setError(null)
+    // The consent covers the programs on screen; a re-check may list others.
+    setEndHolders(false)
     if (!target) {
       return
     }
     let cancelled = false
+    setChecking(true)
     void window.api.perforce
       .previewCopyRemoval({ repoId: target.repoId, name: target.copyName })
       .then((result) => {
         if (cancelled) {
           return
         }
+        setChecking(false)
         if (result.ok) {
           setPreview(result.value)
         } else {
@@ -68,12 +87,16 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
     return () => {
       cancelled = true
     }
-  }, [target])
+  }, [target, checks])
 
+  const holders = preview?.holders ?? []
+  const consents = endHolders ? holders.map(({ pid, startedAt }) => ({ pid, startedAt })) : []
   const blocked =
     !preview ||
+    checking ||
     (preview.blockers.openFiles && !revertOpenFiles) ||
-    (preview.blockers.shelves && !deleteShelves)
+    (preview.blockers.shelves && !deleteShelves) ||
+    (holders.length > 0 && !endHolders)
 
   const confirm = async (): Promise<void> => {
     if (!target || blocked) {
@@ -85,7 +108,8 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
       repoId: target.repoId,
       name: target.copyName,
       revertOpenFiles,
-      deleteShelves
+      deleteShelves,
+      ...(consents.length > 0 ? { endHolders: consents } : {})
     })
     setPending(false)
     if (result.ok) {
@@ -97,7 +121,11 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
   }
 
   const summary = preview
-    ? summarizeCopyRemoval(preview, { revertOpenFiles, deleteShelves }, target?.sourcePath ?? '')
+    ? summarizeCopyRemoval(
+        preview,
+        { revertOpenFiles, deleteShelves, endHolders: consents },
+        target?.sourcePath ?? ''
+      )
     : null
   const shelved = preview?.pendingChanges.filter((change) => change.shelvedFiles > 0) ?? []
 
@@ -185,7 +213,17 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
                 )}
               </OptInWarning>
             ) : null}
-            {preview.processesHoldingFolder.length > 0 ? (
+            {holders.length > 0 ? (
+              <HoldersWarning
+                holders={holders}
+                checked={endHolders}
+                onChange={setEndHolders}
+                onCheckAgain={() => setChecks((count) => count + 1)}
+                checking={checking}
+              />
+            ) : null}
+            {/* A relay that predates holder details only names the programs. */}
+            {!preview.holders && preview.processesHoldingFolder.length > 0 ? (
               <p className="flex gap-2 text-muted-foreground">
                 <TriangleAlert className="mt-0.5 size-4 shrink-0" />
                 {translate(
@@ -227,66 +265,5 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function OptInWarning({
-  id,
-  checked,
-  onChange,
-  label,
-  children
-}: {
-  id: string
-  checked: boolean
-  onChange: (checked: boolean) => void
-  label: string
-  children: ReactNode
-}) {
-  return (
-    <div className="flex flex-col gap-2 rounded-md border border-destructive/40 p-3">
-      <div className="flex gap-2">
-        <TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
-        <div className="min-w-0 flex-1">{children}</div>
-      </div>
-      <div className="flex items-center gap-2 pl-6">
-        <Checkbox id={id} checked={checked} onCheckedChange={(value) => onChange(value === true)} />
-        <Label htmlFor={id}>{label}</Label>
-      </div>
-    </div>
-  )
-}
-
-function FileSample({ files, total }: { files: string[]; total: number }) {
-  return (
-    <ul className="mt-1 list-disc pl-5 font-mono text-xs text-muted-foreground">
-      {files.map((file) => (
-        <li key={file} className="truncate">
-          {file}
-        </li>
-      ))}
-      {total > files.length ? (
-        <li>
-          {translate('perforce.copies.andMore', 'and {{more}} more', {
-            more: total - files.length
-          })}
-        </li>
-      ) : null}
-    </ul>
-  )
-}
-
-function SummaryList({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div>
-      <div className="mb-1 font-medium">{title}</div>
-      <ul className="list-disc space-y-0.5 pl-5 text-muted-foreground">
-        {items.map((item) => (
-          <li key={item} className="break-words">
-            {item}
-          </li>
-        ))}
-      </ul>
-    </div>
   )
 }

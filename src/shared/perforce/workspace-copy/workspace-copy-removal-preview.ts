@@ -10,7 +10,7 @@ import {
   submittedChangeCount,
   unescapeP4Path
 } from './workspace-copy-p4'
-import { processesUnder } from './workspace-copy-processes'
+import { processesUnder, processLabel } from './workspace-copy-processes'
 import { isCopyOwnStream } from './workspace-copy-stream-choice'
 import {
   isPathUnder,
@@ -78,6 +78,7 @@ export async function planWorkspaceCopyRemoval(
       parent: streamRecord?.Parent ?? null
     }
   }
+  const holders = folderExists ? await processesUnder(host, names.copyRoot) : []
   const prefix = `//${names.client}/`.toLowerCase()
   return {
     source,
@@ -101,10 +102,12 @@ export async function planWorkspaceCopyRemoval(
     },
     pendingChanges: changes,
     childStream,
-    processesHoldingFolder: folderExists ? await processesUnder(host, names.copyRoot) : [],
+    processesHoldingFolder: holders.map(processLabel),
+    holders,
     blockers: {
       openFiles: opened.length > 0,
-      shelves: changes.some((change) => change.shelvedFiles > 0)
+      shelves: changes.some((change) => change.shelvedFiles > 0),
+      holders: holders.length > 0
     }
   }
 }

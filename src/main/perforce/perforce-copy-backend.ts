@@ -12,6 +12,7 @@ import {
   type WorkspaceCopyBackend
 } from '../../shared/perforce/workspace-copy/workspace-copy-backend'
 import { createWorkspaceCopyHost } from '../../shared/perforce/workspace-copy/workspace-copy-host'
+import { endWorkspaceCopyHolder } from './perforce-copy-holder-termination'
 import { getPerforceSettings } from './perforce-ssh-backend'
 
 const RELAY_TOO_OLD_MESSAGE =
@@ -33,9 +34,11 @@ function createLocalBackend(): WorkspaceCopyBackend {
               (await readWindowsProcessTableFresh()).map((row) => ({
                 pid: row.pid,
                 name: row.name,
-                commandLine: row.command
+                commandLine: row.command,
+                startedAt: row.creationTimeMs ?? null
               }))
-          : undefined
+          : undefined,
+      endProcess: process.platform === 'win32' ? endWorkspaceCopyHolder : undefined
     })
   )
   const scoped =

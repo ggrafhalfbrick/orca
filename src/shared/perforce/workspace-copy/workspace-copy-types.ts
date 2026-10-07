@@ -120,11 +120,25 @@ export type WorkspaceCopyPendingChange = {
   shelvedFiles: number
 }
 
+/** A program with the copy open, found by a path inside the copy on its command line. */
+export type WorkspaceCopyHolder = {
+  pid: number
+  name: string
+  commandLine: string
+  /** Start time (ms), so ending it can never reach a reused pid; null when the host cannot tell. */
+  startedAt: number | null
+}
+
+/** A holder the user agreed to end: the pid and start time they were shown. */
+export type WorkspaceCopyHolderConsent = Pick<WorkspaceCopyHolder, 'pid' | 'startedAt'>
+
 export type WorkspaceCopyRemovalOptions = {
   /** Reverts the copy's open files (`revert -k`); their edits are lost with the folder. */
   revertOpenFiles?: boolean
   /** Deletes shelved files in the copy's changelists. */
   deleteShelves?: boolean
+  /** Ends these programs first; anything unsaved in them is lost. */
+  endHolders?: WorkspaceCopyHolderConsent[]
 }
 
 export type WorkspaceCopyRemovalPreview = {
@@ -145,8 +159,10 @@ export type WorkspaceCopyRemovalPreview = {
   } | null
   /** Processes whose command line or executable sits in the copy; Windows will not delete a folder they hold. */
   processesHoldingFolder: string[]
+  /** The same processes in full; absent from relays that predate it. */
+  holders?: WorkspaceCopyHolder[]
   /** What removal refuses until the user opts in. */
-  blockers: { openFiles: boolean; shelves: boolean }
+  blockers: { openFiles: boolean; shelves: boolean; holders?: boolean }
 }
 
 export type WorkspaceCopyRemovalResult = {

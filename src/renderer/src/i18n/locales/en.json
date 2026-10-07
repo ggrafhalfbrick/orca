@@ -19524,7 +19524,12 @@
       "excludedFoldersAria": "Folders to leave out of copies",
       "excludedFoldersPlaceholder": ".jarvis",
       "deleteOneAtATime": "Delete Perforce copies one at a time",
-      "deleteOneAtATimeDescription": "Each one shows what it removes from this computer and from Perforce first."
+      "deleteOneAtATimeDescription": "Each one shows what it removes from this computer and from Perforce first.",
+      "endHoldersOptIn": "End these programs (anything unsaved in them is lost)",
+      "holdersWarning": "These programs have this copy open, and Windows will not delete a folder in use. Close them yourself and check again, or end them here.",
+      "programPid": "{{name}} (pid {{pid}})",
+      "checkAgain": "Check again",
+      "endsPrograms": "Ends {{programs}} first; anything unsaved in them is lost."
     }
   }
 }

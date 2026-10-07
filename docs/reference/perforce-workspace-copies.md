@@ -42,7 +42,12 @@ gone), each with Delete.
 
 Deleting a copy, from the sidebar, the context menu or the manage dialog, always opens the Perforce
 copy confirmation. It lists what is deleted and what is kept, and needs explicit opt-ins before it
-reverts checked-out files or deletes shelves. The generic worktree delete, the CLI and batch delete
+reverts checked-out files, deletes shelves or ends programs that have the copy open. Programs are
+found by a path inside the copy on their command line (Unity, Rider, a code index such as Glider);
+the user closes them and chooses **Check again**, or opts in to ending them. Consent covers the
+exact processes shown (pid and start time), and Orca never ends itself. A program that only runs
+inside the copy is not found: telling which process has a folder open needs a walk of other
+processes' handles, which security software treats as an attack. The generic worktree delete, the CLI and batch delete
 refuse a copy (`PERFORCE_COPY_GENERIC_REMOVAL_MESSAGE`).
 
 Settings › Perforce › Workspace Copies: minimum free space (default 10 GB), leaving out Unity's
@@ -78,7 +83,8 @@ using Perforce version control needs one line run in the copy's editor
 ## How a copy is removed
 
 `removeWorkspaceCopy` re-reads the copy's state (the confirmation may be minutes old) and refuses
-open files or shelves the user did not opt into. It moves the folder aside first: Windows will not
+open files, shelves or programs the user did not opt into. It stops Source Control scans in the
+copy and ends the programs the user agreed to end. It moves the folder aside first: Windows will not
 rename a folder a program has open, so a held copy is refused before Perforce is touched, and a
 Perforce failure puts the folder back. Then `revert -k`, delete pending changelists (and their shelves
 when chosen), `client -d`, the marker, and the copy's own stream when nothing was submitted to it (with

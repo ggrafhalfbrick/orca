@@ -6,7 +6,7 @@ import { parseRobocopySummary, robocopyArguments } from './workspace-copy-files'
 import { createWorkspaceCopyHost, parseWindowsBuild } from './workspace-copy-host'
 import { uniqueCopyName } from './workspace-copy-name-rules'
 import { toCopyName } from './workspace-copy-names'
-import { processesUnder } from './workspace-copy-processes'
+import { processesUnder, processLabel } from './workspace-copy-processes'
 import { removeUnityWorkspaceEntry, setConfigClient, setIdeBindings } from './workspace-copy-rebind'
 
 // Captured from robocopy on Windows 11 build 26200 with /NFL /NDL /NP /BYTES.
@@ -132,6 +132,9 @@ describe('host details', () => {
         { pid: 3, name: 'pwsh.exe', commandLine: `pwsh.exe -wd ${copy}` }
       ]
     })
-    expect(await processesUnder(host, copy)).toEqual(['Unity.exe (pid 1)', 'pwsh.exe (pid 3)'])
+    expect((await processesUnder(host, copy)).map(processLabel)).toEqual([
+      'Unity.exe (pid 1)',
+      'pwsh.exe (pid 3)'
+    ])
   })
 })

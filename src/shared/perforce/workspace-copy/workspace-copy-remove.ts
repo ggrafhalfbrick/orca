@@ -7,7 +7,12 @@ import { withSourceLock } from './workspace-copy-lock'
 import { holdWorkspaceScansUnder } from '../perforce-workspace-scan'
 import { assertCopyName } from './workspace-copy-names'
 import { p4OrThrow } from './workspace-copy-p4'
-import { processesUnder } from './workspace-copy-processes'
+import {
+  endConsentedHolders,
+  isConsentedHolder,
+  processesUnder,
+  processLabel
+} from './workspace-copy-processes'
 import { planWorkspaceCopyRemoval, type RemovalPlan } from './workspace-copy-removal-preview'
 import { resolveCopySource } from './workspace-copy-source'
 import { renameFileWithWindowsRetryAsync } from '../../windows-retry-file-operations'
@@ -33,6 +38,13 @@ export function copyRemovalRefusal(
     const shelved = plan.pendingChanges.filter((c) => c.shelvedFiles > 0).map((c) => c.change)
     return `Changelist(s) ${shelved.join(', ')} in ${plan.client} hold shelved files. Unshelve what you need, then choose to delete the shelves.`
   }
+  // Why per process: consent covers the programs the user was shown, not ones opened since.
+  const unconsented = (plan.holders ?? []).filter(
+    (holder) => !isConsentedHolder(holder, options.endHolders)
+  )
+  if (unconsented.length > 0) {
+    return `${unconsented.map(processLabel).join(', ')} still ha${unconsented.length === 1 ? 's' : 've'} ${plan.copyRoot} open. Close ${unconsented.length === 1 ? 'it' : 'them'} and check again, or choose to end ${unconsented.length === 1 ? 'it' : 'them'}.`
+  }
   return null
 }
 
@@ -53,7 +65,8 @@ async function moveFolderAside(host: WorkspaceCopyHost, plan: RemovalPlan): Prom
     return aside
   } catch (error) {
     const holders = await processesUnder(host, plan.copyRoot)
-    const named = holders.length > 0 ? ` Still open in: ${holders.join(', ')}.` : ''
+    const named =
+      holders.length > 0 ? ` Still open in: ${holders.map(processLabel).join(', ')}.` : ''
     const code = error instanceof Error && 'code' in error ? String(error.code) : ''
     throw new WorkspaceCopyError(
       'refused',
@@ -127,6 +140,9 @@ async function removeHeldCopy(
   options: WorkspaceCopyRemovalOptions,
   completion: { awaitFolderDeletion?: boolean }
 ): Promise<WorkspaceCopyRemovalResult> {
+  if (options.endHolders?.length) {
+    await endConsentedHolders(host, plan.copyRoot, options.endHolders)
+  }
   const aside = await moveFolderAside(host, plan)
   let perforce: { deletedChanges: number[]; deletedShelves: number[] } = {
     deletedChanges: [],

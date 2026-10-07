@@ -10,6 +10,7 @@ import type {
   WorkspaceCopyIpcResult,
   WorkspaceCopyListResult,
   WorkspaceCopyReadiness,
+  WorkspaceCopyRemovalOptions,
   WorkspaceCopyRemovalPreview,
   WorkspaceCopyRemovalResult
 } from '../../shared/perforce/workspace-copy/workspace-copy-types'
@@ -73,10 +74,7 @@ export type PerforceApi = {
     repoId: string
     name: string
   }) => Promise<WorkspaceCopyIpcResult<WorkspaceCopyRemovalPreview>>
-  removeCopy: (args: {
-    repoId: string
-    name: string
-    revertOpenFiles?: boolean
-    deleteShelves?: boolean
-  }) => Promise<WorkspaceCopyIpcResult<WorkspaceCopyRemovalResult>>
+  removeCopy: (
+    args: { repoId: string; name: string } & WorkspaceCopyRemovalOptions
+  ) => Promise<WorkspaceCopyIpcResult<WorkspaceCopyRemovalResult>>
 }

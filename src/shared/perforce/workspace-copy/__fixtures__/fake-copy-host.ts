@@ -33,12 +33,14 @@ export function createFakeCopyHost(
   server: FakePerforceServer,
   diskRoot: string,
   options: FakeHostOptions = {}
-): WorkspaceCopyHost & { robocopyCalls: string[][] } {
+): WorkspaceCopyHost & { robocopyCalls: string[][]; endedPids: number[] } {
   const capacity = 500 * 1024 ** 3
   let clonedBytes = 0
   const robocopyCalls: string[][] = []
+  const endedPids: number[] = []
   return {
     robocopyCalls,
+    endedPids,
     p4: (args, runOptions) => server.run(args, runOptions),
     robocopy: async (args): Promise<ProcessOutput> => {
       robocopyCalls.push([...args])
@@ -79,6 +81,15 @@ export function createFakeCopyHost(
     windowsBuild: () => 26200,
     freeBytes: async () => capacity - (diskUsage(diskRoot) - clonedBytes),
     removeTree: (path) => rm(path, { recursive: true, force: true }),
-    listProcesses: async () => options.processes ?? []
+    listProcesses: async () => options.processes ?? [],
+    endProcess: async (target) => {
+      const running = options.processes ?? []
+      const index = running.findIndex((p) => p.pid === target.pid)
+      if (index !== -1) {
+        running.splice(index, 1)
+        endedPids.push(target.pid)
+      }
+      return true
+    }
   }
 }
