@@ -18,6 +18,10 @@ Use the `$electron` skill and Playwright CDP for rendered Orca UI checks. Do not
 
 Before writing new logic at any scale — a function, component, IPC channel, state store, or whole subsystem/flow — check whether an existing implementation already does the job (or nearly does). Extend or generalize it instead of building a parallel version; only write from scratch when nothing fits. Keep the check proportionate: a quick search for trivial code, a real one before building anything substantial.
 
+## Provider-Neutral Interfaces
+
+When a feature involves agents, CLIs, git hosts or any other pluggable backend, put the contract in shared code and each provider's specifics in its own adapter. Shared and UI code hold none of a provider's vocabulary — no provider ids, labels or `if (agent === …)` branches — and render what the provider reports. Shipping one provider first is fine; hard-coding it into the shared layer is not. Leave a short reference doc on adding the next provider, as [`docs/reference/agent-permission-modes.md`](./docs/reference/agent-permission-modes.md) does.
+
 ## Concise/Brief Non-obvious Comments ONLY
 
 - DO NOT: be verbose, explain the obvious, walk through the code ("WHY not HOW")
