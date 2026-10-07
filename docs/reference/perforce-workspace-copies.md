@@ -17,7 +17,8 @@ Git worktree on a branch of its own.
   in Create from.
 
 The requirement is the host's, not the desktop's: the readiness check runs where the workspace is, so
-a Mac connected to a Windows 11 SSH host makes copies there. Everywhere else (macOS, Linux, older
+a Mac connected to a Windows 11 SSH host (managed Orca server or relay) or paired with a Windows 11 Orca
+server makes copies there. Everywhere else (macOS, Linux, older
 Windows, a drive that does not block-clone) Perforce source control works as usual and a new
 workspace shares the project folder. The UI says so before anyone tries: the Create workspace option
 replaces its stream picker with the requirement when the host cannot make copies, and Manage Perforce
@@ -123,12 +124,22 @@ list and remove the ones Orca makes.
 
 - `src/shared/perforce/workspace-copy/`: the engine (create, list, preview, remove), its host seam
   (`workspace-copy-host.ts`: p4, robocopy, free space, process list), and tests against a fake server.
-- `src/relay/perforce-copy-handler.ts`: the same operations as `perforce.*` relay methods for SSH hosts.
-- `src/main/perforce/perforce-copy-backend.ts`: local vs SSH backend.
-- `src/main/ipc/worktrees/perforce-copies/`: the Perforce branch of `worktrees:create`
-  (`perforce-copy-workspace-creation.ts`), `perforce:*Copy*` and `perforce:detectProject` IPC, sidebar
-  metadata (including the copy's `perforceStream`) and removal gates.
+  `workspace-copy-operations.ts` names the project-level operations every transport exposes.
+- `src/main/runtime/runtime-perforce-copy-commands.ts`: readiness, streams, project detection, sync and
+  removal against the runtime's own store, the one implementation. Desktop IPC (`perforce:runCopy`,
+  `src/main/ipc/worktrees/perforce-copies/`) hands its projects to the desktop's runtime, and an Orca
+  server serves the same commands as `perforce.*` runtime RPC (`repo: "id:<repoId>"`).
+- Making a copy is Create workspace: `perforce-copy-creation.ts` (in `src/main/perforce/`) makes it, and
+  the desktop's `worktrees:create` (`perforce-copy-workspace-creation.ts`) or the runtime's
+  `worktree.create` with `perforceCopy` (`runtime-folder-worktree-create.ts`) records the workspace.
+  An Orca server gets the client's copy options in `perforceCopy.settings`, and the client waits up to
+  an hour (`PERFORCE_COPY_REQUEST_TIMEOUT_MS`).
+- `src/main/perforce/perforce-copy-backend.ts`: where the engine runs, on this host or over an SSH
+  target's relay (`src/relay/perforce-copy-handler.ts`).
+- `src/main/perforce/perforce-copy-worktrees.ts`: sidebar metadata (including the copy's
+  `perforceStream`) for adopted and vanished copies.
 - `src/shared/worktree/perforce-copy-worktree.ts`: copy worktree ids (`${repoId}::<root>.wt\<name>`).
   Folder-project listings, authorized roots, PTY rehydration and the runtime listing include them.
 - `src/renderer/src/components/perforce-copies/`: the composer's Create from picker and readiness line,
-  manage/delete dialogs, the success toast, the detect-and-sync hook.
+  manage/delete dialogs, the success toast, the detect-and-sync hook. Each call goes to the host that
+  owns the project (`runPerforceCopyOperation`, with the project's execution host).
