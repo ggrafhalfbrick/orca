@@ -1,6 +1,6 @@
 import type { PerforceOperationResult } from './perforce-types'
 import { rm } from 'node:fs/promises'
-import { escapeP4FileArg, runP4, runP4OrThrow } from './p4-command'
+import { runP4, runP4OrThrow } from './p4-command'
 import { parseTaggedOutput } from './p4-tagged-output'
 import { fileArgs, toResult } from './perforce-mutations'
 
@@ -134,7 +134,10 @@ export async function shelveAndRevertFiles(
   return toResult(await runP4(['revert', ...fileArgs(filePaths)], { cwd }))
 }
 
-/** Restores only the given shelved files into their own changelist, overwriting workspace copies. */
+/**
+ * Restores only the given shelved files into their own changelist, overwriting workspace copies.
+ * `depotPaths` come from p4 already escaped (`%40` for `@`), so they are passed through as-is.
+ */
 export async function unshelveFiles(
   cwd: string,
   changelist: number,
@@ -142,15 +145,7 @@ export async function unshelveFiles(
 ): Promise<PerforceOperationResult> {
   return toResult(
     await runP4(
-      [
-        'unshelve',
-        '-f',
-        '-s',
-        String(changelist),
-        '-c',
-        String(changelist),
-        ...depotPaths.map(escapeP4FileArg)
-      ],
+      ['unshelve', '-f', '-s', String(changelist), '-c', String(changelist), ...depotPaths],
       { cwd }
     )
   )

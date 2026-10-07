@@ -1,5 +1,5 @@
 import { access, constants, lstat, rm } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { resolveInWorkspace } from './perforce-arguments'
 import type { PerforceEntry, PerforceOperationResult } from './perforce-types'
 import { escapeP4FileArg, runP4 } from './p4-command'
 
@@ -66,7 +66,7 @@ export async function discardFiles(
     outputs.push(result.output)
     // Why: reverting an add leaves the file behind; a discard should remove it.
     for (const entry of opened.filter((e) => e.action === 'add' || e.action === 'branch')) {
-      await rm(resolve(cwd, entry.path), { force: true })
+      await rm(resolveInWorkspace(cwd, entry.path), { force: true })
     }
   }
   if (modified.length > 0) {
@@ -78,7 +78,7 @@ export async function discardFiles(
     outputs.push(result.output)
   }
   for (const entry of fresh) {
-    await rm(resolve(cwd, entry.path), { force: true })
+    await rm(resolveInWorkspace(cwd, entry.path), { force: true })
   }
   return { success: true, output: outputs.filter(Boolean).join('\n') }
 }
@@ -103,7 +103,7 @@ export async function syncLatest(cwd: string): Promise<PerforceOperationResult> 
 
 /** True for an existing regular file the user cannot write, i.e. a synced file not yet opened for edit. */
 export async function isReadOnlyWorkspaceFile(cwd: string, filePath: string): Promise<boolean> {
-  const absolute = resolve(cwd, filePath)
+  const absolute = resolveInWorkspace(cwd, filePath)
   try {
     if (!(await lstat(absolute)).isFile()) {
       return false
@@ -117,7 +117,7 @@ export async function isReadOnlyWorkspaceFile(cwd: string, filePath: string): Pr
 
 /** Checks a read-only workspace file out for edit; writable, missing, and non-file paths are left alone. */
 export async function checkoutIfReadOnly(cwd: string, filePath: string): Promise<void> {
-  const absolute = resolve(cwd, filePath)
+  const absolute = resolveInWorkspace(cwd, filePath)
   try {
     if (!(await lstat(absolute)).isFile()) {
       return

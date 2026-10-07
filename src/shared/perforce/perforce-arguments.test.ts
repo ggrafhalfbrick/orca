@@ -1,9 +1,13 @@
+import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { escapeP4FileArg } from './p4-command'
 import {
   requireChangelistId,
   requireChangelistTarget,
+  requireDepotPaths,
   requireDescription,
-  requireRelativePath
+  requireRelativePath,
+  resolveInWorkspace
 } from './perforce-arguments'
 
 describe('perforce argument validation', () => {
@@ -12,6 +16,35 @@ describe('perforce argument validation', () => {
     expect(() => requireRelativePath('../etc/passwd')).toThrow()
     expect(() => requireRelativePath('/etc/passwd')).toThrow()
     expect(() => requireRelativePath('a\0b')).toThrow()
+  })
+
+  it('refuses Windows paths that leave the workspace on any host', () => {
+    // Drive-relative: resolve('C:\\ws', 'C:..\\x') is C:\x, outside the workspace.
+    expect(() => requireRelativePath('C:..\\..\\Windows\\System32\\drivers\\etc\\hosts')).toThrow()
+    expect(() => requireRelativePath('C:foo.txt')).toThrow()
+    expect(() => requireRelativePath('C:\\Windows\\win.ini')).toThrow()
+    expect(() => requireRelativePath('\\\\server\\share\\a.txt')).toThrow()
+    expect(() => requireRelativePath('src\\..\\..\\a.txt')).toThrow()
+  })
+
+  it('refuses the p4 recursive wildcard, which would widen a command to every file', () => {
+    expect(() => requireRelativePath('...')).toThrow('"..."')
+    expect(() => requireRelativePath('src/...')).toThrow('"..."')
+    expect(() => escapeP4FileArg('a...b')).toThrow('"..."')
+  })
+
+  it('resolves only inside the workspace', () => {
+    const root = resolve('ws')
+    expect(resolveInWorkspace(root, 'src/a.txt')).toBe(join(root, 'src', 'a.txt'))
+    expect(() => resolveInWorkspace(root, '.')).toThrow()
+    expect(() => resolveInWorkspace(root, '../a.txt')).toThrow()
+  })
+
+  it('takes depot paths as p4 reports them, already escaped', () => {
+    expect(requireDepotPaths(['//depot/main/a%40b.txt'])).toEqual(['//depot/main/a%40b.txt'])
+    for (const widened of ['//depot/...', '//depot/*.txt', '//depot/a.txt@1', '//depot/a.txt#2']) {
+      expect(() => requireDepotPaths([widened])).toThrow('Invalid Perforce depot path')
+    }
   })
 
   it('validates changelist numbers and targets', () => {

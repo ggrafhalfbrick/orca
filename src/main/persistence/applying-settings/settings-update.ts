@@ -179,7 +179,11 @@ export function updateSettings(
     )
   }
   if ('perforce' in updates) {
-    sanitizedUpdates.perforce = normalizePerforceSettings(updates.perforce)
+    // Why merge: settings:set takes a partial, and normalizing it alone resets every omitted field.
+    sanitizedUpdates.perforce = normalizePerforceSettings({
+      ...operations.state.settings.perforce,
+      ...updates.perforce
+    })
   }
   if ('appIcon' in updates) {
     sanitizedUpdates.appIcon = normalizeAppIconId(updates.appIcon)

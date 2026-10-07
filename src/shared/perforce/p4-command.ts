@@ -121,6 +121,10 @@ export async function runP4OrThrow(
 
 /** Escapes characters p4 treats as wildcards or revision markers in file arguments. */
 export function escapeP4FileArg(path: string): string {
+  // p4 has no escape for its recursive wildcard, so one in a file name would widen the command.
+  if (path.includes('...')) {
+    throw new Error('Perforce file paths cannot contain "..."')
+  }
   return path
     .replaceAll('%', '%25')
     .replaceAll('@', '%40')

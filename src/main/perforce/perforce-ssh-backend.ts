@@ -7,6 +7,7 @@ import { localPerforceBackend, type PerforceBackend } from '../../shared/perforc
 import { runWithPerforceSettings } from '../../shared/perforce/p4-settings-context'
 import {
   DEFAULT_PERFORCE_SETTINGS,
+  perforceSettingsForRemoteHost,
   type PerforceSettings
 } from '../../shared/perforce/perforce-settings'
 
@@ -19,6 +20,11 @@ export function setPerforceSettingsSource(source: () => PerforceSettings): void 
 
 export function getPerforceSettings(): PerforceSettings {
   return settingsSource()
+}
+
+/** What an SSH relay receives: without the settings that only make sense on this computer. */
+export function getRemotePerforceSettings(): PerforceSettings {
+  return perforceSettingsForRemoteHost(settingsSource())
 }
 
 function scoped<Args extends unknown[], Result>(
@@ -75,7 +81,7 @@ function createSshPerforceBackend(connectionId: string): PerforceBackend {
       return (await provider.requestRelay(`perforce.${method}`, {
         cwd,
         ...params,
-        settings: settingsSource()
+        settings: getRemotePerforceSettings()
       })) as T
     } catch (error) {
       throw isJsonRpcMethodNotFoundError(error) ? new Error(RELAY_TOO_OLD_MESSAGE) : error

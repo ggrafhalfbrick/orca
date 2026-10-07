@@ -63,6 +63,35 @@ describe('parseReconcilePreview', () => {
       ['gone.txt', 'modified']
     ])
   })
+
+  // `p4 -ztag reconcile -n -a <file>` from a real P4D 2026.1 server, with the depot and local
+  // paths renamed. Tagged output names the local file in clientFile; untagged output is depot syntax.
+  it('reads a real server transcript, with and without -l', () => {
+    const tagged = [
+      '... depotFile //depot/main/probe.txt',
+      '... clientFile /ws/probe.txt',
+      '... workRev 1',
+      '... action add',
+      '... type text',
+      ''
+    ]
+    const withLocalSyntax = [
+      ...tagged.slice(0, 2),
+      '... localFile /ws/probe.txt',
+      ...tagged.slice(2)
+    ]
+    for (const out of [tagged, withLocalSyntax]) {
+      expect(parseReconcilePreview('/ws', out.join('\n'))).toEqual([
+        {
+          path: 'probe.txt',
+          depotPath: '//depot/main/probe.txt',
+          action: 'add',
+          group: 'new',
+          fileType: 'text'
+        }
+      ])
+    }
+  })
 })
 
 describe('escapeP4FileArg', () => {

@@ -14,7 +14,7 @@ import {
 import { createWorkspaceCopyHost } from '../../shared/perforce/workspace-copy/workspace-copy-host'
 import { endWorkspaceCopyHolder } from './perforce-copy-holder-termination'
 import { listCopyHostProcesses } from './perforce-copy-host-processes'
-import { getPerforceSettings } from './perforce-ssh-backend'
+import { getPerforceSettings, getRemotePerforceSettings } from './perforce-ssh-backend'
 
 const RELAY_TOO_OLD_MESSAGE =
   'The Orca relay on this SSH host does not support Perforce workspace copies yet. Reconnect the SSH target to update it.'
@@ -58,7 +58,7 @@ function createSshBackend(connectionId: string): WorkspaceCopyBackend {
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the relay's perforce copy handlers return exactly the WorkspaceCopyBackend result shapes.
       return (await provider.requestRelay(
         `perforce.${method}`,
-        { cwd, ...params, settings: getPerforceSettings() },
+        { cwd, ...params, settings: getRemotePerforceSettings() },
         { timeoutMs: RELAY_COPY_TIMEOUT_MS }
       )) as T
     } catch (error) {

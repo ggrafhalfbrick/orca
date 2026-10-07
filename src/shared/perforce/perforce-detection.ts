@@ -4,6 +4,9 @@ import { P4NotFoundError, runP4 } from './p4-command'
 import { parseTaggedOutput, type P4Record } from './p4-tagged-output'
 
 const DETECT_CACHE_TTL_MS = 15_000
+// Short, so a fresh `p4 set` or login shows soon, while saves and diffs in other folders stop
+// starting a `p4 info` (up to a 15 s timeout) on every call.
+const NEGATIVE_DETECT_CACHE_TTL_MS = 5_000
 
 const detectCache = new Map<string, { at: number; result: PerforceDetectResult }>()
 
@@ -66,14 +69,12 @@ async function detectUncached(cwd: string): Promise<PerforceDetectResult> {
 /** Reports whether `cwd` is inside a Perforce client workspace, caching briefly. */
 export async function detectPerforceWorkspace(cwd: string): Promise<PerforceDetectResult> {
   const cached = detectCache.get(cwd)
-  if (cached && Date.now() - cached.at < DETECT_CACHE_TTL_MS) {
+  const ttl = cached?.result.isWorkspace ? DETECT_CACHE_TTL_MS : NEGATIVE_DETECT_CACHE_TTL_MS
+  if (cached && Date.now() - cached.at < ttl) {
     return cached.result
   }
   const result = await detectUncached(cwd)
-  // Negative answers are not cached so a fresh `p4 set`/login is picked up on the next check.
-  if (result.isWorkspace) {
-    detectCache.set(cwd, { at: Date.now(), result })
-  }
+  detectCache.set(cwd, { at: Date.now(), result })
   return result
 }
 

@@ -47,7 +47,13 @@ export function usePerforceChangelistActions({
       )
       return null
     }
-    const result = await api.generateDescription({ ...target, changelist, filePaths })
+    // Why catch: a relay or handler failure rejects, and callers rely on null to re-enable their buttons.
+    const result = await api
+      .generateDescription({ ...target, changelist, filePaths })
+      .catch((error: unknown) => ({
+        success: false as const,
+        error: error instanceof Error ? error.message : String(error)
+      }))
     if (!result.success) {
       toast.error(result.error)
       return null

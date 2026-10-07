@@ -1,5 +1,5 @@
 import { readFile, stat } from 'node:fs/promises'
-import { isAbsolute, relative, resolve } from 'node:path'
+import { isAbsolute, relative } from 'node:path'
 import type { GitDiffResult } from '../git-diff-compare-types'
 import type {
   PerforceChangelist,
@@ -14,6 +14,7 @@ import { escapeP4FileArg, runP4, runP4OrThrow, type P4CommandResult } from './p4
 import { currentPerforceSettings } from './p4-settings-context'
 import { parseShelvedDiffPath } from './perforce-shelved-paths'
 import { parseTaggedOutput } from './p4-tagged-output'
+import { resolveInWorkspace } from './perforce-arguments'
 import { detectPerforceWorkspace, toPosix } from './perforce-detection'
 import { HELD_SCAN_MESSAGE, isWorkspaceScanHeld, scanWorkspace } from './perforce-workspace-scan'
 
@@ -36,8 +37,8 @@ function toAction(raw: string | undefined): PerforceFileAction {
   return KNOWN_ACTIONS.find((action) => action === raw) ?? 'unknown'
 }
 
-function toRelativePath(cwd: string, localPath: string): string | null {
-  const rel = relative(cwd, localPath)
+function toRelativePath(cwd: string, localPath: string | undefined): string | null {
+  const rel = localPath ? relative(cwd, localPath) : ''
   if (!rel || rel.startsWith('..') || isAbsolute(rel)) {
     return null
   }
@@ -47,7 +48,7 @@ function toRelativePath(cwd: string, localPath: string): string | null {
 export function parseOpenedEntries(cwd: string, stdout: string): PerforceEntry[] {
   const entries: PerforceEntry[] = []
   for (const record of parseTaggedOutput(stdout)) {
-    const path = record.clientFile ? toRelativePath(cwd, record.clientFile) : null
+    const path = toRelativePath(cwd, record.clientFile)
     if (!path) {
       continue
     }
@@ -67,7 +68,8 @@ export function parseOpenedEntries(cwd: string, stdout: string): PerforceEntry[]
 export function parseReconcilePreview(cwd: string, stdout: string): PerforceEntry[] {
   const entries: PerforceEntry[] = []
   for (const record of parseTaggedOutput(stdout)) {
-    const path = record.clientFile ? toRelativePath(cwd, record.clientFile) : null
+    // Tagged output names the local file in clientFile (checked on P4D 2026.1); `-l` adds localFile.
+    const path = toRelativePath(cwd, record.localFile ?? record.clientFile)
     if (!path) {
       continue
     }
@@ -146,9 +148,10 @@ async function mapDepotToWorkspace(
   if (depotPaths.length === 0) {
     return mapped
   }
-  const result = await runP4(['-ztag', 'where', ...depotPaths.map(escapeP4FileArg)], { cwd })
+  // Depot paths from p4 are already escaped; escaping them again turns %40 into %2540.
+  const result = await runP4(['-ztag', 'where', ...depotPaths], { cwd })
   for (const record of parseTaggedOutput(result.stdout)) {
-    const path = record.path ? toRelativePath(cwd, record.path) : null
+    const path = toRelativePath(cwd, record.path)
     if (record.depotFile && path) {
       mapped.set(record.depotFile, path)
     }
@@ -228,7 +231,7 @@ function looksBinary(content: string): boolean {
 }
 
 async function readWorkingFile(cwd: string, filePath: string): Promise<string | null> {
-  const absolute = resolve(cwd, filePath)
+  const absolute = resolveInWorkspace(cwd, filePath)
   try {
     const info = await stat(absolute)
     if (!info.isFile()) {

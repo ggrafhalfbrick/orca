@@ -12,6 +12,7 @@ import {
   normalizePerforceSettings,
   perforceEnvOverrides,
   perforceSectionOrder,
+  perforceSettingsForRemoteHost,
   type PerforceSettings
 } from './perforce-settings'
 
@@ -48,6 +49,23 @@ describe('normalizePerforceSettings', () => {
 })
 
 describe('settings helpers', () => {
+  it('keeps this computer’s p4 path, client and P4CONFIG away from an SSH host', () => {
+    const local: PerforceSettings = {
+      ...DEFAULT_PERFORCE_SETTINGS,
+      p4Path: 'C:\\Program Files\\Perforce\\p4.exe',
+      p4Client: 'ws_desktop',
+      p4Config: '.p4config.local',
+      p4Port: 'ssl:perforce.example.com:1666',
+      p4User: 'dev'
+    }
+    expect(perforceSettingsForRemoteHost(local)).toEqual({
+      ...local,
+      p4Path: '',
+      p4Client: '',
+      p4Config: ''
+    })
+  })
+
   it('places every section exactly once for each order', () => {
     for (const order of ['default-first', 'numbered-first', 'unopened-first'] as const) {
       expect([...perforceSectionOrder(order)].sort()).toEqual([

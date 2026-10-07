@@ -1,19 +1,41 @@
-import { isAbsolute, normalize } from 'node:path'
+import { isAbsolute, normalize, posix, relative, resolve, win32 } from 'node:path'
 import type { PerforceEntry } from './perforce-types'
 
-/** Lexical check for workspace-relative paths; the executing host owns the real filesystem. */
+// `C:foo` is relative to drive C's current folder, not to the workspace.
+const DRIVE_PREFIX = /^[A-Za-z]:/
+
+/**
+ * Lexical check for workspace-relative paths; the executing host owns the real filesystem.
+ * Both path flavours are refused because a path checked on one OS may be resolved on another (SSH).
+ */
 export function requireRelativePath(value: unknown): string {
   if (typeof value !== 'string' || value.length === 0 || value.includes('\0')) {
     throw new Error('Invalid Perforce file path')
   }
-  const normalized = normalize(value)
-  if (isAbsolute(normalized) || normalized === '..' || normalized.startsWith(`..${'/'}`)) {
+  if (
+    win32.isAbsolute(value) ||
+    posix.isAbsolute(value) ||
+    DRIVE_PREFIX.test(value) ||
+    value.split(/[\\/]/).includes('..')
+  ) {
     throw new Error('Perforce file path escapes the workspace')
   }
-  if (normalized.startsWith('..\\')) {
+  // p4 reads `...` as every file below; it has no escape for it.
+  if (value.includes('...')) {
+    throw new Error('Perforce file paths cannot contain "..."')
+  }
+  return normalize(value)
+}
+
+/** `filePath` resolved inside `cwd`; refuses anything that would land outside it. */
+export function resolveInWorkspace(cwd: string, filePath: string): string {
+  const root = resolve(cwd)
+  const absolute = resolve(root, requireRelativePath(filePath))
+  const inside = relative(root, absolute)
+  if (inside === '' || inside.startsWith('..') || isAbsolute(inside)) {
     throw new Error('Perforce file path escapes the workspace')
   }
-  return normalized
+  return absolute
 }
 
 export function requireRelativePaths(value: unknown): string[] {
@@ -29,6 +51,11 @@ export function requireDepotPaths(value: unknown): string[] {
   }
   return value.map((raw: unknown) => {
     if (typeof raw !== 'string' || !raw.startsWith('//') || raw.includes('\0')) {
+      throw new Error('Invalid Perforce depot path')
+    }
+    // p4 reports depot paths already escaped (`@` as %40), so a raw wildcard or revision
+    // specifier never names one file: `...`, `*`, `%%1`, `@`, `#`.
+    if (/\.\.\.|[*@#]|%%/.test(raw)) {
       throw new Error('Invalid Perforce depot path')
     }
     return raw

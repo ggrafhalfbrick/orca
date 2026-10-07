@@ -33,7 +33,10 @@ export async function getPerforceFolderDiff(
     return null
   }
   const backend = resolvePerforceBackend(connectionId)
-  return (await backend.detect(worktreePath)).isWorkspace
-    ? backend.diff(worktreePath, filePath)
-    : null
+  // Why: a relay too old for perforce.* or a dropped connection must leave git:diff working.
+  const isWorkspace = await backend.detect(worktreePath).then(
+    (detected) => detected.isWorkspace,
+    () => false
+  )
+  return isWorkspace ? backend.diff(worktreePath, filePath) : null
 }

@@ -22,7 +22,10 @@ export function SourceControlPanel() {
   }
   if (isPerforce) {
     return (
+      // Why key: the sidebar keeps panels alive across workspaces, and one workspace's files must
+      // never sit under another's actions while the new status loads.
       <PerforcePanel
+        key={`${activeRepo.connectionId ?? ''}|${worktreePath}`}
         worktreeId={activeWorktree.id}
         worktreePath={worktreePath}
         connectionId={activeRepo.connectionId ?? undefined}

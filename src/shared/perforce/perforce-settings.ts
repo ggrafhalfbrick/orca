@@ -171,6 +171,14 @@ export function normalizePerforceSettings(value: unknown): PerforceSettings {
   }
 }
 
+/**
+ * The settings an SSH host may apply. The p4 path, client and P4CONFIG name things on this
+ * computer, so the host finds its own `p4` and workspace instead of failing on ours.
+ */
+export function perforceSettingsForRemoteHost(settings: PerforceSettings): PerforceSettings {
+  return { ...settings, p4Path: '', p4Client: '', p4Config: '' }
+}
+
 /** The copy-excluded folders setting as a list (one per line or comma-separated). */
 export function copyExcludedFolderList(settings: PerforceSettings): string[] {
   return settings.copyExcludedFolders

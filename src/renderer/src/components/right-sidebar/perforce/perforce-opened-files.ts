@@ -26,10 +26,7 @@ export function publishPerforceOpenedFiles(
   listeners.forEach((listener) => listener())
 }
 
-export async function refreshPerforceOpenedFiles(
-  worktreePath: string,
-  connectionId?: string | null
-): Promise<void> {
+async function readOpenedFiles(worktreePath: string, connectionId?: string | null): Promise<void> {
   try {
     const status = await window.api.perforce.status({
       worktreePath,
@@ -39,6 +36,37 @@ export async function refreshPerforceOpenedFiles(
   } catch {
     // Keep the last known state; the panel surfaces status errors.
   }
+}
+
+const refreshes = new Map<string, { done: Promise<void>; again: boolean }>()
+
+/**
+ * Every editor tab of a workspace asks after mounting and saving, and each status runs a full
+ * workspace scan; so one runs at a time per workspace, and anything asked meanwhile reruns it once.
+ */
+export function refreshPerforceOpenedFiles(
+  worktreePath: string,
+  connectionId?: string | null
+): Promise<void> {
+  const key = keyOf(worktreePath, connectionId)
+  const running = refreshes.get(key)
+  if (running) {
+    running.again = true
+    return running.done
+  }
+  const refresh = { done: Promise.resolve(), again: false }
+  refresh.done = (async () => {
+    try {
+      do {
+        refresh.again = false
+        await readOpenedFiles(worktreePath, connectionId)
+      } while (refresh.again)
+    } finally {
+      refreshes.delete(key)
+    }
+  })()
+  refreshes.set(key, refresh)
+  return refresh.done
 }
 
 function subscribe(listener: () => void): () => void {
