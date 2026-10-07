@@ -17,8 +17,8 @@ import type { ClaudeSession } from './claude-structured-session-state'
  *
  * Yolo still stores itself as the agent's bypass flag inside the launch arguments, which is also
  * what a terminal launch acts on, so presence of that flag is the fact to read — resolved through
- * the same default fallback the terminal uses, which is why an untouched profile bypasses. The
- * rest of the arguments string is a terminal concern this path does not interpret.
+ * the same default fallback the terminal uses, which is why an untouched profile bypasses. Any
+ * other mode the arguments name is `claudeStructuredLaunchPermissionMode`'s to apply.
  */
 export function claudeStructuredPermissionModeForSettings(
   settings:
@@ -29,6 +29,30 @@ export function claudeStructuredPermissionModeForSettings(
   return resolvedTuiAgentArgsBypassPermissions('claude', settings, process.platform)
     ? 'bypassPermissions'
     : 'default'
+}
+
+/** The mode a chat launches in: Yolo wins; otherwise the Arguments' own `--permission-mode`, short
+ *  of the bypass only Yolo grants. */
+export function claudeStructuredLaunchPermissionMode(
+  setting: PermissionMode,
+  argumentsMode: PermissionMode | undefined
+): PermissionMode {
+  if (setting === 'bypassPermissions' || argumentsMode === 'bypassPermissions') {
+    return setting
+  }
+  return argumentsMode ?? setting
+}
+
+/** A chat at rest: its saved pick, else the mode its next launch starts in. */
+export function claudeStructuredRestingPermissionMode(
+  saved: Readonly<Record<string, string>> | undefined,
+  launchMode: PermissionMode
+): NonNullable<AgentSessionOptionsResult['permissionMode']> {
+  const modes = claudeStructuredPermissionModeChoices(
+    launchMode === 'bypassPermissions' ? { bypassPermissionsAvailable: true } : {}
+  )
+  const pick = modes.find((mode) => mode === saved?.permissionMode)
+  return { current: pick ?? launchMode, modes, confirmed: false }
 }
 
 type PermissionModeSession = Pick<

@@ -22,6 +22,8 @@ import { openClaudeStreamJsonConnection } from '../claude/claude-stream-json-con
 import type { ClaudeThinkingDisplaySupport } from '../claude/claude-thinking-display-support'
 import type { ClaudeAllowBypassSupport } from '../claude/claude-allow-bypass-support'
 import type { ClaudeLaunchFlagSupport } from '../claude/claude-launch-flag-support'
+import { claudeStructuredLaunchArgs } from '../claude/claude-structured-launch-args'
+import { claudeStructuredLaunchPermissionMode } from '../claude/claude-structured-permission-mode'
 
 export type StructuredClaudeRuntimeAdapterDeps = {
   store: AgentSessionRecordStore
@@ -82,6 +84,23 @@ export function structuredClaudeLifecycleEvent(
   return null
 }
 
+/** The mode a chat's next launch starts in, read from the settings the launch reads. */
+async function claudeLaunchPermissionModeOf(
+  deps: Pick<
+    StructuredClaudeRuntimeAdapterDeps,
+    'resolveClaudePermissionMode' | 'resolveClaudeLaunchArgs'
+  >
+): Promise<PermissionMode> {
+  const setting = (await deps.resolveClaudePermissionMode?.()) ?? 'default'
+  try {
+    const configured = claudeStructuredLaunchArgs(await deps.resolveClaudeLaunchArgs())
+    return claudeStructuredLaunchPermissionMode(setting, configured.permissionMode)
+  } catch {
+    // Arguments a launch would refuse name no mode; that launch reports the refusal itself.
+    return setting
+  }
+}
+
 export function createStructuredClaudeRuntimeAdapter(
   deps: StructuredClaudeRuntimeAdapterDeps
 ): ClaudeStructuredSessionAdapter {
@@ -109,6 +128,7 @@ export function createStructuredClaudeRuntimeAdapter(
       ...(deps.claudeThinkingDisplay ? { thinkingDisplay: deps.claudeThinkingDisplay } : {}),
       ...(deps.claudeAllowBypass ? { allowBypass: deps.claudeAllowBypass } : {})
     }),
+    resolveLaunchPermissionMode: () => claudeLaunchPermissionModeOf(deps),
     persistHandle: async ({ sessionId, providerSessionId, leafUuid, fence }) => {
       const currentFence = store.getRecord(sessionId)?.lease.runtimeFence ?? fence
       const observedAt = Date.now()

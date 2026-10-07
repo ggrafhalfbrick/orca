@@ -10,7 +10,7 @@ const NO_METHODS = {} as StructuredAgentSessionAdapter
 
 /** This build's agent as a host over a bare adapter double registers it: who it is (so its chats
  *  start), and nothing it can do. */
-function declaringNothing(definition: StructuredAgentDefinition): StructuredAgentDefinition {
+export function declaringNothing(definition: StructuredAgentDefinition): StructuredAgentDefinition {
   return {
     ...definition,
     capabilities: {

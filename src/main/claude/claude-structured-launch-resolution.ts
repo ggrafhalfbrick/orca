@@ -42,6 +42,7 @@ import {
 } from './claude-structured-launch-home'
 import type { ClaudeThinkingDisplaySupport } from './claude-thinking-display-support'
 import type { ClaudeAllowBypassSupport } from './claude-allow-bypass-support'
+import { claudeStructuredLaunchPermissionMode } from './claude-structured-permission-mode'
 import type { AgentSessionRecordStore } from '../runtime/agent-session-record-store'
 import { resolveAgentSessionLaunchDirectory } from '../runtime/agent-session-launch-directory'
 import { CLAUDE_STRUCTURED_AGENT } from './claude-structured-agent-definition'
@@ -268,12 +269,10 @@ export function createClaudeStructuredLaunchResolver(
     const sources = await resolveClaudeChildEnvSources(deps)
     const configured = claudeStructuredLaunchArgs(await deps.resolveLaunchArgs())
     const { additionalDirectories } = configured
-    const setting = (await deps.resolvePermissionMode?.()) ?? 'default'
-    // Yolo wins; otherwise the Arguments' own mode starts the chat, short of the bypass only Yolo
-    // grants.
-    const configuredMode =
-      configured.permissionMode === 'bypassPermissions' ? undefined : configured.permissionMode
-    const mode = setting === 'bypassPermissions' ? setting : (configuredMode ?? setting)
+    const mode = claudeStructuredLaunchPermissionMode(
+      (await deps.resolvePermissionMode?.()) ?? 'default',
+      configured.permissionMode
+    )
     const permission = claudeStructuredPermissionOptions(mode)
     const probe = { command: sources.command, cwd, env: claudeProbeEnv(sources) }
     // Asked as soon as the spawn's cwd and PATH are known, so it overlaps what is left to resolve.

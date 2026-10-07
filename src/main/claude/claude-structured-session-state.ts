@@ -14,6 +14,7 @@ import type {
   ClaudeStreamJsonConnection,
   openClaudeStreamJsonConnection
 } from './claude-stream-json-connection'
+import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk'
 import type { ClaudeStructuredLaunch } from './claude-structured-launch-resolution'
 import type { ClaudeJournalTranslator } from './claude-journal-translator-contract'
 import type { ClaudePendingPrompt, ClaudePromptRegistry } from './claude-structured-prompt-replies'
@@ -103,6 +104,8 @@ export type ClaudeStructuredSessionAdapterDeps = {
   resolveLaunch: (input: {
     identity: AgentSessionJournalIdentity
   }) => Promise<ClaudeStructuredLaunch>
+  /** The mode a launch would start in now; absent offers a chat at rest no permission switch. */
+  resolveLaunchPermissionMode?: () => Promise<PermissionMode>
   onEvent?: (event: ClaudeStructuredSessionEvent) => void
   /** Direct settlement path for provider-proven late dispatch outcomes. */
   onDispatchSettledLate?: (input: { sessionId: string } & ClaudeLateDispatchOutcome) => void

@@ -12,7 +12,11 @@ import { acquireClaudeSession } from './claude-structured-session-acquisition'
 import { supportsClaudeStructuredLocation } from './claude-structured-location-support'
 import { setClaudeStructuredSessionOption } from './claude-structured-options'
 import { readClaudeStructuredSessionOptions } from './claude-structured-session-options'
-import { claudeStructuredPermissionModeReport } from './claude-structured-permission-mode'
+import {
+  claudeStructuredPermissionModeReport,
+  claudeStructuredRestingPermissionMode
+} from './claude-structured-permission-mode'
+import type { AgentSessionRecord } from '../../shared/agent-session-record'
 import { claudeStartupSettledWithin } from './claude-structured-session-startup-state'
 import { CLAUDE_DEFAULT_REQUEST_TIMEOUT_MS } from './claude-agent-sdk-control-requests'
 import {
@@ -250,6 +254,12 @@ export class ClaudeStructuredSessionAdapter implements StructuredAgentSessionAda
   readOptionRestoreFailures = (sessionId: string): readonly string[] => [
     ...(this.sessions.get(sessionId)?.restoreSkippedOptions ?? [])
   ]
+  readRestingPermissionMode = async (record: AgentSessionRecord) => {
+    const launchMode = await this.deps.resolveLaunchPermissionMode?.()
+    return launchMode
+      ? claudeStructuredRestingPermissionMode(record.options, launchMode)
+      : undefined
+  }
 
   releaseAcquisition = (input: { sessionId: string }): Promise<boolean> =>
     this.afterClose(input.sessionId, () => this.releaseProviderSession(input.sessionId))

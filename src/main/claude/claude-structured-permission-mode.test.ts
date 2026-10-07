@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  claudeStructuredLaunchPermissionMode,
   claudeStructuredPermissionModeForSettings,
   claudeStructuredPermissionModeReport,
+  claudeStructuredRestingPermissionMode,
   observeClaudePermissionMode
 } from './claude-structured-permission-mode'
 import { sessionFor } from './claude-structured-dispatch-test-support'
@@ -120,6 +122,35 @@ describe('Claude structured permission mode', () => {
 
     observeClaudePermissionMode(session, { type: 'assistant', permissionMode: 'default' })
     expect(session.reportedOptions.permissionMode).toBe('acceptEdits')
+  })
+})
+
+describe('Claude structured permission mode before a launch', () => {
+  it.each([
+    ['bypassPermissions', 'auto', 'bypassPermissions'],
+    ['default', 'auto', 'auto'],
+    ['default', undefined, 'default'],
+    // Only Yolo grants bypass, however the Arguments spell it.
+    ['default', 'bypassPermissions', 'default']
+  ] as const)('launches setting %s with Arguments mode %s in %s', (setting, configured, mode) => {
+    expect(claudeStructuredLaunchPermissionMode(setting, configured)).toBe(mode)
+  })
+
+  // Every chat is at rest after an app start, so its pill reads this until Claude runs.
+  it('offers a chat at rest its saved pick, else the mode its next launch starts in', () => {
+    expect(claudeStructuredRestingPermissionMode({}, 'auto')).toEqual({
+      current: 'auto',
+      modes: ALL_MODES.filter((mode) => mode !== 'bypassPermissions'),
+      confirmed: false
+    })
+    expect(
+      claudeStructuredRestingPermissionMode({ permissionMode: 'plan' }, 'bypassPermissions')
+    ).toEqual({ current: 'plan', modes: ALL_MODES, confirmed: false })
+    // A saved bypass the next launch cannot grant reads as that launch's own mode.
+    expect(
+      claudeStructuredRestingPermissionMode({ permissionMode: 'bypassPermissions' }, 'default')
+        .current
+    ).toBe('default')
   })
 })
 
