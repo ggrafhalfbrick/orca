@@ -42,7 +42,7 @@ describe('openComposerForPluginTask', () => {
         start: {
           workspaceName: 'plan',
           agentPrompt: 'Implement the plan.',
-          baseRef: '//Depot/Main',
+          baseRef: 'main',
           projectPath: '/home/me/Work',
           sessionOptions: { model: 'opus', effort: 'max' },
           linkMetadata: { plan: 'plans/plan.md' }
@@ -55,7 +55,7 @@ describe('openComposerForPluginTask', () => {
     expect(mocks.openModal).toHaveBeenCalledWith('new-workspace-composer', {
       prefilledName: 'plan',
       initialRepoId: 'local',
-      initialBaseBranch: '//Depot/Main',
+      initialBaseBranch: 'main',
       initialAgentDraft: 'Implement the plan.',
       initialAgentSessionOptions: { model: 'opus', effort: 'max' },
       linkedPluginTask: {

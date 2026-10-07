@@ -81,7 +81,7 @@ export const pluginTaskStartRecipeSchema = z
     workspaceName: z.string().min(1).max(128).optional(),
     /** Draft typed into the agent after launch. Never submitted on its own. */
     agentPrompt: z.string().min(1).max(PLUGIN_TASK_AGENT_PROMPT_MAX_CHARS).optional(),
-    /** Branch (Git) or stream (Perforce) the new workspace starts from. */
+    /** Branch the new workspace starts from. */
     baseRef: z.string().min(1).max(512).optional(),
     /** Preselects the Orca project whose folder is this path. */
     projectPath: z.string().min(1).max(4096).optional(),

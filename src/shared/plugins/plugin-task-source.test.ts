@@ -75,12 +75,12 @@ describe('task source results', () => {
           status: { label: 'Waiting review', tone: 'review' },
           priority: 'P2',
           owner: 'someone@example.com',
-          labels: ['animation'],
+          labels: ['docs'],
           updatedAt: '2026-10-05',
           start: {
             workspaceName: 'plan',
             agentPrompt: 'Implement the plan.',
-            baseRef: '//Depot/Main',
+            baseRef: 'main',
             projectPath: '/home/me/Work'
           }
         },

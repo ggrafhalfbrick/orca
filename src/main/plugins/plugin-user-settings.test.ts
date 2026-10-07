@@ -21,13 +21,13 @@ function plugin(): ValidDiscoveredPlugin {
     contributes: {
       settings: [
         {
-          key: 'source',
-          title: 'Read from',
+          key: 'sort',
+          title: 'Sort by',
           type: 'enum',
-          default: 'auto',
+          default: 'updated',
           options: [
-            { value: 'auto', label: 'Auto' },
-            { value: 'depot', label: 'Depot' }
+            { value: 'updated', label: 'Updated' },
+            { value: 'priority', label: 'Priority' }
           ]
         },
         { key: 'listName', title: 'List name', type: 'string' }
@@ -69,14 +69,14 @@ describe('plugin user settings', () => {
     expect(readPluginUserSettings(deps(), { pluginKey: PLUGIN_KEY })).toEqual({})
 
     expect(
-      writePluginUserSetting(deps(), { pluginKey: PLUGIN_KEY, key: 'source', value: 'depot' })
-    ).toEqual({ source: 'depot' })
+      writePluginUserSetting(deps(), { pluginKey: PLUGIN_KEY, key: 'sort', value: 'priority' })
+    ).toEqual({ sort: 'priority' })
     writePluginUserSetting(deps(), { pluginKey: PLUGIN_KEY, key: 'listName', value: 'Backlog' })
     const stored = JSON.parse(await readFile(join(dataDir, PLUGIN_KEY, 'settings.json'), 'utf8'))
-    expect(stored).toEqual({ source: 'depot', listName: 'Backlog' })
+    expect(stored).toEqual({ sort: 'priority', listName: 'Backlog' })
 
     expect(
-      writePluginUserSetting(deps(), { pluginKey: PLUGIN_KEY, key: 'source', value: null })
+      writePluginUserSetting(deps(), { pluginKey: PLUGIN_KEY, key: 'sort', value: null })
     ).toEqual({ listName: 'Backlog' })
   })
 
@@ -85,8 +85,8 @@ describe('plugin user settings', () => {
       writePluginUserSetting(deps(), { pluginKey: PLUGIN_KEY, key: 'secret', value: 'x' })
     ).toThrow('does not declare setting secret')
     expect(() =>
-      writePluginUserSetting(deps(), { pluginKey: PLUGIN_KEY, key: 'source', value: 'cloud' })
-    ).toThrow('invalid value for setting source')
+      writePluginUserSetting(deps(), { pluginKey: PLUGIN_KEY, key: 'sort', value: 'cloud' })
+    ).toThrow('invalid value for setting sort')
     expect(() => readPluginUserSettings(deps(), { pluginKey: 'orca-samples.other' })).toThrow(
       'not installed'
     )
