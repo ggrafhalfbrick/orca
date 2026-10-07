@@ -1,4 +1,5 @@
 import type { CreateWorktreeArgs } from '../../../../../../shared/worktree/create-types'
+import type { PerforceSettings } from '../../../../../../shared/perforce/perforce-settings'
 import type { ExecutionHostId } from '../../../../../../shared/execution-host'
 import type { WorkspaceKey } from '../../../../../../shared/folder-workspace-types'
 import type { TaskSourceContext } from '../../../../../../shared/task-source-context'
@@ -30,6 +31,8 @@ export type CreateWorktreeCallOptions = {
  *  The per-attempt fields live on `WorktreeCreateAttempt` instead. */
 export type WorktreeCreateRequest = Omit<CreateWorktreeArgs, 'parentWorkspace' | 'manualOrder'> & {
   options?: CreateWorktreeCallOptions
+  /** Sent with a Perforce copy create to an Orca server, which has the user's copy options only this way. */
+  perforceSettings?: PerforceSettings
 }
 
 /** Per-attempt values: names carry the conflict-retry suffix, the parent can be dropped on retry. */
@@ -125,6 +128,9 @@ export function buildRuntimeWorktreeCreateParams(
     // Why: the host defaults a bare `parentWorkspace` to CLI provenance; app picks are manual.
     ...(attempt.parentWorkspace ? { parentWorkspaceOrigin: 'manual' } : {}),
     ...(options?.startupDraft ? { startupDraft: options.startupDraft } : {}),
+    ...(options?.perforceCopy && request.perforceSettings
+      ? { perforceCopy: { ...options.perforceCopy, settings: request.perforceSettings } }
+      : {}),
     ...(startup
       ? {
           startupCommand: startup.command,

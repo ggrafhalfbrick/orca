@@ -179,6 +179,30 @@ export function perforceSettingsForRemoteHost(settings: PerforceSettings): Perfo
   return { ...settings, p4Path: '', p4Client: '', p4Config: '' }
 }
 
+/**
+ * What an Orca server applies to a client's request: the client's settings, with the p4 path,
+ * client and P4CONFIG from the server's own Settings > Perforce. A client that sends none (mobile,
+ * an older desktop) gets the server's settings unchanged.
+ */
+export function perforceSettingsOnHost(
+  clientSettings: unknown,
+  hostSettings: PerforceSettings
+): PerforceSettings {
+  if (clientSettings === undefined || clientSettings === null) {
+    return hostSettings
+  }
+  const { p4Path, p4Client, p4Config } = hostSettings
+  return { ...normalizePerforceSettings(clientSettings), p4Path, p4Client, p4Config }
+}
+
+/**
+ * How long a transport (SSH relay, Orca server) waits for one Perforce request. p4 enforces each
+ * command's own limit, so this only has to outlast a status scan plus one command after it.
+ */
+export function perforceRequestTimeoutMs(settings: PerforceSettings): number {
+  return (settings.statusScanTimeoutSeconds + settings.commandTimeoutSeconds) * 1000 + 30_000
+}
+
 /** The copy-excluded folders setting as a list (one per line or comma-separated). */
 export function copyExcludedFolderList(settings: PerforceSettings): string[] {
   return settings.copyExcludedFolders

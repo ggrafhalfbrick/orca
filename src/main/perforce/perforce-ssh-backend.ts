@@ -4,67 +4,16 @@ import {
 } from '../providers/ssh-git-dispatch'
 import { isJsonRpcMethodNotFoundError } from '../providers/ssh-git-relay-errors'
 import { localPerforceBackend, type PerforceBackend } from '../../shared/perforce/perforce-backend'
-import { runWithPerforceSettings } from '../../shared/perforce/p4-settings-context'
+import { currentPerforceSettings } from '../../shared/perforce/p4-settings-context'
 import {
-  DEFAULT_PERFORCE_SETTINGS,
-  perforceSettingsForRemoteHost,
-  type PerforceSettings
+  perforceRequestTimeoutMs,
+  perforceSettingsForRemoteHost
 } from '../../shared/perforce/perforce-settings'
 
-let settingsSource: () => PerforceSettings = () => DEFAULT_PERFORCE_SETTINGS
-
-/** Wired once at startup so every p4 call, local or over the relay, sees the current Settings > Perforce values. */
-export function setPerforceSettingsSource(source: () => PerforceSettings): void {
-  settingsSource = source
+/** What an SSH relay receives: the request's settings, without the ones that only make sense on this computer. */
+export function remotePerforceSettings(): ReturnType<typeof perforceSettingsForRemoteHost> {
+  return perforceSettingsForRemoteHost(currentPerforceSettings())
 }
-
-export function getPerforceSettings(): PerforceSettings {
-  return settingsSource()
-}
-
-/** What an SSH relay receives: without the settings that only make sense on this computer. */
-export function getRemotePerforceSettings(): PerforceSettings {
-  return perforceSettingsForRemoteHost(settingsSource())
-}
-
-function scoped<Args extends unknown[], Result>(
-  run: (...args: Args) => Result
-): (...args: Args) => Result {
-  return (...args) => runWithPerforceSettings(settingsSource(), () => run(...args))
-}
-
-function createLocalPerforceBackend(): PerforceBackend {
-  const local = localPerforceBackend
-  return {
-    detect: scoped(local.detect),
-    status: scoped(local.status),
-    history: scoped(local.history),
-    diff: scoped(local.diff),
-    open: scoped(local.open),
-    close: scoped(local.close),
-    edit: scoped(local.edit),
-    discard: scoped(local.discard),
-    submit: scoped(local.submit),
-    sync: scoped(local.sync),
-    shelve: scoped(local.shelve),
-    unshelve: scoped(local.unshelve),
-    deleteShelf: scoped(local.deleteShelf),
-    unshelveFiles: scoped(local.unshelveFiles),
-    shelveAndRevertFiles: scoped(local.shelveAndRevertFiles),
-    unshelveFrom: scoped(local.unshelveFrom),
-    createChangelist: scoped(local.createChangelist),
-    editDescription: scoped(local.editDescription),
-    moveToChangelist: scoped(local.moveToChangelist),
-    deleteChangelist: scoped(local.deleteChangelist),
-    deleteChangelistWithFiles: scoped(local.deleteChangelistWithFiles),
-    checkoutIfReadOnly: scoped(local.checkoutIfReadOnly),
-    isReadOnlyFile: scoped(local.isReadOnlyFile),
-    diffText: scoped(local.diffText),
-    info: scoped(local.info)
-  }
-}
-
-const settingsLocalBackend = createLocalPerforceBackend()
 
 const RELAY_TOO_OLD_MESSAGE =
   'The Orca relay on this SSH host does not support Perforce yet. Reconnect the SSH target to update it.'
@@ -78,11 +27,11 @@ function createSshPerforceBackend(connectionId: string): PerforceBackend {
     }
     try {
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: see above.
-      return (await provider.requestRelay(`perforce.${method}`, {
-        cwd,
-        ...params,
-        settings: getRemotePerforceSettings()
-      })) as T
+      return (await provider.requestRelay(
+        `perforce.${method}`,
+        { cwd, ...params, settings: remotePerforceSettings() },
+        { timeoutMs: perforceRequestTimeoutMs(currentPerforceSettings()) }
+      )) as T
     } catch (error) {
       throw isJsonRpcMethodNotFoundError(error) ? new Error(RELAY_TOO_OLD_MESSAGE) : error
     }
@@ -126,5 +75,5 @@ function createSshPerforceBackend(connectionId: string): PerforceBackend {
 
 /** Picks where p4 runs: the SSH host when the workspace is remote, this machine otherwise. */
 export function resolvePerforceBackend(connectionId?: string | null): PerforceBackend {
-  return connectionId ? createSshPerforceBackend(connectionId) : settingsLocalBackend
+  return connectionId ? createSshPerforceBackend(connectionId) : localPerforceBackend
 }

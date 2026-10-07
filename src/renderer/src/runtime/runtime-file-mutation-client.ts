@@ -1,4 +1,5 @@
 import type { DirEntry } from '../../../shared/filesystem-entry-types'
+import { checkoutPerforceFileBeforeWrite } from '@/lib/perforce-checkout-before-write'
 import { normalizeRelativePath } from '@/lib/path'
 import { callRuntimeRpc, getActiveRuntimeTarget } from './runtime-rpc-client'
 import type { RuntimeFileOperationArgs } from './runtime-file-client-types'
@@ -38,6 +39,7 @@ export async function writeRuntimeFile(
   content: string,
   access?: LocalFileAccess
 ): Promise<void> {
+  await checkoutPerforceFileBeforeWrite(context, filePath)
   const remoteArgs = getRemoteFileArgs(context, filePath)
   if (!remoteArgs) {
     assertLocalFilesystemFallbackAllowed(context)

@@ -6,6 +6,7 @@ import { isFolderRepo } from '../../../../shared/repo-kind'
 import { parseWorkspaceKey } from '../../../../shared/workspace-scope'
 import { getVisibleRightSidebarActivityItems } from './right-sidebar-activity-visibility'
 import { usePerforceWorkspace } from './perforce/use-perforce-workspace'
+import { usePerforceWorkspaceTarget } from '@/lib/perforce-workspace-target'
 import { getPluginPanelActivityItems } from './plugin-panel-activity-items'
 import {
   collectInstalledPluginTabKeys,
@@ -48,9 +49,13 @@ export function useRightSidebarActivityItems({
   const isFolderWorkspace = activeWorkspaceScope?.type === 'folder'
   const isFolder = isFolderWorkspace || (activeRepo ? isFolderRepo(activeRepo) : false)
   const isSshRepo = Boolean(activeRepo?.connectionId)
+  const perforceTarget = usePerforceWorkspaceTarget(
+    activeWorktreeId,
+    activeWorktree?.path,
+    activeRepo?.connectionId
+  )
   const { isPerforce, redetect: redetectPerforce } = usePerforceWorkspace(
-    activeWorktree?.path ?? null,
-    activeRepo?.connectionId,
+    perforceTarget,
     isFolder && !isFolderWorkspace
   )
   const pluginSystemEnabled = useAppStore((s) => s.settings?.pluginSystemEnabled === true)

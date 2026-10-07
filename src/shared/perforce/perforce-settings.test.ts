@@ -11,8 +11,10 @@ import {
   applyChangelistTemplate,
   normalizePerforceSettings,
   perforceEnvOverrides,
+  perforceRequestTimeoutMs,
   perforceSectionOrder,
   perforceSettingsForRemoteHost,
+  perforceSettingsOnHost,
   type PerforceSettings
 } from './perforce-settings'
 
@@ -180,5 +182,36 @@ describe.skipIf(process.platform === 'win32')('settings applied to p4 calls', ()
     await withSettings({ compareAgainst: 'head' }, () => localPerforceBackend.diff(dir, 'a.txt'))
     const print = (await invocations()).find((call) => call.args[0] === 'print')
     expect(print?.args.at(-1)).toBe('a.txt#head')
+  })
+})
+
+describe('settings on an Orca server', () => {
+  const host = normalizePerforceSettings({
+    p4Path: '/opt/p4',
+    p4Client: 'server_ws',
+    p4Config: 'p4config.txt',
+    p4Port: 'ssl:server:1666',
+    showEditedTabPrefix: false
+  })
+
+  it("applies the client's settings with the server's p4 path, client and P4CONFIG", () => {
+    const client = perforceSettingsForRemoteHost(
+      normalizePerforceSettings({ p4Path: '/mine/p4', p4Port: 'ssl:mine:1666' })
+    )
+    expect(perforceSettingsOnHost(client, host)).toMatchObject({
+      p4Path: '/opt/p4',
+      p4Client: 'server_ws',
+      p4Config: 'p4config.txt',
+      p4Port: 'ssl:mine:1666',
+      showEditedTabPrefix: true
+    })
+  })
+
+  it("keeps the server's settings for a client that sends none", () => {
+    expect(perforceSettingsOnHost(undefined, host)).toBe(host)
+  })
+
+  it('waits for a status scan and one command after it', () => {
+    expect(perforceRequestTimeoutMs(DEFAULT_PERFORCE_SETTINGS)).toBe((180 + 60) * 1000 + 30_000)
   })
 })

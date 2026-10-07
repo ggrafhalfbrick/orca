@@ -1,35 +1,40 @@
-import { join, relative } from 'node:path'
-import type { Repo } from '../../../../shared/repo-types'
+import { win32 } from 'node:path'
+import type { Repo } from '../../shared/repo-types'
 import type {
   WorkspaceCopyListEntry,
   WorkspaceCopyListResult
-} from '../../../../shared/perforce/workspace-copy/workspace-copy-types'
-import { splitWorktreeId } from '../../../../shared/worktree/id'
+} from '../../shared/perforce/workspace-copy/workspace-copy-types'
+import { splitWorktreeId } from '../../shared/worktree/id'
 import {
   getPerforceCopyName,
   getPerforceCopyWorktreeId,
   isPerforceCopyWorktreeIdForRepo
-} from '../../../../shared/worktree/perforce-copy-worktree'
-import type { Store } from '../../../persistence'
-import { removeWorktreeMetadataAndTransientState } from '../removal/worktree-removal-ownership'
+} from '../../shared/worktree/perforce-copy-worktree'
+import type { Store } from '../persistence'
+
+export type CopyWorktreeStore = Pick<
+  Store,
+  'getWorktreeMeta' | 'setWorktreeMeta' | 'getAllWorktreeMeta'
+>
 
 /**
  * The copy's counterpart of the project folder: the copy root itself, or the same subfolder inside it
- * when the project is a folder below the client root.
+ * when the project is a folder below the client root. Copies exist only on Windows hosts, so their
+ * paths follow Windows rules whatever this computer runs.
  */
 export function copyWorktreePath(repo: Repo, sourceRoot: string, copyRoot: string): string {
-  const inside = relative(sourceRoot, repo.path)
-  return inside && !inside.startsWith('..') ? join(copyRoot, inside) : copyRoot
+  const inside = win32.relative(sourceRoot, repo.path)
+  return inside && !inside.startsWith('..') ? win32.join(copyRoot, inside) : copyRoot
 }
 
 /** Records a copy as a worktree of `repo`; creation metadata makes it a visible Orca workspace. */
 function recordCopyWorktree(
-  store: Store,
+  store: CopyWorktreeStore,
   repo: Repo,
   worktreePath: string,
   name: string,
-  createdAt = Date.now()
-): string {
+  createdAt: number
+): void {
   const worktreeId = getPerforceCopyWorktreeId(repo, worktreePath)
   if (!store.getWorktreeMeta(worktreeId)) {
     store.setWorktreeMeta(worktreeId, {
@@ -40,7 +45,6 @@ function recordCopyWorktree(
       lastActivityAt: createdAt
     })
   }
-  return worktreeId
 }
 
 function createdAtOf(copy: WorkspaceCopyListEntry): number {
@@ -54,9 +58,10 @@ function createdAtOf(copy: WorkspaceCopyListEntry): number {
  * the sidebar; Manage Perforce copies lists it for cleanup. Returns whether anything changed.
  */
 export function syncCopyWorktrees(
-  store: Store,
+  store: CopyWorktreeStore,
   repo: Repo,
-  listing: WorkspaceCopyListResult
+  listing: WorkspaceCopyListResult,
+  forgetWorktree: (worktreeId: string) => void
 ): boolean {
   let changed = false
   const live = new Set<string>()
@@ -89,7 +94,7 @@ export function syncCopyWorktrees(
           ) === worktreeId
       )
       if (copyRootGone) {
-        removeWorktreeMetadataAndTransientState(store, worktreeId)
+        forgetWorktree(worktreeId)
         changed = true
       }
     }
@@ -98,7 +103,7 @@ export function syncCopyWorktrees(
 }
 
 export function copyWorktreeIdForName(
-  store: Store,
+  store: CopyWorktreeStore,
   repo: Repo,
   name: string
 ): { worktreeId: string; path: string } | null {

@@ -1,14 +1,18 @@
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
-import { PerforceCopyDeleteDialog, type PerforceCopyDeleteTarget } from './PerforceCopyDeleteDialog'
+import { PerforceCopyDeleteDialog } from './PerforceCopyDeleteDialog'
+import type { PerforceCopyDeleteTarget } from './perforce-copy-target'
+import { parseExecutionHostId } from '../../../../shared/execution-host'
 import { translate } from '@/i18n/i18n'
 
 function readTarget(data: Record<string, unknown>): PerforceCopyDeleteTarget | null {
   const { repoId, sourcePath, copyName } = data
+  const host = typeof data.hostId === 'string' ? parseExecutionHostId(data.hostId) : null
   return typeof repoId === 'string' &&
     typeof sourcePath === 'string' &&
-    typeof copyName === 'string'
-    ? { repoId, sourcePath, copyName }
+    typeof copyName === 'string' &&
+    host
+    ? { repoId, hostId: host.id, sourcePath, copyName }
     : null
 }
 

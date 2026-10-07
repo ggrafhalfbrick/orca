@@ -17,6 +17,10 @@ import type {
   WorkspaceCopyListResult
 } from '../../../../shared/perforce/workspace-copy/workspace-copy-types'
 import { PerforceCopyRequirement } from './PerforceCopyRequirement'
+import { findRepoForHost } from '@/store/slices/repo-host-identity'
+import { getRepoExecutionHostId } from '../../../../shared/execution-host'
+import { runPerforceCopyOperation } from '../../runtime/runtime-perforce-client'
+import { perforceProjectTarget } from '@/lib/perforce-workspace-target'
 
 /** The copy's state in words; null is ready, anything else is something Delete cleans up. */
 export function copyProblem(copy: WorkspaceCopyListEntry, serverChecked: boolean): string | null {
@@ -41,7 +45,14 @@ export default function PerforceCopiesModal() {
   const closeModal = useAppStore((s) => s.closeModal)
   const openModal = useAppStore((s) => s.openModal)
   const repos = useAppStore((s) => s.repos)
-  const repo = repos.find((candidate) => candidate.id === modalData.repoId) ?? null
+  const settings = useAppStore((s) => s.settings)
+  const repo =
+    typeof modalData.repoId === 'string'
+      ? findRepoForHost(repos, modalData.repoId, {
+          hostId: typeof modalData.hostId === 'string' ? modalData.hostId : null,
+          settings
+        })
+      : null
   const [listing, setListing] = useState<WorkspaceCopyListResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -53,7 +64,11 @@ export default function PerforceCopiesModal() {
     setLoading(true)
     setError(null)
     // Sync, not just list: copies made outside Orca join the sidebar and vanished ones leave it.
-    const result = await window.api.perforce.syncCopies({ repoId: repo.id })
+    const result = await runPerforceCopyOperation(
+      perforceProjectTarget(repo.id, getRepoExecutionHostId(repo)),
+      'syncCopies',
+      {}
+    )
     setLoading(false)
     if (result.ok) {
       setListing(result.value)
@@ -70,6 +85,7 @@ export default function PerforceCopiesModal() {
     if (repo) {
       openModal('delete-perforce-copy', {
         repoId: repo.id,
+        hostId: getRepoExecutionHostId(repo),
         sourcePath: repo.path,
         copyName: copy.name
       })

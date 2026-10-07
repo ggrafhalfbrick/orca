@@ -26,6 +26,12 @@ import { installRuntimeRepositoryCommandSurface } from './runtime-repository-com
 import { installRuntimeReviewCommandSurface } from './runtime-review-command-surface'
 import { installRuntimeServiceCommandSurface } from './runtime-service-command-surface'
 import {
+  RuntimePerforceCommands,
+  installRuntimePerforceCommandSurface
+} from './runtime-perforce-commands'
+import { RuntimePerforceCopyCommands } from './runtime-perforce-copy-commands'
+import { teardownFolderWorkspacePtys } from './folder-workspace-pty-teardown'
+import {
   RuntimeSkillCommands,
   installRuntimeSkillCommandSurface
 } from './runtime-skill-command-surface'
@@ -199,6 +205,41 @@ export class OrcaRuntimeWithStateFields extends OrcaRuntimeWithLinearCommands {
       )
     })
     installRuntimeSkillCommandSurface(runtime, this.skillCommands)
+    const getRuntimeSettings = () => this.store?.getSettings?.() ?? {}
+    installRuntimePerforceCommandSurface(runtime, {
+      workspaces: new RuntimePerforceCommands({
+        resolveRuntimeFileTarget: (selector) => this.resolveRuntimeFileTarget(selector),
+        getRuntimeSettings,
+        getCommitMessageAgentEnvironment: () => this.accounts.getCommitMessageAgentEnvironment()
+      }),
+      copies: new RuntimePerforceCopyCommands({
+        resolveRepo: (selector) => this.resolveRepoSelector(selector),
+        getStore: () => this.requireStore(),
+        getRuntimeSettings,
+        acquireFileWatcherRemoval: (path, connectionId) =>
+          this.acquireFileWatcherRemoval(path, connectionId),
+        stopWorkspaceTerminals: (worktreeId, connectionId) =>
+          teardownFolderWorkspacePtys(
+            {
+              runtime,
+              getSshProvider: this.getSshProviderFn,
+              getLocalProvider: () => this.getLocalProvider(),
+              onPtyStopped: this.onPtyStopped
+            },
+            worktreeId,
+            connectionId
+          ),
+        forgetWorktree: (worktreeId, hostId) => {
+          this.removeWorktreeMetadataAndHistory(this.requireStore(), worktreeId, hostId)
+          this.invalidateResolvedWorktreeCache()
+        },
+        worktreesChanged: (repoId) => {
+          this.invalidateWorktreeScanCacheForRepo(repoId)
+          this.notifyWorktreesChanged(repoId)
+        },
+        reposChanged: () => this.notifyReposChanged()
+      })
+    })
     Object.assign(this, this.edgeCommands.surface)
     // Why: keep cache-boundary test seams live while the fetch owner holds the mutable maps.
     void this.canonicalFetchKeyCache

@@ -320,7 +320,10 @@ export default function NewWorkspaceComposerCard(
           selectedProjectName={selectedProjectName}
         />
         <NewWorkspaceComposerNameSection {...props} onNamePlainEnter={handleNamePlainEnter} />
-        <PerforceCopyComposerOption repoId={props.repoId} />
+        <PerforceCopyComposerOption
+          repoId={props.repoId}
+          hostId={selectedRepoExecutionHostId ?? null}
+        />
         <NewWorkspaceComposerAgentSection
           {...props}
           createDisabled={props.createDisabled || sparseEditing}

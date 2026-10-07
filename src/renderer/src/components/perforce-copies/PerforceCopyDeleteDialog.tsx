@@ -21,13 +21,9 @@ import {
   SummaryList
 } from './perforce-copy-delete-sections'
 import { summarizeCopyRemoval } from './perforce-copy-removal-summary'
-
-export type PerforceCopyDeleteTarget = {
-  /** The Perforce folder project the copy belongs to. */
-  repoId: string
-  sourcePath: string
-  copyName: string
-}
+import type { PerforceCopyDeleteTarget } from './perforce-copy-target'
+import { runPerforceCopyOperation } from '../../runtime/runtime-perforce-client'
+import { perforceProjectTarget } from '@/lib/perforce-workspace-target'
 
 type Props = {
   target: PerforceCopyDeleteTarget | null
@@ -71,19 +67,21 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
     }
     let cancelled = false
     setChecking(true)
-    void window.api.perforce
-      .previewCopyRemoval({ repoId: target.repoId, name: target.copyName })
-      .then((result) => {
-        if (cancelled) {
-          return
-        }
-        setChecking(false)
-        if (result.ok) {
-          setPreview(result.value)
-        } else {
-          setLoadError(result.error)
-        }
-      })
+    void runPerforceCopyOperation(
+      perforceProjectTarget(target.repoId, target.hostId),
+      'previewCopyRemoval',
+      { name: target.copyName }
+    ).then((result) => {
+      if (cancelled) {
+        return
+      }
+      setChecking(false)
+      if (result.ok) {
+        setPreview(result.value)
+      } else {
+        setLoadError(result.error)
+      }
+    })
     return () => {
       cancelled = true
     }
@@ -106,13 +104,16 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
     }
     setPending(true)
     setError(null)
-    const result = await window.api.perforce.removeCopy({
-      repoId: target.repoId,
-      name: target.copyName,
-      revertOpenFiles,
-      deleteShelves,
-      ...(consents.length > 0 ? { endHolders: consents } : {})
-    })
+    const result = await runPerforceCopyOperation(
+      perforceProjectTarget(target.repoId, target.hostId),
+      'removeCopy',
+      {
+        name: target.copyName,
+        revertOpenFiles,
+        deleteShelves,
+        ...(consents.length > 0 ? { endHolders: consents } : {})
+      }
+    )
     setPending(false)
     if (result.ok) {
       onDeleted(result.value)

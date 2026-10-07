@@ -19484,6 +19484,7 @@
       "perforceCommandFailed": "Perforce command failed",
       "noChangesToRevert": "No changes to revert in {{path}}",
       "revertFileConfirm": "Revert changes to {{path}}? This cannot be undone.",
+      "saveNeedsOpenForEdit": "{{path}} is not opened for edit in Perforce. Open it for edit and save?",
       "revertedFile": "Reverted: {{path}}",
       "oneFile": "file",
       "manyFiles": "{{total}} files",

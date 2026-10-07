@@ -9,11 +9,7 @@ import {
   perforceSectionOrder,
   type PerforcePanelSection
 } from '../../../../../shared/perforce/perforce-settings'
-import { toShelvedDiffPath } from '../../../../../shared/perforce/perforce-shelved-paths'
-import type {
-  PerforceEntry,
-  PerforceShelvedFile
-} from '../../../../../shared/perforce/perforce-types'
+import type { PerforceEntry } from '../../../../../shared/perforce/perforce-types'
 import { PerforceChangelistHeader } from './perforce-changelist-section'
 import { NewChangelistDialog, UnshelveDialog } from './perforce-dialogs'
 import { PerforceFileActions } from './perforce-file-actions'
@@ -27,68 +23,49 @@ import { SectionHeader } from './perforce-section-header'
 import { usePerforceChangelistActions } from './use-perforce-changelist-actions'
 import { usePerforceSettings } from './use-perforce-settings'
 import { usePerforceStatus } from './use-perforce-status'
+import { usePerforceDiffTabs } from './use-perforce-diff-tabs'
 import { translate } from '@/i18n/i18n'
+import {
+  perforceOperationsFor,
+  type PerforceWorkspaceTarget
+} from '../../../runtime/runtime-perforce-client'
 
 export function PerforcePanel({
   worktreeId,
-  worktreePath,
-  connectionId
+  target
 }: {
   worktreeId: string
-  worktreePath: string
-  connectionId?: string
+  target: PerforceWorkspaceTarget
 }) {
-  const target = { worktreePath, connectionId }
+  const { worktreePath } = target
+  const p4 = perforceOperationsFor(target)
   const settings = usePerforceSettings()
   const { status, error, busy, refresh, run } = usePerforceStatus(
     target,
     settings.refreshIntervalSeconds
   )
-  const openDiff = useAppStore((s) => s.openDiff)
   const openFile = useAppStore((s) => s.openFile)
   const [message, setMessage] = useState('')
   const [newChangelistPaths, setNewChangelistPaths] = useState<string[] | null>(null)
   const [unshelveOpen, setUnshelveOpen] = useState(false)
   const [collapsedChangelists, setCollapsedChangelists] = useState<ReadonlySet<number>>(new Set())
   const { selected, select, focusForContextMenu } = usePerforceSelection()
-  const api = window.api.perforce
   const template = usePerforceDescriptionTemplate(settings, status, setMessage)
 
   const { groups, orderedKeys } = usePerforceGroups(status)
 
-  const openEntryDiff = (entry: PerforceEntry): void => {
-    openDiff(
-      worktreeId,
-      joinPath(worktreePath, entry.path),
-      entry.path,
-      detectLanguage(entry.path),
-      false
-    )
-  }
-  // Why: shelved views reuse the read-only "staged" diff tab, keyed by a shelf-suffixed path.
-  const openShelvedFile = (
-    file: PerforceShelvedFile,
-    changelist: number,
-    viewOnly: boolean
-  ): void => {
-    if (!file.path) {
-      return
-    }
-    openDiff(
-      worktreeId,
-      joinPath(worktreePath, file.path),
-      toShelvedDiffPath(file.path, changelist, viewOnly),
-      detectLanguage(file.path),
-      true
-    )
-  }
+  const { openEntryDiff, openShelvedFile } = usePerforceDiffTabs(worktreeId, worktreePath)
   const paths = (entries: PerforceEntry[]): string[] => entries.map((entry) => entry.path)
   const { ask, generateDescription, shelveChanges, buildActions, unshelve, unshelveIntoNew } =
     usePerforceChangelistActions({ target, run, busy, settings, openShelvedFile })
 
   const submitDefault = async (): Promise<void> => {
     const ok = await run(
-      () => api.submit({ ...target, changelist: 'default', message }),
+      () =>
+        p4('submit', {
+          changelist: 'default',
+          message
+        }),
       'Submitted change'
     )
     if (ok) {
@@ -101,7 +78,11 @@ export function PerforcePanel({
     if (
       ask(`Revert changes to ${noun}? This cannot be undone.`, settings.confirmDestructiveActions)
     ) {
-      void run(() => api.discard({ ...target, entries }))
+      void run(() =>
+        p4('discard', {
+          entries
+        })
+      )
     }
   }
 
@@ -130,7 +111,13 @@ export function PerforcePanel({
             <PerforceFileActions
               entry={entry}
               busy={busy}
-              onOpen={() => void run(() => api.open({ ...target, filePaths: [entry.path] }))}
+              onOpen={() =>
+                void run(() =>
+                  p4('open', {
+                    filePaths: [entry.path]
+                  })
+                )
+              }
               onDiscard={() => confirmDiscard([entry])}
             />
           }
@@ -156,8 +143,7 @@ export function PerforcePanel({
           }
           onMoveToChangelist={(changelist) =>
             void run(() =>
-              api.moveToChangelist({
-                ...target,
+              p4('moveToChangelist', {
                 filePaths: paths(targets),
                 changelist
               })
@@ -214,8 +200,7 @@ export function PerforcePanel({
               onClick={() =>
                 void run(
                   () =>
-                    api.createChangelist({
-                      ...target,
+                    p4('createChangelist', {
                       description: message,
                       filePaths: createFilePaths(groups.defaultList)
                     }),
@@ -266,7 +251,11 @@ export function PerforcePanel({
               size="xs"
               disabled={busy}
               onClick={() =>
-                void run(() => api.open({ ...target, filePaths: paths(groups.modified) }))
+                void run(() =>
+                  p4('open', {
+                    filePaths: paths(groups.modified)
+                  })
+                )
               }
             >
               {translate('perforce.ui.openAll', 'Open all')}
@@ -287,7 +276,11 @@ export function PerforcePanel({
               size="xs"
               disabled={busy}
               onClick={() =>
-                void run(() => api.open({ ...target, filePaths: paths(groups.fresh) }))
+                void run(() =>
+                  p4('open', {
+                    filePaths: paths(groups.fresh)
+                  })
+                )
               }
             >
               {translate('perforce.ui.addAll', 'Add all')}
@@ -304,7 +297,7 @@ export function PerforcePanel({
         info={info}
         busy={busy}
         onRefresh={() => void refresh()}
-        onSync={() => void run(() => api.sync(target), 'Workspace synced')}
+        onSync={() => void run(() => p4('sync', {}), 'Workspace synced')}
         onUnshelve={() => setUnshelveOpen(true)}
       />
       {error ? <div className="px-2 py-1 text-xs text-destructive">{error}</div> : null}
@@ -372,8 +365,7 @@ export function PerforcePanel({
           onCreate={(description) =>
             run(
               () =>
-                api.createChangelist({
-                  ...target,
+                p4('createChangelist', {
                   description,
                   filePaths: settings.newChangelistMode === 'empty' ? [] : newChangelistPaths
                 }),

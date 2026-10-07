@@ -1,14 +1,21 @@
 import { translate } from '@/i18n/i18n'
 import { PerforcePanel } from '../../perforce/perforce-panel'
 import { usePerforceWorkspace } from '../../perforce/use-perforce-workspace'
+import { usePerforceWorkspaceTarget } from '@/lib/perforce-workspace-target'
+import { perforceWorkspaceKey } from '../../../../runtime/runtime-perforce-client'
 import { SourceControlPanelReady } from './panel-ready'
 import { useSourceControlPanelModel } from './use-panel-model'
 
 /** Resolves the panel model and guards the two states that have no source control to show. */
 export function SourceControlPanel() {
   const model = useSourceControlPanelModel()
-  const { activeRepo, activeWorktree, isFolder, worktreePath } = model
-  const { isPerforce } = usePerforceWorkspace(worktreePath, activeRepo?.connectionId, isFolder)
+  const { activeRepo, activeWorktree, activeConnectionId, isFolder, worktreePath } = model
+  const perforceTarget = usePerforceWorkspaceTarget(
+    activeWorktree?.id,
+    worktreePath,
+    activeConnectionId
+  )
+  const { isPerforce } = usePerforceWorkspace(perforceTarget, isFolder)
 
   if (!activeWorktree || !activeRepo || !worktreePath) {
     return (
@@ -20,15 +27,14 @@ export function SourceControlPanel() {
       </div>
     )
   }
-  if (isPerforce) {
+  if (isPerforce && perforceTarget) {
     return (
       // Why key: the sidebar keeps panels alive across workspaces, and one workspace's files must
       // never sit under another's actions while the new status loads.
       <PerforcePanel
-        key={`${activeRepo.connectionId ?? ''}|${worktreePath}`}
+        key={perforceWorkspaceKey(perforceTarget)}
         worktreeId={activeWorktree.id}
-        worktreePath={worktreePath}
-        connectionId={activeRepo.connectionId ?? undefined}
+        target={perforceTarget}
       />
     )
   }

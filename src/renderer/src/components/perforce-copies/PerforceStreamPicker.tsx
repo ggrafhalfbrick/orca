@@ -17,6 +17,9 @@ import type {
   WorkspaceCopyStreamChoice
 } from '../../../../shared/perforce/workspace-copy/workspace-copy-types'
 import { streamShortName } from '../../../../shared/perforce/workspace-copy/workspace-copy-name-rules'
+import type { ExecutionHostId } from '../../../../shared/execution-host'
+import { runPerforceCopyOperation } from '../../runtime/runtime-perforce-client'
+import { perforceProjectTarget } from '@/lib/perforce-workspace-target'
 
 function choiceLabel(choice: WorkspaceCopyStreamChoice, sourceStream: string): string {
   if (choice.kind === 'same-stream') {
@@ -40,11 +43,13 @@ function isSelected(value: WorkspaceCopyStreamChoice, stream: string, sourceStre
  */
 export function PerforceStreamPicker({
   repoId,
+  hostId,
   value,
   onChange,
   labelId
 }: {
   repoId: string
+  hostId: ExecutionHostId | null
   value: WorkspaceCopyStreamChoice
   onChange: (choice: WorkspaceCopyStreamChoice) => void
   labelId: string
@@ -58,7 +63,11 @@ export function PerforceStreamPicker({
     let cancelled = false
     setList(null)
     setError(null)
-    void window.api.perforce.listCopyStreams({ repoId }).then((result) => {
+    void runPerforceCopyOperation(
+      perforceProjectTarget(repoId, hostId),
+      'listCopyStreams',
+      {}
+    ).then((result) => {
       if (cancelled) {
         return
       }
@@ -71,7 +80,7 @@ export function PerforceStreamPicker({
     return () => {
       cancelled = true
     }
-  }, [repoId])
+  }, [repoId, hostId])
 
   const select = (choice: WorkspaceCopyStreamChoice): void => {
     onChange(choice)

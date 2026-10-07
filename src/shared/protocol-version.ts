@@ -108,6 +108,12 @@ export const JIRA_USER_FIELDS_UPDATE_REQUIRED_MESSAGE =
 // conditional like browser.headless.v1.
 export const AI_VAULT_RUNTIME_CAPABILITY = 'aiVault.v1' as const
 export const AI_VAULT_SESSION_TITLES_RUNTIME_CAPABILITY = 'aiVault.session-titles.v1' as const
+// Why: a static capability for the perforce.* family (workspace operations, copies, descriptions),
+// so a client hides Perforce on an older host instead of failing every detect on every sync.
+// It says the build has the methods; whether p4 is installed there is perforce.detect's answer.
+export const PERFORCE_RUNTIME_CAPABILITY = 'perforce.v1' as const
+export const PERFORCE_UPDATE_REQUIRED_MESSAGE =
+  'The Orca server on this host does not support Perforce yet. Update Orca on that host.'
 // Why: signals a host owns browser pages with no renderer (headless serve via the
 // offscreen backend). Advertised only when that backend is actually available, so
 // clients never fall back to a local desktop browser tab for a remote-owned page.
@@ -423,6 +429,7 @@ export const RUNTIME_CAPABILITIES = [
   AUTOMATION_OWNER_FENCING_RUNTIME_CAPABILITY,
   AUTOMATION_CREATE_IDEMPOTENCY_RUNTIME_CAPABILITY,
   NOTIFICATIONS_REMOTE_PUSH_RUNTIME_CAPABILITY,
+  PERFORCE_RUNTIME_CAPABILITY,
   ...AGENT_LAUNCH_RUNTIME_CAPABILITIES
 ] as const
 

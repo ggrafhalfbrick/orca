@@ -43,13 +43,7 @@ const WORKTREE_HANDLER_CHANNELS = [
   'hooks:createIssueCommandRunner',
   'hooks:readIssueCommand',
   'hooks:writeIssueCommand',
-  'perforce:copyReadiness',
-  'perforce:listCopies',
-  'perforce:listCopyStreams',
-  'perforce:syncCopies',
-  'perforce:detectProject',
-  'perforce:previewCopyRemoval',
-  'perforce:removeCopy'
+  'perforce:runCopy'
 ] as const
 
 vi.mock('electron', async () =>

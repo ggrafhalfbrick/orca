@@ -7,7 +7,11 @@ import type {
 } from '../../../../../shared/perforce/perforce-types'
 import type { PerforceSettings } from '../../../../../shared/perforce/perforce-settings'
 import type { ChangelistActions } from './perforce-changelist-section'
-import type { PerforceTarget } from './use-perforce-status'
+import {
+  generatePerforceDescription,
+  perforceOperationsFor,
+  type PerforceWorkspaceTarget
+} from '../../../runtime/runtime-perforce-client'
 import { translate } from '@/i18n/i18n'
 
 type Run = (
@@ -25,13 +29,13 @@ export function usePerforceChangelistActions({
   settings,
   openShelvedFile
 }: {
-  target: PerforceTarget
+  target: PerforceWorkspaceTarget
   busy: boolean
   run: Run
   settings: PerforceSettings
   openShelvedFile: (file: PerforceShelvedFile, changelist: number, viewOnly: boolean) => void
 }) {
-  const api = window.api.perforce
+  const p4 = perforceOperationsFor(target)
   const ask = (question: string, enabled: boolean): boolean => !enabled || window.confirm(question)
 
   const generateDescription = async (
@@ -48,12 +52,12 @@ export function usePerforceChangelistActions({
       return null
     }
     // Why catch: a relay or handler failure rejects, and callers rely on null to re-enable their buttons.
-    const result = await api
-      .generateDescription({ ...target, changelist, filePaths })
-      .catch((error: unknown) => ({
+    const result = await generatePerforceDescription(target, { changelist, filePaths }).catch(
+      (error: unknown) => ({
         success: false as const,
         error: error instanceof Error ? error.message : String(error)
-      }))
+      })
+    )
     if (!result.success) {
       toast.error(result.error)
       return null
@@ -67,8 +71,7 @@ export function usePerforceChangelistActions({
   ): Promise<PerforceOperationResult> => {
     const id = changelist.id
     if (settings.shelfAfterSubmit === 'keep-copy') {
-      const created = await api.createChangelist({
-        ...target,
+      const created = await p4('createChangelist', {
         description: translate(
           'perforce.ui.shelfBackupDescription',
           'Shelf backup of changelist {{id}}',
@@ -82,29 +85,40 @@ export function usePerforceChangelistActions({
         return created
       }
       const backupId = created.changelist
-      const copied = await api.unshelveFrom({
-        ...target,
+      const copied = await p4('unshelveFrom', {
         sourceChangelist: id,
         changelist: backupId
       })
       if (!copied.success) {
         return copied
       }
-      const parked = await api.shelve({ ...target, changelist: backupId })
+      const parked = await p4('shelve', {
+        changelist: backupId
+      })
       if (!parked.success) {
         return parked
       }
       const mapped = changelist.shelvedFiles.flatMap((file) => (file.path ? [file.path] : []))
       if (mapped.length > 0) {
-        await api.close({ ...target, filePaths: mapped })
+        await p4('close', {
+          filePaths: mapped
+        })
       }
     }
-    const unshelved = await api.unshelve({ ...target, changelist: id })
+    const unshelved = await p4('unshelve', {
+      changelist: id
+    })
     if (!unshelved.success) {
       return unshelved
     }
-    const dropped = await api.deleteShelf({ ...target, changelist: id })
-    return dropped.success ? api.submit({ ...target, changelist: id }) : dropped
+    const dropped = await p4('deleteShelf', {
+      changelist: id
+    })
+    return dropped.success
+      ? p4('submit', {
+          changelist: id
+        })
+      : dropped
   }
 
   /** Shelves each selected file into its own changelist, then reverts it. */
@@ -116,12 +130,15 @@ export function usePerforceChangelistActions({
       }
     }
     void run(async () => {
-      let last: Awaited<ReturnType<typeof api.shelveAndRevertFiles>> = {
+      let last: PerforceOperationResult = {
         success: true,
         output: ''
       }
       for (const [changelist, filePaths] of byChangelist) {
-        last = await api.shelveAndRevertFiles({ ...target, changelist, filePaths })
+        last = await p4('shelveAndRevertFiles', {
+          changelist,
+          filePaths
+        })
         if (!last.success) {
           break
         }
@@ -138,24 +155,35 @@ export function usePerforceChangelistActions({
     onEditDescription: (description) =>
       run(
         () =>
-          api.editDescription({
-            ...target,
+          p4('editDescription', {
             changelist: changelist.id,
             description
           }),
         'Description updated'
       ),
     onGenerateDescription: () => generateDescription(changelist.id, paths(files)),
-    onShelve: () => void run(() => api.shelve({ ...target, changelist: changelist.id }), 'Shelved'),
+    onShelve: () =>
+      void run(
+        () =>
+          p4('shelve', {
+            changelist: changelist.id
+          }),
+        'Shelved'
+      ),
     onUnshelve: () =>
-      void run(() => api.unshelve({ ...target, changelist: changelist.id }), 'Unshelved'),
+      void run(
+        () =>
+          p4('unshelve', {
+            changelist: changelist.id
+          }),
+        'Unshelved'
+      ),
     onDiffShelved: (file) => openShelvedFile(file, changelist.id, false),
     onOpenShelved: (file) => openShelvedFile(file, changelist.id, true),
     onUnshelveFile: (file) =>
       void run(
         () =>
-          api.unshelveFiles({
-            ...target,
+          p4('unshelveFiles', {
             changelist: changelist.id,
             depotPaths: [file.depotPath]
           }),
@@ -170,8 +198,7 @@ export function usePerforceChangelistActions({
       ) {
         void run(
           () =>
-            api.deleteChangelistWithFiles({
-              ...target,
+            p4('deleteChangelistWithFiles', {
               changelist: changelist.id
             }),
           `Deleted changelist ${changelist.id}`
@@ -186,7 +213,13 @@ export function usePerforceChangelistActions({
           settings.confirmDestructiveActions
         )
       ) {
-        void run(() => api.deleteShelf({ ...target, changelist: changelist.id }), 'Shelf deleted')
+        void run(
+          () =>
+            p4('deleteShelf', {
+              changelist: changelist.id
+            }),
+          'Shelf deleted'
+        )
       }
     },
     onSubmit: () => {
@@ -208,14 +241,15 @@ export function usePerforceChangelistActions({
         () =>
           shelvedOnly
             ? submitShelvedOnly(changelist)
-            : api.submit({ ...target, changelist: changelist.id }),
+            : p4('submit', {
+                changelist: changelist.id
+              }),
         `Submitted changelist ${changelist.id}`
       )
     },
     onDelete: () =>
       void run(() =>
-        api.deleteChangelist({
-          ...target,
+        p4('deleteChangelist', {
           changelist: changelist.id
         })
       )
@@ -223,14 +257,21 @@ export function usePerforceChangelistActions({
 
   const unshelve = (source: number, changelist: 'default' | number): Promise<boolean> =>
     run(
-      () => api.unshelveFrom({ ...target, sourceChangelist: source, changelist }),
+      () =>
+        p4('unshelveFrom', {
+          sourceChangelist: source,
+          changelist
+        }),
       `Unshelved changelist ${source}`
     )
 
   const unshelveIntoNew = async (source: number, description: string): Promise<boolean> => {
     let newCl: number | undefined
     const created = await run(() =>
-      api.createChangelist({ ...target, description, filePaths: [] }).then((r) => {
+      p4('createChangelist', {
+        description,
+        filePaths: []
+      }).then((r) => {
         newCl = r.changelist
         return r
       })
@@ -239,7 +280,11 @@ export function usePerforceChangelistActions({
       return false
     }
     return run(
-      () => api.unshelveFrom({ ...target, sourceChangelist: source, changelist: newCl! }),
+      () =>
+        p4('unshelveFrom', {
+          sourceChangelist: source,
+          changelist: newCl!
+        }),
       `Unshelved changelist ${source}`
     )
   }

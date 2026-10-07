@@ -8,6 +8,10 @@ import { isPerforceRepo } from '../../../../shared/repo-kind'
 import { usePerforceCopyComposerChoiceStore } from './perforce-copy-composer-choice'
 import { PerforceCopyRequirement } from './PerforceCopyRequirement'
 import { PerforceStreamPicker } from './PerforceStreamPicker'
+import { findRepoForHost } from '@/store/slices/repo-host-identity'
+import type { ExecutionHostId } from '../../../../shared/execution-host'
+import { runPerforceCopyOperation } from '../../runtime/runtime-perforce-client'
+import { perforceProjectTarget } from '@/lib/perforce-workspace-target'
 
 function gb(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(1)} GB`
@@ -66,9 +70,15 @@ function ReadinessLine({ readiness }: { readiness: WorkspaceCopyReadiness | null
  * Create from, for a Perforce project: each new workspace is a Perforce copy on a stream of its own,
  * as each new Git workspace is a worktree on a branch of its own. Renders nothing for other projects.
  */
-export function PerforceCopyComposerOption({ repoId }: { repoId: string }) {
+export function PerforceCopyComposerOption({
+  repoId,
+  hostId
+}: {
+  repoId: string
+  hostId: ExecutionHostId | null
+}) {
   const isPerforce = useAppStore((s) => {
-    const repo = s.repos.find((candidate) => candidate.id === repoId)
+    const repo = findRepoForHost(s.repos, repoId, { hostId, settings: s.settings })
     return repo ? isPerforceRepo(repo) : false
   })
   const choice = usePerforceCopyComposerChoiceStore((s) => s.byRepo[repoId])
@@ -85,34 +95,36 @@ export function PerforceCopyComposerOption({ repoId }: { repoId: string }) {
     let cancelled = false
     setReadiness(null)
     setUnsupported(null)
-    void window.api.perforce.copyReadiness({ repoId }).then((result) => {
-      if (cancelled) {
-        return
+    void runPerforceCopyOperation(perforceProjectTarget(repoId, hostId), 'copyReadiness', {}).then(
+      (result) => {
+        if (cancelled) {
+          return
+        }
+        const value: WorkspaceCopyReadiness = result.ok
+          ? result.value
+          : {
+              ready: false,
+              problems: [result.error],
+              warnings: [],
+              source: null,
+              copiesDir: null,
+              windowsBuild: null,
+              fileSystemFreeBytes: null,
+              blockCloning: null
+            }
+        setReadiness(value)
+        setUnsupported(
+          result.ok && isCopyPlatformUnsupported(result.value)
+            ? { windows: result.value.windowsBuild !== null }
+            : null
+        )
+        setChoice(repoId, { ready: value.ready })
       }
-      const value: WorkspaceCopyReadiness = result.ok
-        ? result.value
-        : {
-            ready: false,
-            problems: [result.error],
-            warnings: [],
-            source: null,
-            copiesDir: null,
-            windowsBuild: null,
-            fileSystemFreeBytes: null,
-            blockCloning: null
-          }
-      setReadiness(value)
-      setUnsupported(
-        result.ok && isCopyPlatformUnsupported(result.value)
-          ? { windows: result.value.windowsBuild !== null }
-          : null
-      )
-      setChoice(repoId, { ready: value.ready })
-    })
+    )
     return () => {
       cancelled = true
     }
-  }, [isPerforce, repoId, setChoice])
+  }, [isPerforce, repoId, hostId, setChoice])
 
   if (!isPerforce) {
     return null
@@ -128,6 +140,7 @@ export function PerforceCopyComposerOption({ repoId }: { repoId: string }) {
       </span>
       <PerforceStreamPicker
         repoId={repoId}
+        hostId={hostId}
         labelId={labelId}
         value={choice?.stream ?? { kind: 'child' }}
         onChange={(stream) => setChoice(repoId, { stream })}

@@ -66,7 +66,7 @@ export function runWorktreeDelete(worktreeId: string, options: WorktreeDeleteOpt
     })
     return
   }
-  const perforceCopy = getPerforceCopyDeleteTarget(state.repos, target)
+  const perforceCopy = getPerforceCopyDeleteTarget(state, target)
   if (perforceCopy) {
     // Why: deleting a copy also deletes its Perforce client and maybe shelves, so it always confirms with the full list.
     state.openModal('delete-perforce-copy', perforceCopy)
@@ -145,7 +145,7 @@ export function runWorktreeBatchDelete(
   }
 
   const perforceCopies = targets.flatMap((target) => {
-    const copy = getPerforceCopyDeleteTarget(state.repos, target)
+    const copy = getPerforceCopyDeleteTarget(state, target)
     return copy ? [copy] : []
   })
   if (perforceCopies.length > 0) {

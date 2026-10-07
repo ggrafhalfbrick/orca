@@ -4,12 +4,16 @@ import { isFolderRepo } from '../../../../../shared/repo-kind'
 import { normalizePerforceSettings } from '../../../../../shared/perforce/perforce-settings'
 import type { PerforceChordAction } from '../../../../../shared/perforce/perforce-file-chord'
 import { refreshPerforceOpenedFiles } from './perforce-opened-files'
-import { isKnownPerforceWorkspace } from './use-perforce-workspace'
+import { isKnownPerforceWorkspace } from '@/lib/perforce-workspace-detection'
+import { perforceTargetForWorktree } from '@/lib/perforce-workspace-target'
+import {
+  runPerforceOperation,
+  type PerforceWorkspaceTarget
+} from '../../../runtime/runtime-perforce-client'
 import { translate } from '@/i18n/i18n'
 
 export type PerforceChordFile = {
-  worktreePath: string
-  connectionId: string | undefined
+  target: PerforceWorkspaceTarget
   relativePath: string
 }
 
@@ -27,22 +31,14 @@ export function readActivePerforceFile(): PerforceChordFile | null {
   if (!file || !isFileTab || !worktree || !repo || !isFolderRepo(repo)) {
     return null
   }
-  const connectionId = repo.connectionId ?? undefined
-  return isKnownPerforceWorkspace(worktree.path, connectionId)
-    ? {
-        worktreePath: worktree.path,
-        connectionId,
-        relativePath: file.relativePath.replaceAll('\\', '/')
-      }
+  const target = perforceTargetForWorktree(worktree.id, worktree.path, repo.connectionId)
+  return isKnownPerforceWorkspace(target)
+    ? { target, relativePath: file.relativePath.replaceAll('\\', '/') }
     : null
 }
 
 async function openForEdit(file: PerforceChordFile): Promise<void> {
-  const result = await window.api.perforce.edit({
-    worktreePath: file.worktreePath,
-    connectionId: file.connectionId,
-    filePaths: [file.relativePath]
-  })
+  const result = await runPerforceOperation(file.target, 'edit', { filePaths: [file.relativePath] })
   if (result.success) {
     toast.success(
       translate('perforce.ui.openedForEdit', 'Opened for edit: {{path}}', {
@@ -57,8 +53,7 @@ async function openForEdit(file: PerforceChordFile): Promise<void> {
 }
 
 async function revertFile(file: PerforceChordFile): Promise<void> {
-  const target = { worktreePath: file.worktreePath, connectionId: file.connectionId }
-  const status = await window.api.perforce.status(target)
+  const status = await runPerforceOperation(file.target, 'status', {})
   const entry = status.entries.find((candidate) => candidate.path === file.relativePath)
   if (!entry) {
     toast.info(
@@ -81,7 +76,7 @@ async function revertFile(file: PerforceChordFile): Promise<void> {
   ) {
     return
   }
-  const result = await window.api.perforce.discard({ ...target, entries: [entry] })
+  const result = await runPerforceOperation(file.target, 'discard', { entries: [entry] })
   if (result.success) {
     toast.success(
       translate('perforce.ui.revertedFile', 'Reverted: {{path}}', { path: file.relativePath })
@@ -103,5 +98,5 @@ export async function runPerforceChordAction(
     toast.error(error instanceof Error ? error.message : String(error))
   }
   // Why: the "E" tab marker and panel poll on a timer; refresh now so the change shows immediately.
-  void refreshPerforceOpenedFiles(file.worktreePath, file.connectionId)
+  void refreshPerforceOpenedFiles(file.target)
 }

@@ -6,27 +6,25 @@ import {
 import { isJsonRpcMethodNotFoundError } from '../providers/ssh-git-relay-errors'
 import { SSH_MUX_REQUEST_TIMEOUT_CODE } from '../ssh/ssh-channel-multiplexer'
 import { readProcessesHoldingFolder } from '../windows/windows-folder-holders'
-import { runWithPerforceSettings } from '../../shared/perforce/p4-settings-context'
 import {
   createLocalWorkspaceCopyBackend,
   type WorkspaceCopyBackend
 } from '../../shared/perforce/workspace-copy/workspace-copy-backend'
 import { createWorkspaceCopyHost } from '../../shared/perforce/workspace-copy/workspace-copy-host'
+import { PERFORCE_COPY_REQUEST_TIMEOUT_MS } from '../../shared/perforce/workspace-copy/workspace-copy-operations'
 import { endWorkspaceCopyHolder } from './perforce-copy-holder-termination'
 import { listCopyHostProcesses } from './perforce-copy-host-processes'
-import { getPerforceSettings, getRemotePerforceSettings } from './perforce-ssh-backend'
+import { remotePerforceSettings } from './perforce-ssh-backend'
 
 const RELAY_TOO_OLD_MESSAGE =
   'The Orca relay on this SSH host does not support Perforce workspace copies yet. Reconnect the SSH target to update it.'
-// Why: a copy or removal of a large workspace runs for minutes; the relay's default is 30 s.
-const RELAY_COPY_TIMEOUT_MS = 60 * 60 * 1000
 const RELAY_TIMEOUT_MESSAGE =
   'The SSH host did not answer in time. The copy operation may still be running there; refresh the list to see its state.'
 
 let localBackend: WorkspaceCopyBackend | null = null
 
 function createLocalBackend(): WorkspaceCopyBackend {
-  const backend = createLocalWorkspaceCopyBackend(
+  return createLocalWorkspaceCopyBackend(
     createWorkspaceCopyHost({
       removeTree: removeHostTree,
       listProcesses: process.platform === 'win32' ? listCopyHostProcesses : undefined,
@@ -34,18 +32,6 @@ function createLocalBackend(): WorkspaceCopyBackend {
       endProcess: process.platform === 'win32' ? endWorkspaceCopyHolder : undefined
     })
   )
-  const scoped =
-    <Args extends unknown[], Result>(run: (...args: Args) => Result) =>
-    (...args: Args): Result =>
-      runWithPerforceSettings(getPerforceSettings(), () => run(...args))
-  return {
-    readiness: scoped(backend.readiness),
-    list: scoped(backend.list),
-    create: scoped(backend.create),
-    previewRemoval: scoped(backend.previewRemoval),
-    remove: scoped(backend.remove),
-    streams: scoped(backend.streams)
-  }
 }
 
 function createSshBackend(connectionId: string): WorkspaceCopyBackend {
@@ -58,8 +44,8 @@ function createSshBackend(connectionId: string): WorkspaceCopyBackend {
       // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the relay's perforce copy handlers return exactly the WorkspaceCopyBackend result shapes.
       return (await provider.requestRelay(
         `perforce.${method}`,
-        { cwd, ...params, settings: getRemotePerforceSettings() },
-        { timeoutMs: RELAY_COPY_TIMEOUT_MS }
+        { cwd, ...params, settings: remotePerforceSettings() },
+        { timeoutMs: PERFORCE_COPY_REQUEST_TIMEOUT_MS }
       )) as T
     } catch (error) {
       if (isJsonRpcMethodNotFoundError(error)) {
