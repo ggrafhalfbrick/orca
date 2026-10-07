@@ -6,10 +6,10 @@ import type { WorktreeMeta } from '../../../../shared/worktree/meta-types'
 import type { Store } from '../../../persistence'
 import { copyWorktreePath, syncCopyWorktrees } from './perforce-copy-worktree-meta'
 
-const ROOT = join('D:', 'TOTF2')
+const ROOT = join('D:', 'ws')
 const COPIES = `${ROOT}.wt`
 // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the sync reads only these Repo fields.
-const REPO = { id: 'repo-1', path: ROOT, kind: 'folder', displayName: 'TOTF2' } as Repo
+const REPO = { id: 'repo-1', path: ROOT, kind: 'folder', displayName: 'ws' } as Repo
 
 function memoryStore(initial: Record<string, Partial<WorktreeMeta>> = {}) {
   const meta: Record<string, Partial<WorktreeMeta>> = { ...initial }
@@ -32,12 +32,12 @@ function listing(
   copies: { name: string; folderExists: boolean; clientExists: boolean }[]
 ): WorkspaceCopyListResult {
   return {
-    source: { client: 'TOTF2_me', root: ROOT, stream: '//g/dev' },
+    source: { client: 'ws_me', root: ROOT, stream: '//g/dev' },
     copiesDir: COPIES,
     serverChecked: true,
     copies: copies.map((copy) => ({
       ...copy,
-      client: `TOTF2_me_wt_${copy.name}`,
+      client: `ws_me_wt_${copy.name}`,
       copyRoot: join(COPIES, copy.name),
       stream: '//g/dev',
       mode: 'same-stream',

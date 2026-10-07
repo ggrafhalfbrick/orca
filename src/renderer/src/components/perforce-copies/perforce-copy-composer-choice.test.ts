@@ -43,9 +43,9 @@ describe('readPerforceCopyComposerChoice', () => {
 
   it('uses the chosen base, and shares the folder when the drive cannot hold a copy', () => {
     const { setChoice } = usePerforceCopyComposerChoiceStore.getState()
-    setChoice('p4', { stream: { kind: 'child', parent: '//TOTF2/dev' } })
+    setChoice('p4', { stream: { kind: 'child', parent: '//game/dev' } })
     expect(readPerforceCopyComposerChoice('p4')).toEqual({
-      stream: { kind: 'child', parent: '//TOTF2/dev' }
+      stream: { kind: 'child', parent: '//game/dev' }
     })
     setChoice('p4', { ready: false })
     expect(readPerforceCopyComposerChoice('p4')).toBeUndefined()

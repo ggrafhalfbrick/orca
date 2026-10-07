@@ -46,7 +46,7 @@ describe('summarizeCopyRemoval', () => {
 
   it('says first which programs are ended, only once the user opts in', () => {
     const holders = [
-      { pid: 10, name: 'glider.exe', commandLine: 'glider.exe --workspace copy-1', startedAt: 5 },
+      { pid: 10, name: 'indexer.exe', commandLine: 'indexer.exe --workspace copy-1', startedAt: 5 },
       { pid: 11, name: 'Unity.exe', commandLine: 'Unity.exe -projectPath copy-1', startedAt: 6 }
     ]
     const withHolders = { ...PREVIEW, holders }
@@ -56,7 +56,7 @@ describe('summarizeCopyRemoval', () => {
       { endHolders: [{ pid: 10, startedAt: 5 }] },
       'D:\\ws'
     )
-    expect(summary.deletes[0]).toBe('Ends glider.exe first; anything unsaved in them is lost.')
+    expect(summary.deletes[0]).toBe('Ends indexer.exe first; anything unsaved in them is lost.')
   })
 
   it('keeps a child stream with submitted work and deletes an unused one', () => {

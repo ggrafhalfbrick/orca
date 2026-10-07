@@ -26,12 +26,12 @@ const ROBOCOPY_SUMMARY = `
 describe('p4 spec forms', () => {
   it('round-trips multi-line and single-line fields, dropping comments', () => {
     const text =
-      '# A Perforce Client Specification.\n\nClient:\tws\n\nRoot:\tD:\\TOTF2\n\nView:\n\t//s/main/... //ws/...\n\t-//s/main/x/... //ws/x/...\n\nDescription:\n\tline one\n\tline two\n'
+      '# A Perforce Client Specification.\n\nClient:\tws\n\nRoot:\tD:\\ws\n\nView:\n\t//s/main/... //ws/...\n\t-//s/main/x/... //ws/x/...\n\nDescription:\n\tline one\n\tline two\n'
     const spec = parseP4Spec(text)
-    expect(spec.get('Root')).toEqual(['D:\\TOTF2'])
+    expect(spec.get('Root')).toEqual(['D:\\ws'])
     expect(spec.get('View')).toHaveLength(2)
     expect(formatP4Spec(spec)).toBe(
-      'Client:\tws\n\nRoot:\tD:\\TOTF2\n\nView:\n\t//s/main/... //ws/...\n\t-//s/main/x/... //ws/x/...\n\nDescription:\n\tline one\n\tline two\n\n'
+      'Client:\tws\n\nRoot:\tD:\\ws\n\nView:\n\t//s/main/... //ws/...\n\t-//s/main/x/... //ws/x/...\n\nDescription:\n\tline one\n\tline two\n\n'
     )
   })
 })
