@@ -25,17 +25,16 @@ export type AgentSessionPermissionModeReport = {
 
 /** The modes of a report a client can render: a malformed entry from a newer host is dropped. */
 export function renderableAgentSessionPermissionModes(
-  modes: readonly unknown[] | undefined
+  modes: readonly (AgentSessionPermissionModeOption | null)[] | undefined
 ): AgentSessionPermissionModeOption[] {
+  // The wire is untyped at runtime, so each field is checked even though the type names it.
   return (modes ?? []).flatMap((mode) => {
-    if (typeof mode !== 'object' || mode === null) {
+    if (typeof mode?.id !== 'string' || !mode.id || typeof mode.label !== 'string' || !mode.label) {
       return []
     }
-    const id: unknown = Reflect.get(mode, 'id')
-    const label: unknown = Reflect.get(mode, 'label')
-    const description: unknown = Reflect.get(mode, 'description')
-    return typeof id === 'string' && id && typeof label === 'string' && label
-      ? [{ id, label, ...(typeof description === 'string' && description ? { description } : {}) }]
-      : []
+    const { id, label, description } = mode
+    return [
+      { id, label, ...(typeof description === 'string' && description ? { description } : {}) }
+    ]
   })
 }
