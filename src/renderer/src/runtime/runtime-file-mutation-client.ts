@@ -1,5 +1,4 @@
 import type { DirEntry } from '../../../shared/filesystem-entry-types'
-import { checkoutPerforceFileBeforeWrite } from '@/lib/perforce-checkout-before-write'
 import { normalizeRelativePath } from '@/lib/path'
 import { callRuntimeRpc, getActiveRuntimeTarget } from './runtime-rpc-client'
 import type { RuntimeFileOperationArgs } from './runtime-file-client-types'
@@ -14,6 +13,16 @@ import { callRuntimeFileMutation } from './runtime-file-mutation-rpc'
 import { toRuntimeWorktreeSelector } from './runtime-worktree-selector'
 import type { LocalFileAccess } from '../../../shared/local-file-access'
 import { localAccess } from './runtime-file-read-client'
+
+// Why: loaded lazily because editor store slices import this client, and the checkout reads
+// '@/store'; a static import makes `createEditorSlice` undefined when a slice loads first.
+async function checkoutPerforceFileBeforeWrite(
+  context: RuntimeFileOperationArgs,
+  filePath: string
+): Promise<void> {
+  const checkout = await import('@/lib/perforce-checkout-before-write')
+  await checkout.checkoutPerforceFileBeforeWrite(context, filePath)
+}
 
 export async function readRuntimeDirectory(
   context: RuntimeFileOperationArgs,
