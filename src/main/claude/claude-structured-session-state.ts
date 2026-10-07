@@ -172,7 +172,11 @@ export type ClaudeSession = {
   /** Once a retired waiter is evicted, legacy content-only replay matching is unsafe. */
   replayContentFallbackBlocked: boolean
   options: Map<string, string>
-  reportedOptions: { model?: string; effort?: string; fastMode?: boolean }
+  reportedOptions: { model?: string; effort?: string; fastMode?: boolean; permissionMode?: string }
+  /** The mode the child was spawned in; absent is the CLI's own default. */
+  launchedPermissionMode?: string
+  /** The child was launched able to bypass permissions; the CLI refuses to enter that mode otherwise. */
+  bypassPermissionsAvailable?: true
   /** What `get_settings` says the next request will send, after Claude's own env and settings
    *  precedence: the lowest-ranked answer, unconfirmed until a turn reports it. */
   appliedOptions?: { model?: string; effort?: string }

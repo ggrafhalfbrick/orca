@@ -62,6 +62,7 @@ import {
   type RuntimeAgentAccountHomeResolver
 } from './structured-agent-model-catalog-wiring'
 import type { ClaudeThinkingDisplaySupport } from '../claude/claude-thinking-display-support'
+import type { ClaudeAllowBypassSupport } from '../claude/claude-allow-bypass-support'
 
 /** Whether this profile holds a structured chat: a record or tab in the journal database. */
 export function hasPersistedStructuredAgentSessionStore(
@@ -93,6 +94,8 @@ export type StructuredAgentSessionRuntimeDeps = {
   resolveClaudeCommand?: () => string
   /** Whether a Claude CLI takes the thinking-display flag; absent never passes it. */
   claudeThinkingDisplay?: ClaudeThinkingDisplaySupport
+  /** Whether a Claude CLI takes the allow-bypass flag; absent never passes it. */
+  claudeAllowBypass?: ClaudeAllowBypassSupport
   /** Provider transports are overridden only to drive the runtime against scripted children. */
   openCodexConnection?: CodexStructuredSessionAdapterDeps['openConnection']
   openClaudeConnection?: ClaudeStructuredSessionAdapterDeps['openConnection']

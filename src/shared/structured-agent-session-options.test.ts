@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { CODEX_SESSION_OPTION_CATALOG } from './agent-session-option-catalog-claude-codex'
+import type { AgentSessionOptionsResult } from './agent-session-wire'
+import {
+  CLAUDE_SESSION_OPTION_CATALOG,
+  CODEX_SESSION_OPTION_CATALOG
+} from './agent-session-option-catalog-claude-codex'
 import { buildNativeChatSessionOptionSnapshot } from './native-chat-session-option-snapshot'
 import { createNativeChatSessionOptionRecord } from './native-chat-session-option-state'
 import {
   applyStructuredAgentSessionOptions,
+  canSetStructuredAgentSessionOption,
+  commitStructuredAgentSessionOptionValues,
   createStructuredAgentSessionOptionState,
   structuredAgentSessionOptionSnapshot,
   structuredAgentSessionOptionView
@@ -209,5 +215,73 @@ describe('structured agent session options', () => {
     expect(viewModel(live, seed, {})).toBe('gpt-5.6-luna')
     expect(viewModel(live, seed, { model: 'gpt-5.5' })).toBe('gpt-5.5')
     expect(live.record.model?.value).toBe('gpt-5.6-luna')
+  })
+})
+
+describe('structured agent session permission mode', () => {
+  const claudeResult = (
+    permissionMode?: AgentSessionOptionsResult['permissionMode']
+  ): AgentSessionOptionsResult => ({
+    models: [{ id: 'opus', label: 'Opus', isDefault: true, efforts: [] }],
+    ...(permissionMode ? { permissionMode } : {}),
+    current: { model: 'opus' }
+  })
+  const permissionDescriptor = (
+    state: ReturnType<typeof createStructuredAgentSessionOptionState>
+  ) =>
+    structuredAgentSessionOptionSnapshot(state).find(
+      (descriptor) => descriptor.id === 'permissionMode'
+    )
+
+  it('offers the modes a live session reports, dropping ones this client does not know', () => {
+    const state = applyStructuredAgentSessionOptions(
+      createStructuredAgentSessionOptionState('claude'),
+      CLAUDE_SESSION_OPTION_CATALOG,
+      claudeResult({
+        modes: ['default', 'acceptEdits', 'plan', 'auto', 'dontAsk'],
+        current: 'acceptEdits',
+        confirmed: true
+      })
+    )
+
+    expect(permissionDescriptor(state)).toMatchObject({
+      category: 'mode',
+      settable: true,
+      valueSource: 'reported',
+      kind: { type: 'select', currentValue: 'acceptEdits' }
+    })
+    const descriptor = permissionDescriptor(state)
+    expect(
+      descriptor?.kind.type === 'select' && descriptor.kind.choices.map((choice) => choice.value)
+    ).toEqual(['default', 'acceptEdits', 'plan', 'auto'])
+    expect(canSetStructuredAgentSessionOption(state, 'permissionMode', 'plan')).toBe(true)
+    expect(canSetStructuredAgentSessionOption(state, 'permissionMode', 'bypassPermissions')).toBe(
+      false
+    )
+  })
+
+  it('offers nothing from a host that reports no modes', () => {
+    const state = applyStructuredAgentSessionOptions(
+      createStructuredAgentSessionOptionState('claude'),
+      CLAUDE_SESSION_OPTION_CATALOG,
+      claudeResult()
+    )
+
+    expect(permissionDescriptor(state)).toBeUndefined()
+  })
+
+  it('shows a committed pick before the next read confirms it', () => {
+    const state = applyStructuredAgentSessionOptions(
+      createStructuredAgentSessionOptionState('claude'),
+      CLAUDE_SESSION_OPTION_CATALOG,
+      claudeResult({ modes: ['default', 'plan'], current: 'default', confirmed: false })
+    )
+
+    const committed = commitStructuredAgentSessionOptionValues(state, { permissionMode: 'plan' })
+
+    expect(permissionDescriptor(committed)).toMatchObject({
+      valueSource: 'dispatched',
+      kind: { currentValue: 'plan' }
+    })
   })
 })

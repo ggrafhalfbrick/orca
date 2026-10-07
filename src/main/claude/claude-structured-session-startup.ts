@@ -31,6 +31,7 @@ import {
   failClaudeStartup,
   type ClaudeSessionStartup
 } from './claude-structured-session-startup-state'
+import { observeClaudePermissionMode } from './claude-structured-permission-mode'
 import type { ClaudeSession, ClaudeStructuredSessionEvent } from './claude-structured-session-state'
 import {
   admitClaudeStartFastMode,
@@ -201,6 +202,10 @@ function applyClaudeStartupFacts(session: ClaudeSession, facts: ClaudeStartupFac
   }
   session.fastModeState ??= published.fastModeState
   session.fastModeDisabledReason ??= published.fastModeDisabledReason
+  // A turn's own init frame may already have reported the running mode.
+  if (init && session.reportedOptions.permissionMode === undefined) {
+    observeClaudePermissionMode(session, init.message)
+  }
   session.capabilities = readClaudeCapabilities(session.capabilities, initialization, init?.message)
   // A catalog frame that streamed in after publish is newer than the initialize answer.
   if (session.commands.commands === undefined) {

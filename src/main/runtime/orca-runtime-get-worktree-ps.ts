@@ -44,6 +44,7 @@ import { claudeStructuredAuthPolicyForSettings } from '../claude-accounts/claude
 import { resolveStructuredAgentCommand } from '../native-chat/structured-agent-command-resolution'
 import { structuredAgentConfiguredArgs } from '../native-chat/structured-agent-configured-args'
 import { claudeThinkingDisplaySupport } from '../claude/claude-thinking-display-support'
+import { claudeAllowBypassSupport } from '../claude/claude-allow-bypass-support'
 
 export class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithStartTuiIdleVisibleReadProbe {
   async getWorktreePs(
@@ -210,12 +211,13 @@ export class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithStartTuiIdleVis
         resolveTuiAgentLaunchEnv('claude', this.requireStore().getSettings().agentDefaultEnv),
       // Wired only here, so a test runtime never runs a real `claude --version`.
       claudeThinkingDisplay: claudeThinkingDisplaySupport,
+      claudeAllowBypass: claudeAllowBypassSupport,
       resolveShellEnvironmentPolicy: () =>
         nativeChatShellEnvironmentPolicy(this.requireStore().getSettings()),
       resolveClaudeAuthPolicy: () =>
         claudeStructuredAuthPolicyForSettings(this.requireStore().getSettings()),
-      // Re-read per acquisition, like the auth policy above it: the Agent Permissions setting is
-      // the one copy of this fact, even when Arguments contain permission flags.
+      // Re-read per acquisition, like the auth policy above it. Only Yolo's bypass is read here; the
+      // launch takes a `--permission-mode` from the Arguments itself when Yolo is off.
       resolveClaudePermissionMode: () =>
         claudeStructuredPermissionModeForSettings(this.requireStore().getSettings()),
       resolveCodexPermissionPolicy: () =>

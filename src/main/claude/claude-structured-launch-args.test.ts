@@ -49,7 +49,20 @@ describe('Claude structured launch arguments', () => {
         '--model',
         'opus'
       ])
-    ).toEqual({ extraArgs: { model: 'opus' }, additionalDirectories: [] })
+    ).toEqual({
+      extraArgs: { model: 'opus' },
+      additionalDirectories: [],
+      // Named, never passed: the launch decides what the mode becomes.
+      permissionMode: 'bypassPermissions'
+    })
+  })
+
+  it('names a permission mode in either spelling, and none it cannot parse', () => {
+    expect(claudeStructuredLaunchArgs(['--permission-mode=auto']).permissionMode).toBe('auto')
+    expect(claudeStructuredLaunchArgs(['--permission-mode', 'plan']).permissionMode).toBe('plan')
+    expect(claudeStructuredLaunchArgs(['--permission-mode', 'yolo'])).not.toHaveProperty(
+      'permissionMode'
+    )
   })
 
   it('ignores positional prompts and tokens after --', () => {

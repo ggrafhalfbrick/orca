@@ -472,6 +472,10 @@ export type AgentSessionOptionsResult = {
   models: AgentSessionModelOption[]
   /** Session/account/transport support. Absent means unknown, never unsupported. */
   fastModeSupport?: AgentSessionFastModeSupport
+  /** The mode tools run under and the modes the session can switch to; session-wide, not per
+   *  model. Absent where the session cannot switch, so no picker is offered. Strings, not the
+   *  union: a newer host may name a mode this client lacks. */
+  permissionMode?: { current: string; modes: readonly string[]; confirmed: boolean }
   current: {
     model: string
     effort?: string

@@ -20,6 +20,8 @@ import type { AgentSessionRecordStore } from './agent-session-record-store'
 import { ClaudeAtRestCommandCatalog } from '../claude/claude-at-rest-commands'
 import { openClaudeStreamJsonConnection } from '../claude/claude-stream-json-connection'
 import type { ClaudeThinkingDisplaySupport } from '../claude/claude-thinking-display-support'
+import type { ClaudeAllowBypassSupport } from '../claude/claude-allow-bypass-support'
+import type { ClaudeLaunchFlagSupport } from '../claude/claude-launch-flag-support'
 
 export type StructuredClaudeRuntimeAdapterDeps = {
   store: AgentSessionRecordStore
@@ -28,6 +30,8 @@ export type StructuredClaudeRuntimeAdapterDeps = {
   resolveClaudeCommand?: () => string
   /** Whether a Claude CLI takes the thinking-display flag; absent never passes it. */
   claudeThinkingDisplay?: ClaudeThinkingDisplaySupport
+  /** Whether a Claude CLI takes the allow-bypass flag; absent never passes it. */
+  claudeAllowBypass?: ClaudeAllowBypassSupport
   resolveClaudeLaunchEnv?: () => Promise<Record<string, string>> | Record<string, string>
   /** The env a Claude child inherits before auth stripping; absent inherits Orca's own. */
   resolveClaudeInheritedEnv?: () => Promise<Record<string, string>>
@@ -102,7 +106,8 @@ export function createStructuredClaudeRuntimeAdapter(
       ...(deps.readClaudeManagedAccountGate
         ? { readManagedAccountGate: deps.readClaudeManagedAccountGate }
         : {}),
-      ...(deps.claudeThinkingDisplay ? { thinkingDisplay: deps.claudeThinkingDisplay } : {})
+      ...(deps.claudeThinkingDisplay ? { thinkingDisplay: deps.claudeThinkingDisplay } : {}),
+      ...(deps.claudeAllowBypass ? { allowBypass: deps.claudeAllowBypass } : {})
     }),
     persistHandle: async ({ sessionId, providerSessionId, leafUuid, fence }) => {
       const currentFence = store.getRecord(sessionId)?.lease.runtimeFence ?? fence
@@ -148,13 +153,18 @@ export function createStructuredClaudeRuntimeAdapter(
   })
 }
 
-/** The child's connection, watched for a CLI refusing the thinking-display flag, so the start that
+/** The child's connection, watched for a CLI refusing a version-gated flag, so the start that
  *  failed on it is the last one to pass it. */
 export function openClaudeConnectionOf(
-  deps: Pick<StructuredClaudeRuntimeAdapterDeps, 'openClaudeConnection' | 'claudeThinkingDisplay'>
+  deps: Pick<
+    StructuredClaudeRuntimeAdapterDeps,
+    'openClaudeConnection' | 'claudeThinkingDisplay' | 'claudeAllowBypass'
+  >
 ): Pick<ClaudeStructuredSessionAdapterDeps, 'openConnection'> {
-  const support = deps.claudeThinkingDisplay
-  if (!support) {
+  const supports = [deps.claudeThinkingDisplay, deps.claudeAllowBypass].filter(
+    (support): support is ClaudeLaunchFlagSupport => support !== undefined
+  )
+  if (supports.length === 0) {
     return deps.openClaudeConnection ? { openConnection: deps.openClaudeConnection } : {}
   }
   const open = deps.openClaudeConnection ?? openClaudeStreamJsonConnection
@@ -166,10 +176,12 @@ export function openClaudeConnectionOf(
           ...handlers,
           // Every argument passes through, so one the connection adds later still reaches the session.
           onExit: (...args) => {
-            support.observeExit(
-              { command: launch.pathToClaudeCodeExecutable, cwd: launch.cwd },
-              args[0]
-            )
+            for (const support of supports) {
+              support.observeExit(
+                { command: launch.pathToClaudeCodeExecutable, cwd: launch.cwd },
+                args[0]
+              )
+            }
             handlers.onExit?.(...args)
           }
         },

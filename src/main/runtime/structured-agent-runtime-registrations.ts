@@ -127,6 +127,7 @@ function createClaudeAdapter(
     resolveWorkspacePath: deps.resolveWorkspacePath,
     ...(deps.resolveClaudeCommand ? { resolveClaudeCommand: deps.resolveClaudeCommand } : {}),
     ...(deps.claudeThinkingDisplay ? { claudeThinkingDisplay: deps.claudeThinkingDisplay } : {}),
+    ...(deps.claudeAllowBypass ? { claudeAllowBypass: deps.claudeAllowBypass } : {}),
     ...(deps.resolveClaudeLaunchEnv ? { resolveClaudeLaunchEnv: deps.resolveClaudeLaunchEnv } : {}),
     resolveClaudeInheritedEnv: context.environment.resolveClaudeInheritedEnv,
     resolveClaudeLaunchArgs: () => deps.resolveLaunchArgs('claude'),

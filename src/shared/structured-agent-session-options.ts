@@ -23,6 +23,12 @@ import type {
   AgentSessionOptionsResult
 } from './agent-session-wire'
 import {
+  committedStructuredAgentSessionPermissionMode,
+  reportedStructuredAgentSessionPermissionMode,
+  structuredAgentSessionPermissionModeDescriptor,
+  type StructuredAgentSessionPermissionModeState
+} from './structured-agent-session-permission-mode'
+import {
   decodeStructuredAgentSessionOptionValue,
   encodeStructuredAgentSessionOptionValue
 } from './structured-agent-session-option-codec'
@@ -95,6 +101,8 @@ export type StructuredAgentSessionOptionState = {
   catalogSource: 'seed' | 'host' | 'live' | null
   record: NativeChatSessionOptionRecord
   pendingId: string | null
+  /** Absent until a live session reports modes it can switch to. */
+  permissionMode?: StructuredAgentSessionPermissionModeState
 }
 
 /** With `seedCatalog`, the picker renders (and accepts picks against) the
@@ -190,7 +198,8 @@ export function applyStructuredAgentSessionOptions(
   return {
     ...state,
     catalog: structuredAgentSessionOptionCatalog(seed, result),
-    catalogSource: 'live'
+    catalogSource: 'live',
+    permissionMode: reportedStructuredAgentSessionPermissionMode(result)
   }
 }
 
@@ -200,15 +209,20 @@ export function structuredAgentSessionOptionSnapshot(
   if (!state.catalog) {
     return []
   }
-  return buildNativeChatSessionOptionSnapshot({
-    catalog: state.catalog,
-    // A seeded default can name a model the static seed does not list yet.
-    models: withTrackedNativeChatModel(state.catalog, state.catalog.models, state.record),
-    record: state.record,
-    mode: 'live',
-    modelLabel: 'Model',
-    liveTransport: 'agent-session'
-  })
+  return [
+    ...buildNativeChatSessionOptionSnapshot({
+      catalog: state.catalog,
+      // A seeded default can name a model the static seed does not list yet.
+      models: withTrackedNativeChatModel(state.catalog, state.catalog.models, state.record),
+      record: state.record,
+      mode: 'live',
+      modelLabel: 'Model',
+      liveTransport: 'agent-session'
+    }),
+    ...(state.permissionMode
+      ? [structuredAgentSessionPermissionModeDescriptor(state.permissionMode)]
+      : [])
+  ]
 }
 
 /** No launch holds a pick and no fence can carry one yet, so the picker only shows. */
@@ -281,7 +295,11 @@ export function commitStructuredAgentSessionOptionValues(
       next = commitStructuredAgentSessionOption(next, id, value)
     }
   }
-  return next
+  const permissionMode = committedStructuredAgentSessionPermissionMode(
+    next.permissionMode,
+    values.permissionMode
+  )
+  return permissionMode ? { ...next, permissionMode } : next
 }
 
 export type StructuredSessionOptionPick = {

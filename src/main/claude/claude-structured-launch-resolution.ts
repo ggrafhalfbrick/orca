@@ -41,6 +41,7 @@ import {
   resolveClaudeStructuredLaunchHome
 } from './claude-structured-launch-home'
 import type { ClaudeThinkingDisplaySupport } from './claude-thinking-display-support'
+import type { ClaudeAllowBypassSupport } from './claude-allow-bypass-support'
 import type { AgentSessionRecordStore } from '../runtime/agent-session-record-store'
 import { resolveAgentSessionLaunchDirectory } from '../runtime/agent-session-launch-directory'
 import { CLAUDE_STRUCTURED_AGENT } from './claude-structured-agent-definition'
@@ -83,15 +84,18 @@ export const CLAUDE_STRUCTURED_BASE_OPTIONS: ClaudeStructuredSdkOptions = {
 }
 
 /**
- * Agent Permissions as query-start options.
+ * The launch's permission mode as query-start options.
  *
  * The owned CLI flag preserves the user-installed binary contract. The SDK's typed bypass option
  * emits a newer allow flag that older Claude binaries reject before a structured session starts.
  */
 export function claudeStructuredPermissionOptions(
   mode: PermissionMode
-): Pick<ClaudeStructuredSdkOptions, 'extraArgs'> {
-  return mode === 'bypassPermissions' ? { extraArgs: { 'dangerously-skip-permissions': null } } : {}
+): Pick<ClaudeStructuredSdkOptions, 'extraArgs' | 'permissionMode'> {
+  if (mode === 'bypassPermissions') {
+    return { extraArgs: { 'dangerously-skip-permissions': null } }
+  }
+  return mode === 'default' ? {} : { permissionMode: mode }
 }
 
 export type ClaudeStructuredLaunch = {
@@ -109,6 +113,8 @@ export type ClaudeStructuredLaunch = {
   /** Lineage: the record's chain already heads this provider session, so the child continues it
    *  even when no transcript exists to `--resume`. Never derived from the launch mode. */
   continuesChain: boolean
+  /** A bypassing launch whose CLI can hold bypass available while starting in another mode. */
+  keepsBypassAvailable?: true
 }
 
 export type ClaudeStructuredLaunchResolverDeps = {
@@ -131,6 +137,8 @@ export type ClaudeStructuredLaunchResolverDeps = {
   resolveAuthPolicy: () => Promise<ClaudeStructuredAuthPolicy> | ClaudeStructuredAuthPolicy
   /** The user's Agent Permissions setting, re-read per acquisition. Absent means prompting. */
   resolvePermissionMode?: () => Promise<PermissionMode> | PermissionMode
+  /** Whether this CLI takes the allow-bypass flag. Absent ⇒ leaving bypass at launch drops it. */
+  allowBypass?: Pick<ClaudeAllowBypassSupport, 'argsFor'>
   /** How long an in-flight account switch may hold a launch before it is refused. */
   authSwitchSettleTimeoutMs?: number
   /** Account state for the managed-account gate; null when it cannot be read, which refuses. */
@@ -258,18 +266,22 @@ export function createClaudeStructuredLaunchResolver(
     const continuesChain = head !== null
     const cwd = await resolveAgentSessionLaunchDirectory(deps, record)
     const sources = await resolveClaudeChildEnvSources(deps)
-    // Asked as soon as the spawn's cwd and PATH are known, so it overlaps what is left to resolve.
-    const thinkingDisplay = deps.thinkingDisplay?.argsFor({
-      command: sources.command,
-      cwd,
-      env: claudeProbeEnv(sources)
-    })
     const configured = claudeStructuredLaunchArgs(await deps.resolveLaunchArgs())
     const { additionalDirectories } = configured
-    const permission = claudeStructuredPermissionOptions(
-      (await deps.resolvePermissionMode?.()) ?? 'default'
-    )
+    const setting = (await deps.resolvePermissionMode?.()) ?? 'default'
+    // Yolo wins; otherwise the Arguments' own mode starts the chat, short of the bypass only Yolo
+    // grants.
+    const configuredMode =
+      configured.permissionMode === 'bypassPermissions' ? undefined : configured.permissionMode
+    const mode = setting === 'bypassPermissions' ? setting : (configuredMode ?? setting)
+    const permission = claudeStructuredPermissionOptions(mode)
+    const probe = { command: sources.command, cwd, env: claudeProbeEnv(sources) }
+    // Asked as soon as the spawn's cwd and PATH are known, so it overlaps what is left to resolve.
+    const thinkingDisplay = deps.thinkingDisplay?.argsFor(probe)
+    // Only a bypassing launch has a bypass a saved pick could need to keep.
+    const allowBypass = mode === 'bypassPermissions' ? deps.allowBypass?.argsFor(probe) : undefined
     const thinkingDisplayArgs = (await thinkingDisplay) ?? {}
+    const keepsBypassAvailable = Object.keys((await allowBypass) ?? {}).length > 0
     // A start that failed before its first turn wrote no transcript, and `--resume` of an absent
     // one exits; launch that id fresh instead. With a transcript, `--session-id` would collide.
     const leafUuid = head ? claudeProviderHandleLeafUuid(head) : null
@@ -319,7 +331,8 @@ export function createClaudeStructuredLaunchResolver(
       providerSessionId,
       resumeLeafUuid: resumesTranscript ? leafUuid : null,
       resumesTranscript,
-      continuesChain
+      continuesChain,
+      ...(keepsBypassAvailable ? { keepsBypassAvailable: true } : {})
     }
   }
 }

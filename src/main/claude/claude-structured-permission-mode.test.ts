@@ -1,5 +1,127 @@
-import { describe, expect, it } from 'vitest'
-import { claudeStructuredPermissionModeForSettings } from './claude-structured-permission-mode'
+import { describe, expect, it, vi } from 'vitest'
+import {
+  claudeStructuredPermissionModeForSettings,
+  claudeStructuredPermissionModeReport,
+  observeClaudePermissionMode
+} from './claude-structured-permission-mode'
+import { sessionFor } from './claude-structured-dispatch-test-support'
+import { setClaudeStructuredOption } from './claude-structured-options'
+import {
+  claudeStructuredSpawnOptions,
+  claudeStructuredSpawnPermissionFacts
+} from './claude-structured-spawn-options'
+import type { ClaudeStructuredSdkOptions } from './claude-structured-launch-resolution'
+import { isAgentSessionOptionRejectedError } from '../native-chat/agent-session-wire/structured-agent-session-option-error'
+
+const BYPASSING: ClaudeStructuredSdkOptions = {
+  extraArgs: { 'dangerously-skip-permissions': null }
+}
+const ALL_MODES = ['default', 'acceptEdits', 'plan', 'auto', 'bypassPermissions']
+
+/** A session as published from these spawn options. */
+function permissionSession(spawned: ClaudeStructuredSdkOptions) {
+  const session = Object.assign(sessionFor(), claudeStructuredSpawnPermissionFacts(spawned))
+  const setPermissionMode = vi.fn(async () => {})
+  session.connection.setPermissionMode = setPermissionMode
+  return { session, setPermissionMode }
+}
+
+describe('Claude structured permission mode', () => {
+  it('offers bypass only to a child launched able to enter it', () => {
+    expect(claudeStructuredPermissionModeReport(permissionSession(BYPASSING).session)).toEqual({
+      current: 'bypassPermissions',
+      modes: ALL_MODES,
+      confirmed: false
+    })
+    expect(claudeStructuredPermissionModeReport(permissionSession({}).session)).toEqual({
+      current: 'default',
+      modes: ALL_MODES.filter((mode) => mode !== 'bypassPermissions'),
+      confirmed: false
+    })
+  })
+
+  it('names the mode the Arguments launched it in before any turn reports one', () => {
+    const { session } = permissionSession({ permissionMode: 'auto' })
+
+    expect(claudeStructuredPermissionModeReport(session).current).toBe('auto')
+  })
+
+  it('switches mode and reports the switch as confirmed', async () => {
+    const { session, setPermissionMode } = permissionSession(BYPASSING)
+
+    await expect(
+      setClaudeStructuredOption(session, { key: 'permissionMode', value: 'auto' }, undefined)
+    ).resolves.toEqual({ permissionMode: 'auto' })
+
+    expect(setPermissionMode).toHaveBeenCalledWith('auto', { timeoutMs: undefined })
+    expect(claudeStructuredPermissionModeReport(session)).toMatchObject({
+      current: 'auto',
+      confirmed: true
+    })
+  })
+
+  it('refuses bypass for a prompting launch, and any mode it does not know', async () => {
+    const { session, setPermissionMode } = permissionSession({})
+    for (const value of ['bypassPermissions', 'yolo']) {
+      const refusal = await setClaudeStructuredOption(
+        session,
+        { key: 'permissionMode', value },
+        undefined
+      ).catch((error: unknown) => error)
+      expect(isAgentSessionOptionRejectedError(refusal), value).toBe(true)
+    }
+    expect(setPermissionMode).not.toHaveBeenCalled()
+  })
+
+  // Relaunching into a saved non-bypass pick drops the bypass flag; the allow flag keeps bypass on
+  // offer where the CLI takes it, and only there.
+  it.each([
+    [true, true],
+    [false, false]
+  ])(
+    'keeps bypass on offer after a relaunch into a saved pick: CLI takes the allow flag %s',
+    (keepsBypassAvailable, offered) => {
+      const relaunched = claudeStructuredSpawnOptions({
+        launch: {
+          options: BYPASSING,
+          resumesTranscript: true,
+          ...(keepsBypassAvailable ? { keepsBypassAvailable: true as const } : {})
+        },
+        saved: { permissionMode: 'plan' }
+      })
+
+      expect(relaunched.sdkOptions.permissionMode).toBe('plan')
+      expect(relaunched.sdkOptions.extraArgs).not.toHaveProperty('dangerously-skip-permissions')
+      expect(
+        Object.hasOwn(relaunched.sdkOptions.extraArgs ?? {}, 'allow-dangerously-skip-permissions')
+      ).toBe(offered)
+      expect(claudeStructuredSpawnPermissionFacts(relaunched.sdkOptions)).toEqual({
+        launchedPermissionMode: 'plan',
+        ...(offered ? { bypassPermissionsAvailable: true } : {})
+      })
+    }
+  )
+
+  it('follows a mode the CLI changes itself, so the next start relaunches into it', () => {
+    const { session } = permissionSession(BYPASSING)
+    session.options.set('permissionMode', 'plan')
+
+    observeClaudePermissionMode(session, {
+      type: 'system',
+      subtype: 'status',
+      status: null,
+      permissionMode: 'acceptEdits'
+    })
+    expect(session.options.get('permissionMode')).toBe('acceptEdits')
+    expect(claudeStructuredPermissionModeReport(session)).toMatchObject({
+      current: 'acceptEdits',
+      confirmed: true
+    })
+
+    observeClaudePermissionMode(session, { type: 'assistant', permissionMode: 'default' })
+    expect(session.reportedOptions.permissionMode).toBe('acceptEdits')
+  })
+})
 
 describe('claudeStructuredPermissionModeForSettings', () => {
   // The three states the Agent Permissions toggle can leave behind. The untouched case is the

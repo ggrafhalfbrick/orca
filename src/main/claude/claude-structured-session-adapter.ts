@@ -12,6 +12,7 @@ import { acquireClaudeSession } from './claude-structured-session-acquisition'
 import { supportsClaudeStructuredLocation } from './claude-structured-location-support'
 import { setClaudeStructuredSessionOption } from './claude-structured-options'
 import { readClaudeStructuredSessionOptions } from './claude-structured-session-options'
+import { claudeStructuredPermissionModeReport } from './claude-structured-permission-mode'
 import { claudeStartupSettledWithin } from './claude-structured-session-startup-state'
 import { CLAUDE_DEFAULT_REQUEST_TIMEOUT_MS } from './claude-agent-sdk-control-requests'
 import {
@@ -240,8 +241,12 @@ export class ClaudeStructuredSessionAdapter implements StructuredAgentSessionAda
       this.sessions.get(sessionId),
       this.deps.requestTimeoutMs ?? CLAUDE_DEFAULT_REQUEST_TIMEOUT_MS
     )
-  readOptions = (input: { sessionId: string; fence: number }) =>
-    readClaudeStructuredSessionOptions(this.session(input.sessionId), this.deps.requestTimeoutMs)
+  readOptions = async (input: { sessionId: string; fence: number }) => {
+    const session = this.session(input.sessionId)
+    const options = await readClaudeStructuredSessionOptions(session, this.deps.requestTimeoutMs)
+    // Session-wide, so it rides beside the per-model options rather than in them.
+    return { ...options, permissionMode: claudeStructuredPermissionModeReport(session) }
+  }
   readOptionRestoreFailures = (sessionId: string): readonly string[] => [
     ...(this.sessions.get(sessionId)?.restoreSkippedOptions ?? [])
   ]
