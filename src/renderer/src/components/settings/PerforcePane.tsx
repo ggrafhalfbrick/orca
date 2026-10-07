@@ -16,7 +16,12 @@ import {
 import { PerforceAiAgentFields } from './PerforceAiFields'
 import { PerforceConnectionTest } from './PerforceConnectionTest'
 import { PerforceCopySettingsFields } from './PerforceCopySettingsFields'
-import { CommitInput, P4_PATH_PLACEHOLDER, TemplateField } from './perforce-settings-inputs'
+import {
+  CommitInput,
+  P4_PATH_PLACEHOLDER,
+  P4EnvironmentInputs,
+  TemplateField
+} from './perforce-settings-inputs'
 import { getPerforceSettingsCatalog, type PerforceSettingId } from './perforce-search'
 
 type PerforcePaneProps = {
@@ -94,24 +99,10 @@ export function PerforcePane({ settings, updateSettings }: PerforcePaneProps): R
           label={text('p4-environment').title}
           description={text('p4-environment').description}
           control={
-            <div className="grid w-72 gap-2">
-              {(
-                [
-                  ['p4Port', 'P4PORT', 'ssl:perforce.example.com:1666'],
-                  ['p4User', 'P4USER', 'username'],
-                  ['p4Client', 'P4CLIENT', 'workspace name'],
-                  ['p4Config', 'P4CONFIG', '.p4config']
-                ] as const
-              ).map(([key, label, placeholder]) => (
-                <CommitInput
-                  key={key}
-                  value={perforce[key]}
-                  ariaLabel={label}
-                  placeholder={`${label} — ${placeholder}`}
-                  onCommit={(next) => update({ [key]: next })}
-                />
-              ))}
-            </div>
+            <P4EnvironmentInputs
+              values={perforce}
+              onCommit={(key, next) => update({ [key]: next })}
+            />
           }
         />
       )}

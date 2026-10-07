@@ -5,6 +5,38 @@ import { translate } from '@/i18n/i18n'
 
 export const P4_PATH_PLACEHOLDER = '/usr/local/bin/p4'
 
+type P4EnvironmentKey = 'p4Port' | 'p4User' | 'p4Client' | 'p4Config'
+
+const P4_ENVIRONMENT_FIELDS = [
+  ['p4Port', 'P4PORT', 'ssl:perforce.example.com:1666'],
+  ['p4User', 'P4USER', 'username'],
+  ['p4Client', 'P4CLIENT', 'workspace name'],
+  ['p4Config', 'P4CONFIG', '.p4config']
+] as const
+
+/** P4PORT, P4USER, P4CLIENT and P4CONFIG overrides; an empty one falls back to the p4 environment. */
+export function P4EnvironmentInputs({
+  values,
+  onCommit
+}: {
+  values: Record<P4EnvironmentKey, string>
+  onCommit: (key: P4EnvironmentKey, value: string) => void
+}): React.JSX.Element {
+  return (
+    <div className="grid w-72 gap-2">
+      {P4_ENVIRONMENT_FIELDS.map(([key, label, placeholder]) => (
+        <CommitInput
+          key={key}
+          value={values[key]}
+          ariaLabel={label}
+          placeholder={`${label} — ${placeholder}`}
+          onCommit={(next) => onCommit(key, next)}
+        />
+      ))}
+    </div>
+  )
+}
+
 /** Text input that commits on blur/Enter so each keystroke is not a settings write. */
 export function CommitInput({
   value,
