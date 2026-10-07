@@ -110,9 +110,9 @@ describe('plugin worker task sources', () => {
       send,
       exit,
       importModule: async () => ({
-        default: (orca: PluginWorkerOrcaApi) => {
-          // Plugins are plain JS, so model one that omits `get`.
-          Reflect.apply(orca.tasks.registerSource, orca.tasks, ['roadmap', { list: () => null }])
+        // Plugins are plain JS, so model one whose view of the API lets it omit `get`.
+        default: (orca: { tasks: { registerSource: (id: string, source: object) => void } }) => {
+          orca.tasks.registerSource('roadmap', { list: () => null })
         }
       })
     })
