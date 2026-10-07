@@ -118,10 +118,24 @@ describe('createWorkspaceCopy (same stream)', () => {
     const marker = JSON.parse(await readFile(join(base, 'ws.wt', 'one.p4-worktree.json'), 'utf8'))
     expect(marker).toMatchObject({
       schema: 1,
-      tool: 'p4-worktree',
       client: 'src_wt_one',
       createdBy: 'orca'
     })
+    // Only what Orca and an agent in the copy use; nothing a particular outside script needs.
+    expect(Object.keys(marker).sort()).toEqual([
+      'client',
+      'copyRoot',
+      'created',
+      'createdBy',
+      'handBack',
+      'mode',
+      'name',
+      'schema',
+      'source',
+      'stream',
+      'unityVersionControlBinding',
+      'updated'
+    ])
     expect(phases).toContain('copying')
     expect(phases).not.toContain('rolling-back')
     // The flush adopts the source's have-list: nothing is synced from the depot.

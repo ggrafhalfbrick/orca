@@ -113,7 +113,9 @@ is not the expected copy folder, so it can never delete anything else.
 ## Copies made outside Orca
 
 The layout and the client and stream names are a contract, and each copy has a marker file beside it
-(`<root>.wt\<name>.p4-worktree.json`, schema 1, `createdBy: "orca"`). Copies a script makes the same
+(`<root>.wt\<name>.p4-worktree.json`, schema 1): the copy's name, folder, client, stream and mode, its
+source workspace, how its work goes back (`handBack`, for an agent working in the copy), the Unity
+binding line, and `createdBy: "orca"`. Copies a script makes the same
 way show up in Orca (the sidebar syncs once per session and from Manage), and such a script can find,
 list and remove the ones Orca makes.
 

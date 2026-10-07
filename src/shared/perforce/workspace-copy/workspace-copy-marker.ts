@@ -5,25 +5,21 @@ import type { WorkspaceCopyMode } from './workspace-copy-types'
 
 /**
  * The copy's marker (schema 1), written beside the copy and outside its client root so no reconcile
- * can add it. Scripts that make copies in the same layout read and write the same format.
+ * can add it. It tells an agent or script working in the copy what the copy is and how its work
+ * goes back; scripts that make copies in the same layout read and write the same format.
  */
 export type WorkspaceCopyMarker = {
   schema: 1
-  tool: 'p4-worktree'
   name: string
   copyRoot: string
   client: string
   stream: string
   mode: WorkspaceCopyMode
-  pinnedChange: number | null
   source: { client: string; root: string; stream: string }
-  plan: string | null
-  task: string | null
   created: string
   updated: string
   handBack: string
   unityVersionControlBinding: string | null
-  remove: string
   createdBy?: string
 }
 
@@ -45,21 +41,16 @@ export function buildMarker(args: {
   const { source, names, stream, mode } = args
   return {
     schema: 1,
-    tool: 'p4-worktree',
     name: names.name,
     copyRoot: names.copyRoot,
     client: names.client,
     stream,
     mode,
-    pinnedChange: null,
     source: { client: source.client, root: source.root, stream: source.stream },
-    plan: null,
-    task: null,
     created: now,
     updated: now,
     handBack: handBackText(source, stream, mode),
     unityVersionControlBinding: args.unityVersionControlBinding,
-    remove: `p4-worktree remove ${names.name}, run from ${source.root}`,
     createdBy: 'orca'
   }
 }
