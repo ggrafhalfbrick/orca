@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
 import type { MouseEvent } from 'react'
+import { isMac } from '../../../app-shell/app-window-chrome'
 
 /** Row selection with Cmd/Ctrl-click toggling and Shift-click ranges over the visible row order. */
 export function usePerforceSelection() {
@@ -8,7 +9,7 @@ export function usePerforceSelection() {
 
   const select = useCallback(
     (key: string, event: MouseEvent, orderedKeys: readonly string[]): 'toggled' | 'plain' => {
-      if (event.metaKey || event.ctrlKey) {
+      if (isMac ? event.metaKey : event.ctrlKey) {
         setSelected((current) => {
           const next = new Set(current)
           if (!next.delete(key)) {
