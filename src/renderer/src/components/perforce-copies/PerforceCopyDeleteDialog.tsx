@@ -90,13 +90,15 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
   }, [target, checks])
 
   const holders = preview?.holders ?? []
-  const consents = endHolders ? holders.map(({ pid, startedAt }) => ({ pid, startedAt })) : []
+  const endable = holders.filter((holder) => holder.canEnd !== false)
+  const consents = endHolders ? endable.map(({ pid, startedAt }) => ({ pid, startedAt })) : []
   const blocked =
     !preview ||
     checking ||
     (preview.blockers.openFiles && !revertOpenFiles) ||
     (preview.blockers.shelves && !deleteShelves) ||
-    (holders.length > 0 && !endHolders)
+    endable.length < holders.length ||
+    (endable.length > 0 && !endHolders)
 
   const confirm = async (): Promise<void> => {
     if (!target || blocked) {
@@ -216,6 +218,7 @@ export function PerforceCopyDeleteDialog({ target, onClose, onDeleted }: Props) 
             {holders.length > 0 ? (
               <HoldersWarning
                 holders={holders}
+                copyRoot={preview.copyRoot}
                 checked={endHolders}
                 onChange={setEndHolders}
                 onCheckAgain={() => setChecks((count) => count + 1)}

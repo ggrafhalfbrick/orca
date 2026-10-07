@@ -38,6 +38,10 @@ export function copyRemovalRefusal(
     const shelved = plan.pendingChanges.filter((c) => c.shelvedFiles > 0).map((c) => c.change)
     return `Changelist(s) ${shelved.join(', ')} in ${plan.client} hold shelved files. Unshelve what you need, then choose to delete the shelves.`
   }
+  const closeYourself = (plan.holders ?? []).filter((holder) => holder.canEnd === false)
+  if (closeYourself.length > 0) {
+    return `${closeYourself.map(processLabel).join(', ')} ha${closeYourself.length === 1 ? 's' : 've'} ${plan.copyRoot} open, and Orca will not end ${closeYourself.length === 1 ? 'it' : 'them'}. Close ${closeYourself.length === 1 ? 'that window' : 'those windows'} yourself and check again.`
+  }
   // Why per process: consent covers the programs the user was shown, not ones opened since.
   const unconsented = (plan.holders ?? []).filter(
     (holder) => !isConsentedHolder(holder, options.endHolders)
@@ -64,7 +68,8 @@ async function moveFolderAside(host: WorkspaceCopyHost, plan: RemovalPlan): Prom
     await renameFileWithWindowsRetryAsync(plan.copyRoot, aside, () => true, MOVE_ASIDE_ATTEMPTS)
     return aside
   } catch (error) {
-    const holders = await processesUnder(host, plan.copyRoot)
+    // Orca's own terminals were stopped before this; any still holding the folder are named too.
+    const holders = await processesUnder(host, plan.copyRoot, { includeOrca: true })
     const named =
       holders.length > 0 ? ` Still open in: ${holders.map(processLabel).join(', ')}.` : ''
     const code = error instanceof Error && 'code' in error ? String(error.code) : ''

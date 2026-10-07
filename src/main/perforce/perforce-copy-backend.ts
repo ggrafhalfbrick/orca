@@ -5,7 +5,7 @@ import {
 } from '../providers/ssh-git-dispatch'
 import { isJsonRpcMethodNotFoundError } from '../providers/ssh-git-relay-errors'
 import { SSH_MUX_REQUEST_TIMEOUT_CODE } from '../ssh/ssh-channel-multiplexer'
-import { readWindowsProcessTableFresh } from '../windows/windows-process-table'
+import { readProcessesHoldingFolder } from '../windows/windows-folder-holders'
 import { runWithPerforceSettings } from '../../shared/perforce/p4-settings-context'
 import {
   createLocalWorkspaceCopyBackend,
@@ -13,6 +13,7 @@ import {
 } from '../../shared/perforce/workspace-copy/workspace-copy-backend'
 import { createWorkspaceCopyHost } from '../../shared/perforce/workspace-copy/workspace-copy-host'
 import { endWorkspaceCopyHolder } from './perforce-copy-holder-termination'
+import { listCopyHostProcesses } from './perforce-copy-host-processes'
 import { getPerforceSettings } from './perforce-ssh-backend'
 
 const RELAY_TOO_OLD_MESSAGE =
@@ -28,16 +29,8 @@ function createLocalBackend(): WorkspaceCopyBackend {
   const backend = createLocalWorkspaceCopyBackend(
     createWorkspaceCopyHost({
       removeTree: removeHostTree,
-      listProcesses:
-        process.platform === 'win32'
-          ? async () =>
-              (await readWindowsProcessTableFresh()).map((row) => ({
-                pid: row.pid,
-                name: row.name,
-                commandLine: row.command,
-                startedAt: row.creationTimeMs ?? null
-              }))
-          : undefined,
+      listProcesses: process.platform === 'win32' ? listCopyHostProcesses : undefined,
+      listFolderHolders: process.platform === 'win32' ? readProcessesHoldingFolder : undefined,
       endProcess: process.platform === 'win32' ? endWorkspaceCopyHolder : undefined
     })
   )

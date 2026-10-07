@@ -19529,7 +19529,12 @@
       "holdersWarning": "These programs have this copy open, and Windows will not delete a folder in use. Close them yourself and check again, or end them here.",
       "programPid": "{{name}} (pid {{pid}})",
       "checkAgain": "Check again",
-      "endsPrograms": "Ends {{programs}} first; anything unsaved in them is lost."
+      "endsPrograms": "Ends {{programs}} first; anything unsaved in them is lost.",
+      "holderHasRoot": "Has the copy’s folder open",
+      "holderHasFolder": "Has {{folder}} open",
+      "holderStarted": "Started from it: {{programs}}",
+      "holderExplorer": "Close the Explorer window showing this folder; Orca does not end Explorer.",
+      "holderCannotEnd": "Orca cannot end this program; close it yourself."
     }
   }
 }

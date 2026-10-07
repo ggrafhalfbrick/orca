@@ -26,6 +26,8 @@ export type FakeHostOptions = {
   /** When false, copies cost their full size, as on NTFS. */
   blockClones?: boolean
   processes?: HostProcess[]
+  /** Pid to the folder it has open, as the kernel's per-file list reports it. */
+  folderHolders?: Map<number, string>
 }
 
 /** A copy host over a fake Perforce server and a robocopy stand-in that can pretend to block-clone. */
@@ -82,6 +84,7 @@ export function createFakeCopyHost(
     freeBytes: async () => capacity - (diskUsage(diskRoot) - clonedBytes),
     removeTree: (path) => rm(path, { recursive: true, force: true }),
     listProcesses: async () => options.processes ?? [],
+    listFolderHolders: async () => options.folderHolders ?? null,
     endProcess: async (target) => {
       const running = options.processes ?? []
       const index = running.findIndex((p) => p.pid === target.pid)

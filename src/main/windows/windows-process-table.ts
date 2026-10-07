@@ -69,6 +69,9 @@ type NativeProcessInfo = {
   creationTimeMs?: number
 }
 
+/** Pids with a handle open on each path; null where a path could not be queried. */
+type PathUsersQuery = (paths: string[]) => Promise<(number[] | null)[]>
+
 type WindowsProcessTreeModule = {
   ProcessDataFlag: {
     None: number
@@ -83,6 +86,7 @@ type WindowsProcessTreeModule = {
    */
   supportedProcessDataFlags?: number
   getProcessCreationTime?: (pid: number) => number | undefined
+  getProcessIdsUsingPaths?: PathUsersQuery
   getAllProcesses: (
     callback: (processes: NativeProcessInfo[] | undefined) => void,
     flags?: number
@@ -114,6 +118,7 @@ let requireNative: NativeRequire = requireFromMain
  */
 type WindowsProcessTreeAddon = {
   getProcessCreationTime?: (pid: number) => number | undefined
+  getProcessIdsUsingPaths?: PathUsersQuery
   getProcessList: (
     callback: (processes: NativeProcessInfo[] | undefined) => void,
     flags: number
@@ -187,6 +192,7 @@ function adaptAddon(addon: WindowsProcessTreeAddon): WindowsProcessTreeModule {
     ProcessDataFlag: PROCESS_DATA_FLAG,
     supportedProcessDataFlags: addon.supportedProcessDataFlags,
     getProcessCreationTime: addon.getProcessCreationTime,
+    getProcessIdsUsingPaths: addon.getProcessIdsUsingPaths,
     getAllProcesses: (callback, flags) => addon.getProcessList(callback, flags ?? 0)
   }
 }
@@ -555,6 +561,15 @@ export function readWindowsProcessCreationTime(pid: number): number | null {
   } catch {
     return null
   }
+}
+
+/**
+ * The pids with a handle open on each path, from the kernel's per-file list; opens only the paths,
+ * never another process. Null when this host's addon predates the query (rebuild with pnpm install).
+ */
+export function readProcessIdsUsingPaths(paths: string[]): ReturnType<PathUsersQuery> | null {
+  const query = process.platform === 'win32' ? moduleLoader()?.getProcessIdsUsingPaths : undefined
+  return query ? query(paths) : null
 }
 
 function resetSnapshotReaders(): void {

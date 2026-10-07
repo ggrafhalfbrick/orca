@@ -1,4 +1,5 @@
 import { translate } from '@/i18n/i18n'
+import { countedProgramNames } from './perforce-copy-holder-groups'
 import type {
   WorkspaceCopyRemovalOptions,
   WorkspaceCopyRemovalPreview
@@ -40,7 +41,7 @@ export function summarizeCopyRemoval(
       translate(
         'perforce.copies.endsPrograms',
         'Ends {{programs}} first; anything unsaved in them is lost.',
-        { programs: ended.map((holder) => holder.name).join(', ') }
+        { programs: countedProgramNames(ended) }
       )
     )
   }

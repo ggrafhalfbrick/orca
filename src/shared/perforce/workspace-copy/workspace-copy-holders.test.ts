@@ -8,6 +8,7 @@ import { FakePerforceServer } from './__fixtures__/fake-perforce-server'
 import type { HostProcess } from './workspace-copy-host'
 import { requireRemovalOptions } from './workspace-copy-arguments'
 import { createWorkspaceCopy } from './workspace-copy-create'
+import { processesUnder } from './workspace-copy-processes'
 import { previewWorkspaceCopyRemoval } from './workspace-copy-removal-preview'
 import { removeWorkspaceCopy } from './workspace-copy-remove'
 
@@ -39,8 +40,8 @@ async function copyWithHolders() {
   processes.push(
     {
       pid: 10,
-      name: 'glider.exe',
-      commandLine: `glider.exe --workspace ${join(copyRoot, 'Game')}`,
+      name: 'indexer.exe',
+      commandLine: `indexer.exe --workspace ${join(copyRoot, 'Game')}`,
       startedAt: 1000
     },
     {
@@ -61,7 +62,7 @@ describe('programs holding a copy', () => {
     const preview = await previewWorkspaceCopyRemoval(host, ws, 'one')
     expect(preview.holders?.map((holder) => holder.pid)).toEqual([10, 11])
     expect(preview.blockers.holders).toBe(true)
-    expect(preview.processesHoldingFolder).toEqual(['glider.exe (pid 10)', 'Unity.exe (pid 11)'])
+    expect(preview.processesHoldingFolder).toEqual(['indexer.exe (pid 10)', 'Unity.exe (pid 11)'])
 
     await expect(removeWorkspaceCopy(host, ws, 'one')).rejects.toThrow(/still have .* open/)
     expect(server.client('src_wt_one')).toBeDefined()
@@ -96,6 +97,87 @@ describe('programs holding a copy', () => {
         ]
       })
     ).rejects.toThrow(/Unity\.exe \(pid 11\) still has .* open/)
+    expect(host.endedPids).toEqual([])
+    expect(server.client('src_wt_one')).toBeDefined()
+  })
+
+  it('finds programs that only work in the copy, but not Orca’s own terminals', async () => {
+    const folderHolders = new Map<number, string>()
+    const host = createFakeCopyHost(server, base, { processes, folderHolders })
+    await createWorkspaceCopy(host, ws, { name: 'one' })
+    const game = join(copyRoot, 'Game')
+    processes.push(
+      { pid: 20, name: 'cmd.exe', commandLine: 'cmd.exe', startedAt: 100, parentPid: 1 },
+      { pid: 21, name: 'claude.exe', commandLine: 'claude', startedAt: 200, parentPid: 20 },
+      { pid: 30, name: 'pwsh.exe', commandLine: 'pwsh.exe', startedAt: 300, ownedByOrca: true }
+    )
+    folderHolders.set(20, game).set(21, game).set(30, copyRoot)
+
+    const preview = await previewWorkspaceCopyRemoval(host, ws, 'one')
+    expect(preview.holders).toEqual([
+      {
+        pid: 20,
+        name: 'cmd.exe',
+        commandLine: 'cmd.exe',
+        startedAt: 100,
+        parentPid: 1,
+        heldFolder: game,
+        canEnd: true
+      },
+      {
+        pid: 21,
+        name: 'claude.exe',
+        commandLine: 'claude',
+        startedAt: 200,
+        parentPid: 20,
+        heldFolder: game,
+        canEnd: true
+      }
+    ])
+    expect(
+      (await processesUnder(host, copyRoot, { includeOrca: true })).map((holder) => holder.pid)
+    ).toEqual([20, 21, 30])
+
+    const removed = await removeWorkspaceCopy(
+      host,
+      ws,
+      'one',
+      {
+        endHolders: [
+          { pid: 20, startedAt: 100 },
+          { pid: 21, startedAt: 200 }
+        ]
+      },
+      { awaitFolderDeletion: true }
+    )
+    expect(host.endedPids).toEqual([20, 21])
+    expect(removed.folderDeleted).toBe(true)
+  })
+
+  it('never ends Explorer or a program it cannot query; the user closes those', async () => {
+    const folderHolders = new Map<number, string>()
+    const host = createFakeCopyHost(server, base, { processes, folderHolders })
+    await createWorkspaceCopy(host, ws, { name: 'one' })
+    processes.push(
+      { pid: 40, name: 'explorer.exe', commandLine: 'C:\\WINDOWS\\Explorer.EXE', startedAt: 50 },
+      // An empty command line: the process refused a query handle, so it cannot be ended either.
+      { pid: 50, name: 'MsMpEng.exe', commandLine: '', startedAt: 10 }
+    )
+    folderHolders.set(40, copyRoot).set(50, join(copyRoot, 'Game'))
+
+    const preview = await previewWorkspaceCopyRemoval(host, ws, 'one')
+    expect(preview.holders?.map((holder) => [holder.pid, holder.canEnd])).toEqual([
+      [40, false],
+      [50, false]
+    ])
+    await expect(
+      removeWorkspaceCopy(host, ws, 'one', {
+        endHolders: [
+          { pid: 40, startedAt: 50 },
+          { pid: 50, startedAt: 10 }
+        ]
+      })
+    ).rejects.toThrow(/Orca will not end them/)
     expect(host.endedPids).toEqual([])
     expect(server.client('src_wt_one')).toBeDefined()
   })

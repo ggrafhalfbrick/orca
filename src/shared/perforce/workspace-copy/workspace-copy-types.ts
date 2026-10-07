@@ -120,13 +120,19 @@ export type WorkspaceCopyPendingChange = {
   shelvedFiles: number
 }
 
-/** A program with the copy open, found by a path inside the copy on its command line. */
+/** A program with the copy open: a handle in its folder, or a path inside it on its command line. */
 export type WorkspaceCopyHolder = {
   pid: number
   name: string
   commandLine: string
   /** Start time (ms), so ending it can never reach a reused pid; null when the host cannot tell. */
   startedAt: number | null
+  /** Optional fields: absent from relays that predate them. */
+  parentPid?: number | null
+  /** The shallowest folder of the copy it has open; null when only its command line names the copy. */
+  heldFolder?: string | null
+  /** False for Explorer and programs Orca cannot end; the user closes those. */
+  canEnd?: boolean
 }
 
 /** A holder the user agreed to end: the pid and start time they were shown. */
@@ -157,7 +163,7 @@ export type WorkspaceCopyRemovalPreview = {
     submittedChanges: number
     parent: string | null
   } | null
-  /** Processes whose command line or executable sits in the copy; Windows will not delete a folder they hold. */
+  /** Labels of the programs holding the copy; Windows will not delete a folder they hold. */
   processesHoldingFolder: string[]
   /** The same processes in full; absent from relays that predate it. */
   holders?: WorkspaceCopyHolder[]

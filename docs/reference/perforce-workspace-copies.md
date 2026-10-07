@@ -43,12 +43,21 @@ gone), each with Delete.
 Deleting a copy, from the sidebar, the context menu or the manage dialog, always opens the Perforce
 copy confirmation. It lists what is deleted and what is kept, and needs explicit opt-ins before it
 reverts checked-out files, deletes shelves or ends programs that have the copy open. Programs are
-found by a path inside the copy on their command line (Unity, Rider, a code index such as Glider);
-the user closes them and chooses **Check again**, or opts in to ending them. Consent covers the
-exact processes shown (pid and start time), and Orca never ends itself. A program that only runs
-inside the copy is not found: telling which process has a folder open needs a walk of other
-processes' handles, which security software treats as an attack. The generic worktree delete, the CLI and batch delete
-refuse a copy (`PERFORCE_COPY_GENERIC_REMOVAL_MESSAGE`).
+found two ways: a path inside the copy on their command line (Unity, Rider, a code indexer),
+and a handle open on the copy's folder or a folder up to two levels below it (a shell or
+agent working there, an Explorer window, Unity Hub's watcher). The second asks the kernel's per-file
+list (`FileProcessIdsUsingFileInformation`, what Restart Manager uses) through
+`getProcessIdsUsingPaths` in Orca's patch of `@vscode/windows-process-tree`; it opens only the
+folders, never another process, so it is not the handle walk security software scores as an attack.
+Each folder costs the kernel a walk of every handle on the system (about 50 ms at 200,000 handles,
+on NTFS and ReFS alike), so the check stops at 64 folders, shallowest first, and asks them on up to
+eight threads: about 0.8 s for a Unity project's top two levels. A program holding only a deeper
+folder is not named; the delete then refuses before touching Perforce and says a program has the
+folder open. A shell and what it started show as one entry. The user closes them and chooses **Check again**, or
+opts in to ending them. Consent covers the exact processes shown (pid and start time). Orca never
+ends itself or Explorer, and leaves its own terminals out of the list because removal closes them.
+The generic worktree delete, the CLI and batch delete refuse a copy
+(`PERFORCE_COPY_GENERIC_REMOVAL_MESSAGE`).
 
 Settings › Perforce › Workspace Copies: minimum free space (default 10 GB), leaving out Unity's
 `Library/PackageCache`, and extra folders to leave out.
@@ -64,7 +73,7 @@ Settings › Perforce › Workspace Copies: minimum free space (default 10 GB), 
 2. **Copy.** `robocopy /E /COPY:DAT /DCOPY:DAT /MT:32` into `<root>.wt\<name>`, keeping timestamps so
    Unity does not reimport. Each Unity project's `Temp`, `Logs`, `obj` and editor lock files stay behind.
 3. **Stream and client.** The copy's own sparsedev stream `<parent>_wt_<name>` (`stream -o -t sparsedev
-   -P <parent>` → `stream -i`), branched at the parent's latest change; an earlier copy's stream of the
+-P <parent>` → `stream -i`), branched at the parent's latest change; an earlier copy's stream of the
    same name that kept submitted work is continued instead. Then `<client>_wt_<name>` from the source's
    spec (`client -o` → `client -i`) with the new Root and Stream.
 4. **Adopt.** `p4 flush //<copy>/...` (or `@<source client>` when working directly on the workspace's

@@ -27,24 +27,51 @@ export async function unityProjectsOpenInEditor(
   return projects.filter((project) => open.some((path) => samePath(path, project)))
 }
 
+async function folderHolders(
+  host: WorkspaceCopyHost,
+  root: string
+): Promise<ReadonlyMap<number, string>> {
+  try {
+    return (await host.listFolderHolders?.(root)) ?? new Map()
+  } catch {
+    return new Map()
+  }
+}
+
+// Ending Explorer takes the taskbar and desktop with it; the user closes its window instead.
+const NEVER_ENDED = new Set(['explorer.exe'])
+
 /**
- * Processes whose command line names a path inside `root` (editors, Unity, tools started there).
- * Only a walk of other processes' handles finds one that merely runs in the copy, and security
- * software treats that walk as an attack, so those are not found.
+ * Programs holding `root`: a handle open in its folder (a shell or agent working there, an
+ * Explorer window, a watcher) or a path inside it on the command line (editors, Unity).
+ * Orca's own processes are left out unless `includeOrca`: removal closes the copy's terminals itself.
  */
 export async function processesUnder(
   host: WorkspaceCopyHost,
-  root: string
+  root: string,
+  { includeOrca = false }: { includeOrca?: boolean } = {}
 ): Promise<WorkspaceCopyHolder[]> {
   const needle = normalizePath(root).toLowerCase().replaceAll('/', '\\')
-  // Why the boundary: `D:\TOTF2.wt\copy-1` must not match `D:\TOTF2.wt\copy-10`.
+  // Why the boundary: `D:\ws.wt\copy-1` must not match `D:\ws.wt\copy-10`.
   const mentions = new RegExp(`${escapeRegex(needle)}(?=$|[\\\\"'\\s])`)
-  return (await processes(host))
+  const [table, held] = await Promise.all([processes(host), folderHolders(host, root)])
+  return table
     .filter(
       (p) =>
-        p.pid !== process.pid && mentions.test(p.commandLine.toLowerCase().replaceAll('/', '\\'))
+        p.pid !== process.pid &&
+        (includeOrca || !p.ownedByOrca) &&
+        (held.has(p.pid) || mentions.test(p.commandLine.toLowerCase().replaceAll('/', '\\')))
     )
-    .map((p) => ({ ...p, startedAt: p.startedAt ?? null }))
+    .map((p) => ({
+      pid: p.pid,
+      name: p.name,
+      commandLine: p.commandLine,
+      startedAt: p.startedAt ?? null,
+      parentPid: p.parentPid ?? null,
+      heldFolder: held.get(p.pid) ?? null,
+      // An empty command line means the process refused a query handle, so it cannot be ended either.
+      canEnd: p.commandLine !== '' && !NEVER_ENDED.has(p.name.toLowerCase())
+    }))
 }
 
 export function processLabel(holder: Pick<WorkspaceCopyHolder, 'name' | 'pid'>): string {
@@ -70,7 +97,7 @@ export async function endConsentedHolders(
     return
   }
   for (const holder of await processesUnder(host, root)) {
-    if (isConsentedHolder(holder, consents)) {
+    if (holder.canEnd !== false && isConsentedHolder(holder, consents)) {
       await host.endProcess(holder)
     }
   }

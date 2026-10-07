@@ -12,6 +12,9 @@ export type HostProcess = {
   commandLine: string
   /** Start time (ms), when the host can read it. */
   startedAt?: number | null
+  parentPid?: number | null
+  /** This Orca or something it started (its terminals, watchers); a copy removal closes those itself. */
+  ownedByOrca?: boolean
 }
 
 export type ProcessOutput = {
@@ -30,6 +33,8 @@ export type WorkspaceCopyHost = {
   removeTree: (path: string) => Promise<void>
   /** Optional: names Unity editors on the source and processes holding a copy's folder. */
   listProcesses?: () => Promise<HostProcess[]>
+  /** Optional: pids with a handle open in a copy's folder, each with the folder it holds; null when the host cannot tell. */
+  listFolderHolders?: (root: string) => Promise<ReadonlyMap<number, string> | null>
   /** Ends one process if it is still the one listed (same pid and start time); true once it is gone. */
   endProcess?: (process: HostProcess) => Promise<boolean>
 }
@@ -45,7 +50,9 @@ export function parseWindowsBuild(osRelease: string): number | null {
 }
 
 export function createWorkspaceCopyHost(
-  overrides: Partial<Pick<WorkspaceCopyHost, 'removeTree' | 'listProcesses' | 'endProcess'>> = {}
+  overrides: Partial<
+    Pick<WorkspaceCopyHost, 'removeTree' | 'listProcesses' | 'listFolderHolders' | 'endProcess'>
+  > = {}
 ): WorkspaceCopyHost {
   return {
     p4: (args, options) =>
@@ -83,6 +90,7 @@ export function createWorkspaceCopyHost(
           transientLockRemovalOptions()
         )),
     listProcesses: overrides.listProcesses,
+    listFolderHolders: overrides.listFolderHolders,
     endProcess: overrides.endProcess
   }
 }
