@@ -1,5 +1,7 @@
 import { useAppStore } from '@/store'
 import type { PluginTaskItem } from '../../../../../shared/plugins/plugin-task-source'
+import type { LinkedPluginTask } from '../../../../../shared/plugins/plugin-task-link'
+import type { PluginTaskSourceRef } from '../../../../../shared/plugins/plugin-task-source-ref'
 import type { Repo } from '../../../../../shared/repo-types'
 
 function normalizeProjectPath(value: string): string {
@@ -24,8 +26,26 @@ export function findRepoIdForProjectPath(
   return (matches.find((repo) => !repo.connectionId) ?? matches[0])?.id ?? null
 }
 
+export function buildLinkedPluginTask(
+  item: PluginTaskItem,
+  source: PluginTaskSourceRef & { title: string }
+): LinkedPluginTask {
+  return {
+    pluginKey: source.pluginKey,
+    sourceId: source.sourceId,
+    itemId: item.id,
+    title: item.title,
+    sourceTitle: source.title,
+    ...(item.url ? { url: item.url } : {}),
+    ...(item.start?.linkMetadata ? { metadata: item.start.linkMetadata } : {})
+  }
+}
+
 /** Opens Create workspace prefilled from the item's start recipe; the user reviews before creating. */
-export function openComposerForPluginTask(item: PluginTaskItem): boolean {
+export function openComposerForPluginTask(
+  item: PluginTaskItem,
+  source: PluginTaskSourceRef & { title: string }
+): boolean {
   const recipe = item.start
   if (!recipe) {
     return false
@@ -39,6 +59,8 @@ export function openComposerForPluginTask(item: PluginTaskItem): boolean {
     ...(repoId ? { initialRepoId: repoId } : {}),
     ...(recipe.baseRef ? { initialBaseBranch: recipe.baseRef } : {}),
     ...(recipe.agentPrompt ? { initialAgentDraft: recipe.agentPrompt } : {}),
+    ...(recipe.sessionOptions ? { initialAgentSessionOptions: recipe.sessionOptions } : {}),
+    linkedPluginTask: buildLinkedPluginTask(item, source),
     telemetrySource: 'sidebar'
   })
   return true

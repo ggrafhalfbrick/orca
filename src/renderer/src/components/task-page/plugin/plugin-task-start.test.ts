@@ -30,18 +30,26 @@ describe('findRepoIdForProjectPath', () => {
   })
 })
 
+const SOURCE = { pluginKey: 'orca-samples.roadmap', sourceId: 'plans', title: 'Roadmap' }
+
 describe('openComposerForPluginTask', () => {
-  it('prefills Create workspace from the start recipe', () => {
-    const opened = openComposerForPluginTask({
-      id: 'plan',
-      title: 'Plan title',
-      start: {
-        workspaceName: 'plan',
-        agentPrompt: 'Implement the plan.',
-        baseRef: '//Depot/Main',
-        projectPath: '/home/me/Work'
-      }
-    })
+  it('prefills Create workspace from the start recipe and links the workspace back', () => {
+    const opened = openComposerForPluginTask(
+      {
+        id: 'plan',
+        title: 'Plan title',
+        url: 'https://example.com/plan',
+        start: {
+          workspaceName: 'plan',
+          agentPrompt: 'Implement the plan.',
+          baseRef: '//Depot/Main',
+          projectPath: '/home/me/Work',
+          sessionOptions: { model: 'opus', effort: 'max' },
+          linkMetadata: { plan: 'plans/plan.md' }
+        }
+      },
+      SOURCE
+    )
 
     expect(opened).toBe(true)
     expect(mocks.openModal).toHaveBeenCalledWith('new-workspace-composer', {
@@ -49,12 +57,22 @@ describe('openComposerForPluginTask', () => {
       initialRepoId: 'local',
       initialBaseBranch: '//Depot/Main',
       initialAgentDraft: 'Implement the plan.',
+      initialAgentSessionOptions: { model: 'opus', effort: 'max' },
+      linkedPluginTask: {
+        pluginKey: 'orca-samples.roadmap',
+        sourceId: 'plans',
+        itemId: 'plan',
+        title: 'Plan title',
+        sourceTitle: 'Roadmap',
+        url: 'https://example.com/plan',
+        metadata: { plan: 'plans/plan.md' }
+      },
       telemetrySource: 'sidebar'
     })
   })
 
   it('does nothing for an item without a start recipe', () => {
-    expect(openComposerForPluginTask({ id: 'manual', title: 'Manual plan' })).toBe(false)
+    expect(openComposerForPluginTask({ id: 'manual', title: 'Manual plan' }, SOURCE)).toBe(false)
     expect(mocks.openModal).not.toHaveBeenCalled()
   })
 })

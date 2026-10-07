@@ -40,6 +40,8 @@ export type NewWorkspaceComposerCardProps = {
   agentDraft?: string | null
   onAgentDraftChange?: (value: string) => void
   agentDraftUnavailableReason?: string | null
+  /** Shown under the agent prompt when the opener pinned session options. */
+  agentSessionNote?: string | null
   eligibleRepos: readonly RepoOption[]
   repoId: string
   projectOptions?: NewWorkspaceProjectOption[]

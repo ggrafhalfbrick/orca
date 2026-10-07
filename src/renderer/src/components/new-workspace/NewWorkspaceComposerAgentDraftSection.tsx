@@ -6,11 +6,14 @@ import { translate } from '@/i18n/i18n'
 export function NewWorkspaceComposerAgentDraftSection({
   value,
   onChange,
-  unavailableReason
+  unavailableReason,
+  sessionNote
 }: {
   value: string
   onChange: (value: string) => void
   unavailableReason: string | null
+  /** Which model/effort the launch uses, when the opener pinned them. */
+  sessionNote?: string | null
 }): React.JSX.Element {
   const inputId = React.useId()
   const helpId = React.useId()
@@ -34,6 +37,7 @@ export function NewWorkspaceComposerAgentDraftSection({
             'auto.components.NewWorkspaceComposerCard.agentDraftHelp',
             'Typed into the agent as a draft. Review it there before sending.'
           )}
+        {sessionNote && unavailableReason === null ? ` ${sessionNote}` : null}
       </p>
     </div>
   )

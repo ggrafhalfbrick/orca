@@ -50,7 +50,8 @@ describe('content-pack manifest contributions', () => {
       keybindings: [],
       vmRecipes: [],
       agents: [],
-      taskSources: []
+      taskSources: [],
+      settings: []
     })
   })
 

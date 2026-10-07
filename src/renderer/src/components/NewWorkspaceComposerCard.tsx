@@ -333,6 +333,7 @@ export default function NewWorkspaceComposerCard(
                 value={props.agentDraft}
                 onChange={props.onAgentDraftChange}
                 unavailableReason={props.agentDraftUnavailableReason ?? null}
+                sessionNote={props.agentSessionNote}
               />
             ) : null
           }

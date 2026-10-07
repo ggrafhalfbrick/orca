@@ -12,14 +12,17 @@ import { PluginTaskList } from './PluginTaskList'
 import { PluginTaskSourceBar } from './PluginTaskSourceBar'
 import { openComposerForPluginTask } from './plugin-task-start'
 import { usePluginTaskList } from './use-plugin-task-list'
+import { usePluginTaskWorkspaces } from './use-plugin-task-workspaces'
 
 function PluginTaskListBody({
   list,
+  workspaces,
   selectedItemId,
   onOpen,
   onStart
 }: {
   list: ReturnType<typeof usePluginTaskList>
+  workspaces: ReturnType<typeof usePluginTaskWorkspaces>
   selectedItemId: string | null
   onOpen: (item: PluginTaskItem) => void
   onStart: (item: PluginTaskItem) => void
@@ -69,24 +72,30 @@ function PluginTaskListBody({
       <PluginTaskList
         items={items}
         selectedItemId={selectedItemId}
+        workspacesFor={workspaces.workspacesFor}
         onOpen={onOpen}
         onStart={onStart}
+        onOpenWorkspace={workspaces.openWorkspace}
       />
     </>
   )
 }
 
-/** Tasks page for one plugin-contributed source. Key it on the source so state resets per source. */
+/** Tasks page for one plugin-contributed source. Key it on the source and the requested item so state resets. */
 export function PluginTaskSourcePage({
-  source
+  source,
+  initialItem
 }: {
   source: ActivePluginTaskSource
+  /** Opens this item's detail on arrival, e.g. from a workspace card's task link. */
+  initialItem?: PluginTaskItem
 }): React.JSX.Element {
   const closeTaskPage = useAppStore((state) => state.closeTaskPage)
   const activeModal = useAppStore((state) => state.activeModal)
   const list = usePluginTaskList(source)
-  const [selectedItem, setSelectedItem] = useState<PluginTaskItem | null>(null)
-  const [detailOpen, setDetailOpen] = useState(false)
+  const workspaces = usePluginTaskWorkspaces(source)
+  const [selectedItem, setSelectedItem] = useState<PluginTaskItem | null>(initialItem ?? null)
+  const [detailOpen, setDetailOpen] = useState(initialItem !== undefined)
   const [detailRevision, setDetailRevision] = useState(0)
   useTaskPageEscapeToClose(detailOpen || activeModal !== 'none', closeTaskPage)
   const openItem = useCallback((item: PluginTaskItem) => {
@@ -94,11 +103,14 @@ export function PluginTaskSourcePage({
     setDetailOpen(true)
     setDetailRevision((revision) => revision + 1)
   }, [])
-  const startItem = useCallback((item: PluginTaskItem) => {
-    if (openComposerForPluginTask(item)) {
-      setDetailOpen(false)
-    }
-  }, [])
+  const startItem = useCallback(
+    (item: PluginTaskItem) => {
+      if (openComposerForPluginTask(item, source)) {
+        setDetailOpen(false)
+      }
+    },
+    [source]
+  )
   const shownCount = list.result?.items.length ?? 0
   return (
     <div className="relative flex h-full min-h-0 flex-1 overflow-hidden bg-background text-foreground">
@@ -135,6 +147,7 @@ export function PluginTaskSourcePage({
             >
               <PluginTaskListBody
                 list={list}
+                workspaces={workspaces}
                 selectedItemId={detailOpen ? (selectedItem?.id ?? null) : null}
                 onOpen={openItem}
                 onStart={startItem}
@@ -148,6 +161,8 @@ export function PluginTaskSourcePage({
         item={selectedItem}
         open={detailOpen}
         revision={detailRevision}
+        workspaces={selectedItem ? workspaces.workspacesFor(selectedItem.id) : []}
+        onOpenWorkspace={workspaces.openWorkspace}
         onClose={() => setDetailOpen(false)}
         onStart={startItem}
       />

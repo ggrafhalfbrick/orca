@@ -13,7 +13,9 @@ const TASKS = [
     body: '## Goal\n\nUsers can sign in with email and password.\n\n- [ ] Fields and labels\n- [ ] Client-side validation\n- [ ] Error banner',
     start: {
       workspaceName: 'login-form',
-      agentPrompt: 'Build the login form described in docs/login.md, with tests.'
+      agentPrompt: 'Build the login form described in docs/login.md, with tests.',
+      sessionOptions: { agent: 'claude', model: 'sonnet', effort: 'high' },
+      linkMetadata: { spec: 'docs/login.md' }
     }
   },
   {
@@ -59,14 +61,22 @@ function toItem(task) {
   return item
 }
 
+// Settings hold only what the user changed, so apply the manifest's defaults here.
+async function readShowBlocked(orca) {
+  const { settings } = await orca.host.call('settings.get')
+  return settings.showBlocked !== false
+}
+
 export default function activate(orca) {
   orca.tasks.registerSource('samples', {
-    list({ query, filters }) {
+    async list({ query, filters }) {
       const status = filters.status ?? STATUS_FILTER.defaultValue
       const needle = query.toLowerCase()
+      const showBlocked = await readShowBlocked(orca)
       const items = TASKS.filter(
         (task) =>
           (status === 'all' || task.status.tone === status) &&
+          (showBlocked || task.status.tone !== 'blocked') &&
           (!needle || task.title.toLowerCase().includes(needle))
       ).map(toItem)
       return { items, filters: [STATUS_FILTER] }

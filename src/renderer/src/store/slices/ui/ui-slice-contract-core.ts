@@ -69,6 +69,8 @@ export type TaskPageData = {
   openJiraIssue?: JiraIssue
   openJiraSourceContext?: TaskSourceContext | null
   pluginTaskSource?: PluginTaskSourceRef
+  /** Item of `pluginTaskSource` whose detail opens on arrival. */
+  openPluginTaskItem?: { id: string; title: string }
 }
 
 export type NewWorkspaceDraft = {

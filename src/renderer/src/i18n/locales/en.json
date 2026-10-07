@@ -1864,7 +1864,11 @@
         "addRemoteOrcaServerHint": "Pair another Orca runtime",
         "hostConnectionFailed": "Connection failed",
         "agentDraftLabel": "Agent prompt",
-        "agentDraftHelp": "Typed into the agent as a draft. Review it there before sending."
+        "agentDraftHelp": "Typed into the agent as a draft. Review it there before sending.",
+        "agentSessionModelEffort": "Starts with model {{model}}, effort {{effort}}.",
+        "agentSessionModel": "Starts with model {{model}}.",
+        "agentSessionEffort": "Starts with effort {{effort}}.",
+        "agentSessionOtherAgent": "The task's model and effort are for {{agent}}, so this agent starts with its own."
       },
       "NewWorkspaceComposerModal": {
         "createWorktree": "Create worktree",
@@ -2467,7 +2471,14 @@
         "pluginTaskNotStartable": "This task cannot start a workspace",
         "pluginTaskSourceContext": "{{value0}} · plugin",
         "pluginTaskEmpty": "No tasks found",
-        "pluginTaskEmptyHint": "Try different search terms or filters."
+        "pluginTaskEmptyHint": "Try different search terms or filters.",
+        "pluginTaskOpenWorkspaceAction": "Open workspace",
+        "pluginTaskStartAnotherShort": "Start another",
+        "pluginTaskWorkspacesLabel": "Workspaces",
+        "pluginTaskOpenWorkspace": "Open workspace {{value0}}",
+        "pluginTaskWorkspaces": "Workspaces: {{value0}}",
+        "pluginTaskStartAnother": "Start another workspace",
+        "pluginTaskWorkspaceOpenFailed": "Unable to open that workspace."
       },
       "Terminal": {
         "73768427cf": "Close",
@@ -5809,7 +5820,8 @@
           "automationCreated": "Created by automation",
           "branchIdentity": "Branch",
           "branchFolderPathIdentity": "Branch or folder path",
-          "ef18787206": "Queued for deletion"
+          "ef18787206": "Queued for deletion",
+          "openPluginTask": "Open in {{value0}}"
         },
         "WorktreeCardAgents": {
           "1b0a156717": "Agents"
@@ -11990,7 +12002,8 @@
           "remove": "Remove",
           "disableLabel": "Disable {{value0}}",
           "enableLabel": "Enable {{value0}}",
-          "invalidPluginError": "The plugin manifest or installed files are invalid. Fix the plugin, then refresh."
+          "invalidPluginError": "The plugin manifest or installed files are invalid. Fix the plugin, then refresh.",
+          "settings": "Settings"
         },
         "PluginVmRecipeConsentPreview": {
           "create": "Create",
@@ -12493,6 +12506,13 @@
           "offCount": "{{count}} off",
           "machines": "Machines",
           "machinesDescription": "Choose which machines can show notifications on this computer. A paired server’s switch also covers work reached through it."
+        },
+        "PluginSettingsDialog": {
+          "default": "Default: {{value0}}",
+          "title": "{{value0}} settings",
+          "description": "Each change saves on its own. The plugin uses it the next time it reads its settings.",
+          "loading": "Loading…",
+          "done": "Done"
         }
       },
       "right": {

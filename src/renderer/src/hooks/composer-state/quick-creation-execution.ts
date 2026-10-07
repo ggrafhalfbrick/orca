@@ -48,6 +48,7 @@ import {
 import { buildQuickComposerStartup } from './quick-startup-plan'
 import { buildQuickCreationRequest } from './quick-creation-request'
 import type { PendingSmartGitHubSubmitResolution } from './source-selection-decisions'
+import type { QuickSubmitOptions } from './composer-submit-model'
 import { resolveAgentSessionLaunchRoute } from '@/lib/agent-session-launch-plan'
 
 export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
@@ -90,7 +91,7 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
       workspaceRunContext: WorktreeCreationRequest['workspaceRunContext'],
       repoId: string,
       selectedRepo: Repo,
-      agentDraft?: string
+      options?: QuickSubmitOptions
     ): Promise<void> => {
       const prepared = await prepareQuickSubmit(
         smartGitHubResolution,
@@ -129,7 +130,9 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
       const { prompt: quickPrompt, draftPrompt: linkedDraftPrompt } =
         resolveQuickCreateLinkedWorkItemPrompt(promptLinkedWorkItem, trimmedNote)
       const quickDraftPrompt =
-        agent === null ? linkedDraftPrompt : appendAgentLaunchDraft(linkedDraftPrompt, agentDraft)
+        agent === null
+          ? linkedDraftPrompt
+          : appendAgentLaunchDraft(linkedDraftPrompt, options?.agentDraft)
 
       const {
         startupPlan,
@@ -144,7 +147,8 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         platform: selectedRepoAgentLaunchPlatform,
         shell: selectedRepoStartupShell,
         isRemote: selectedRepoIsRemote,
-        telemetrySource
+        telemetrySource,
+        sessionOptionOverrides: options?.sessionOptions
       })
 
       const startupPolicySettlement = await settleComposerSubmit(
@@ -208,6 +212,7 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
           getActiveRuntimeTarget(selectedRepoSettings).kind !== 'local',
         taskSourceContext,
         linkedWorkItem: submitLinkedWorkItem,
+        linkedPluginTask: options?.linkedPluginTask,
         workspaceRunContext,
         workspaceName,
         nameWasGenerated,

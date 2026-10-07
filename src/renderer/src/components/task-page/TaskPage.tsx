@@ -42,11 +42,19 @@ import { TaskPageSurface } from './Surface'
 import { LoaderCircle } from 'lucide-react'
 import { PluginTaskSourcePage } from './plugin/PluginTaskSourcePage'
 import { useTaskPageSourceView } from './plugin/use-active-plugin-task-source'
+import { useAppStore } from '@/store'
 
 export default function TaskPage(): React.JSX.Element {
   const view = useTaskPageSourceView()
+  const openPluginTaskItem = useAppStore((state) => state.taskPageData.openPluginTaskItem)
   if (view.kind === 'plugin') {
-    return <PluginTaskSourcePage key={view.source.key} source={view.source} />
+    return (
+      <PluginTaskSourcePage
+        key={`${view.source.key}#${openPluginTaskItem?.id ?? ''}`}
+        source={view.source}
+        initialItem={openPluginTaskItem}
+      />
+    )
   }
   if (view.kind === 'pending') {
     return (

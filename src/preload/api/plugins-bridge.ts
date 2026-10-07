@@ -33,6 +33,9 @@ export const pluginsApi = {
       operation: 'list',
       params: args.params
     }),
+  readSettings: (args: { pluginKey: string }) => ipcRenderer.invoke('plugins:readSettings', args),
+  writeSetting: (args: { pluginKey: string; key: string; value: string | boolean | null }) =>
+    ipcRenderer.invoke('plugins:writeSetting', args),
   getTaskSourceItem: (args: { pluginKey: string; sourceId: string; itemId: string }) =>
     ipcRenderer.invoke('plugins:invokeTaskSource', {
       pluginKey: args.pluginKey,

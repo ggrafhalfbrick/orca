@@ -103,7 +103,11 @@ export function PluginDevelopmentSection({
           <Input
             id="plugin-development-path"
             value={pathInput}
-            onChange={(event) => setPathInput(event.target.value)}
+            onChange={(event) => {
+              setPathInput(event.target.value)
+              // Why: a stale "enter a path" error contradicts the path now typed.
+              setError(null)
+            }}
             className="h-8 min-w-0 font-mono text-xs"
             placeholder={translate(
               'auto.components.settings.PluginDevelopmentSection.placeholder',

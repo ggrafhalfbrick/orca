@@ -12,6 +12,10 @@ import type {
   PluginTaskListParamsInput,
   PluginTaskListResult
 } from '../../shared/plugins/plugin-task-source'
+import type {
+  PluginSettingContribution,
+  PluginSettingValue
+} from '../../shared/plugins/plugin-settings-contribution'
 
 /** Panel contribution as surfaced by the main-process plugin service. */
 export type PluginHostPanel = {
@@ -61,6 +65,8 @@ export type PluginHostListEntry = {
   hasWorker: boolean
   /** Absent from hosts that predate plugin task sources. */
   taskSources?: { id: string; title: string; icon?: string }[]
+  /** Absent from hosts that predate plugin settings contributions. */
+  settings?: PluginSettingContribution[]
   vmRecipes?: {
     id: string
     name: string
@@ -173,6 +179,14 @@ export type PluginsApi = {
     sourceId: string
     itemId: string
   }) => Promise<PluginTaskDetail>
+  /** User-set values of a plugin's declared settings (defaults are not filled in). */
+  readSettings: (args: { pluginKey: string }) => Promise<Record<string, PluginSettingValue>>
+  /** Sets one declared setting; null resets it to the plugin's default. */
+  writeSetting: (args: {
+    pluginKey: string
+    key: string
+    value: PluginSettingValue | null
+  }) => Promise<Record<string, PluginSettingValue>>
   /** Relays a sandboxed panel's bridge request to main, which enforces the
    *  plugin's consented capabilities before executing. */
   panelAction: (args: {

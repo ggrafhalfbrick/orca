@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { PluginTaskListResult } from '../../../../../shared/plugins/plugin-task-source'
 import type { ActivePluginTaskSource } from '@/store/plugin-task-sources'
+import {
+  readPluginTaskSourceView,
+  savePluginTaskSourceView
+} from '@/lib/plugin-task-source-view-memory'
 import { pluginTaskErrorMessage } from './plugin-task-error-message'
 
 const SEARCH_DEBOUNCE_MS = 250
 
-// Why: revisiting a source paints its last unfiltered list at once, then refreshes.
-const lastDefaultListBySource = new Map<string, PluginTaskListResult>()
+// Why: revisiting a source paints its last list for the same view at once, then refreshes.
+const lastListBySource = new Map<string, { viewKey: string; result: PluginTaskListResult }>()
+
+function viewKeyOf(query: string, filters: Record<string, string>): string {
+  return JSON.stringify([query, Object.entries(filters).sort(([a], [b]) => a.localeCompare(b))])
+}
 
 export type PluginTaskListState = {
   searchInput: string
@@ -21,13 +29,17 @@ export type PluginTaskListState = {
 
 /** Mount once per source (key the caller on the source) so state never leaks between sources. */
 export function usePluginTaskList(source: ActivePluginTaskSource): PluginTaskListState {
-  const [searchInput, setSearchInput] = useState('')
-  const [query, setQuery] = useState('')
-  const [filters, setFilters] = useState<Record<string, string>>({})
+  const [initialView] = useState(() => readPluginTaskSourceView(source.key))
+  const [searchInput, setSearchInput] = useState(initialView.query)
+  const [query, setQuery] = useState(initialView.query)
+  const [filters, setFilters] = useState<Record<string, string>>(initialView.filters)
   const [refreshNonce, setRefreshNonce] = useState(0)
-  const [result, setResult] = useState<PluginTaskListResult | null>(
-    () => lastDefaultListBySource.get(source.key) ?? null
-  )
+  const [result, setResult] = useState<PluginTaskListResult | null>(() => {
+    const cached = lastListBySource.get(source.key)
+    return cached?.viewKey === viewKeyOf(initialView.query, initialView.filters)
+      ? cached.result
+      : null
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -39,7 +51,8 @@ export function usePluginTaskList(source: ActivePluginTaskSource): PluginTaskLis
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    const isDefaultView = query === '' && Object.keys(filters).length === 0
+    savePluginTaskSourceView(source.key, { query, filters })
+    const viewKey = viewKeyOf(query, filters)
     window.api.plugins
       .listTaskSourceItems({
         pluginKey: source.pluginKey,
@@ -50,9 +63,7 @@ export function usePluginTaskList(source: ActivePluginTaskSource): PluginTaskLis
         if (cancelled) {
           return
         }
-        if (isDefaultView) {
-          lastDefaultListBySource.set(source.key, next)
-        }
+        lastListBySource.set(source.key, { viewKey, result: next })
         setResult(next)
         setError(null)
       })

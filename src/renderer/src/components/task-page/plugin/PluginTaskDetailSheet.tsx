@@ -1,5 +1,5 @@
 import type React from 'react'
-import { ArrowRight, ExternalLink, LoaderCircle, X } from 'lucide-react'
+import { ArrowRight, ExternalLink, LoaderCircle, SquareTerminal, X } from 'lucide-react'
 import { VisuallyHidden } from 'radix-ui'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
@@ -8,6 +8,7 @@ import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
 import type { ActivePluginTaskSource } from '@/store/plugin-task-sources'
 import type { PluginTaskItem } from '../../../../../shared/plugins/plugin-task-source'
+import type { Worktree } from '../../../../../shared/worktree/types'
 import { getPluginTaskStatusTone } from './plugin-task-status-tone'
 import { usePluginTaskDetail } from './use-plugin-task-detail'
 
@@ -17,6 +18,8 @@ export function PluginTaskDetailSheet({
   item,
   open,
   revision,
+  workspaces,
+  onOpenWorkspace,
   onClose,
   onStart
 }: {
@@ -24,9 +27,13 @@ export function PluginTaskDetailSheet({
   item: PluginTaskItem | null
   open: boolean
   revision: number
+  /** Workspaces already started from this item. */
+  workspaces: readonly Worktree[]
+  onOpenWorkspace: (worktreeId: string) => void
   onClose: () => void
   onStart: (item: PluginTaskItem) => void
 }): React.JSX.Element {
+  const firstWorkspace = workspaces[0]
   const { detail, loading, error } = usePluginTaskDetail(source, item?.id ?? null, revision)
   // Why: the list row paints immediately; the fetched detail may carry a fresher item.
   const displayed = detail?.item ?? item
@@ -87,13 +94,28 @@ export function PluginTaskDetailSheet({
                   <ExternalLink />
                 </Button>
               ) : null}
+              {firstWorkspace ? (
+                <Button size="sm" onClick={() => onOpenWorkspace(firstWorkspace.id)}>
+                  <SquareTerminal />
+                  {translate(
+                    'auto.components.TaskPage.pluginTaskOpenWorkspaceAction',
+                    'Open workspace'
+                  )}
+                </Button>
+              ) : null}
               <Button
                 size="sm"
+                variant={firstWorkspace ? 'outline' : 'default'}
                 disabled={!displayed?.start}
                 onClick={() => displayed && onStart(displayed)}
               >
                 <ArrowRight />
-                {translate('auto.components.TaskPage.9497f2787c', 'Start workspace')}
+                {firstWorkspace
+                  ? translate(
+                      'auto.components.TaskPage.pluginTaskStartAnotherShort',
+                      'Start another'
+                    )
+                  : translate('auto.components.TaskPage.9497f2787c', 'Start workspace')}
               </Button>
               <Button
                 variant="ghost"
@@ -105,6 +127,24 @@ export function PluginTaskDetailSheet({
               </Button>
             </div>
           </div>
+          {workspaces.length > 0 ? (
+            <div className="flex flex-none flex-wrap items-center gap-1.5 border-b border-border/50 px-4 py-2 text-xs text-muted-foreground">
+              <span>
+                {translate('auto.components.TaskPage.pluginTaskWorkspacesLabel', 'Workspaces')}
+              </span>
+              {workspaces.map((workspace) => (
+                <button
+                  key={workspace.id}
+                  type="button"
+                  onClick={() => onOpenWorkspace(workspace.id)}
+                  className="inline-flex max-w-[240px] items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground transition hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <SquareTerminal className="size-3 shrink-0 text-muted-foreground" />
+                  <span className="truncate">{workspace.displayName}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
           {displayed && !displayed.start && displayed.startBlockedReason ? (
             <p className="flex-none border-b border-border/50 px-4 py-2 text-xs text-muted-foreground">
               {displayed.startBlockedReason}

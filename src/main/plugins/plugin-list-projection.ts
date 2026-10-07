@@ -15,6 +15,7 @@ import {
   isOfficialPluginIdentity
 } from '../../shared/plugins/plugin-marketplace'
 import { mapWithConcurrency } from '../../shared/map-with-concurrency'
+import type { PluginSettingContribution } from '../../shared/plugins/plugin-settings-contribution'
 
 const PLUGIN_LIST_PROJECTION_CONCURRENCY = 4
 
@@ -66,6 +67,7 @@ export type PluginListEntry = {
   }[]
   hasWorker: boolean
   taskSources: { id: string; title: string; icon?: string }[]
+  settings: PluginSettingContribution[]
   vmRecipes: {
     id: string
     name: string
@@ -116,6 +118,7 @@ export async function buildPluginList(
           commands: [],
           hasWorker: false,
           taskSources: [],
+          settings: [],
           vmRecipes: [],
           restarts: 0
         }
@@ -187,6 +190,7 @@ export async function buildPluginList(
           keybindings: command.keybindings
         })),
         hasWorker: Boolean(plugin.manifest.main),
+        settings: plugin.manifest.contributes.settings,
         taskSources: plugin.manifest.contributes.taskSources.map((source) => ({
           id: source.id,
           title: source.title,

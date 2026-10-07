@@ -17,8 +17,12 @@ import type { PluginTaskListState } from './use-plugin-task-list'
 // Why: Radix Select reserves '' for "no value", so an option meaning "all" travels encoded.
 const EMPTY_OPTION_VALUE = '__plugin-task-filter-empty__'
 
+// Why: a remembered value the source no longer offers would render an empty picker.
 function selectedFilterValue(filter: PluginTaskFilter, selected: string | undefined): string {
-  return selected ?? filter.defaultValue ?? filter.options[0]?.value ?? ''
+  if (selected !== undefined && filter.options.some((option) => option.value === selected)) {
+    return selected
+  }
+  return filter.defaultValue ?? filter.options[0]?.value ?? ''
 }
 
 export function PluginTaskFilters({

@@ -59,6 +59,22 @@ const filterIdSchema = z
   .max(64)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'must be kebab-case')
 
+export const PLUGIN_TASK_LINK_METADATA_LIMIT = 8
+
+export const pluginTaskLinkMetadataSchema = z
+  .record(
+    z
+      .string()
+      .min(1)
+      .max(64)
+      .regex(/^[A-Za-z][A-Za-z0-9_-]*$/, 'must be an identifier'),
+    z.string().min(1).max(4096)
+  )
+  .refine(
+    (value) => Object.keys(value).length <= PLUGIN_TASK_LINK_METADATA_LIMIT,
+    'too many metadata entries'
+  )
+
 export const pluginTaskStartRecipeSchema = z
   .object({
     /** Suggested workspace name; the user can edit it in the composer. */
@@ -68,7 +84,19 @@ export const pluginTaskStartRecipeSchema = z
     /** Branch (Git) or stream (Perforce) the new workspace starts from. */
     baseRef: z.string().min(1).max(512).optional(),
     /** Preselects the Orca project whose folder is this path. */
-    projectPath: z.string().min(1).max(4096).optional()
+    projectPath: z.string().min(1).max(4096).optional(),
+    /** Agent session options for the launch (e.g. Claude's --model/--effort); agents that lack one ignore it. */
+    sessionOptions: z
+      .object({
+        /** Agent id (e.g. `claude`) the options are written for; other agents launch without them. */
+        agent: z.string().min(1).max(64).optional(),
+        model: z.string().min(1).max(128).optional(),
+        effort: z.string().min(1).max(32).optional()
+      })
+      .strict()
+      .optional(),
+    /** Small notes kept with the workspace's link to this item. */
+    linkMetadata: pluginTaskLinkMetadataSchema.optional()
   })
   .strict()
 

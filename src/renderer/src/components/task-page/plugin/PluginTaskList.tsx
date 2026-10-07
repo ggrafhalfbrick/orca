@@ -1,10 +1,11 @@
 import type React from 'react'
-import { ArrowRight, ExternalLink } from 'lucide-react'
+import { ArrowRight, ExternalLink, SquareTerminal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
 import type { PluginTaskItem } from '../../../../../shared/plugins/plugin-task-source'
+import type { Worktree } from '../../../../../shared/worktree/types'
 import { formatRelativeTime } from '../../task-page-source-context'
 import { getPluginTaskStatusTone } from './plugin-task-status-tone'
 
@@ -34,15 +35,62 @@ function PluginTaskStatusBadge({ item }: { item: PluginTaskItem }): React.JSX.El
   )
 }
 
+/** Workspaces already started from this task; opens the first, the tooltip names the rest. */
+export function PluginTaskWorkspaceChip({
+  workspaces,
+  onOpenWorkspace
+}: {
+  workspaces: readonly Worktree[]
+  onOpenWorkspace: (worktreeId: string) => void
+}): React.JSX.Element | null {
+  const first = workspaces[0]
+  if (!first) {
+    return null
+  }
+  const names = workspaces.map((workspace) => workspace.displayName).join(', ')
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onOpenWorkspace(first.id)
+          }}
+          className="inline-flex max-w-[220px] shrink-0 items-center gap-1 rounded-full border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          aria-label={translate(
+            'auto.components.TaskPage.pluginTaskOpenWorkspace',
+            'Open workspace {{value0}}',
+            { value0: first.displayName }
+          )}
+        >
+          <SquareTerminal className="size-3 shrink-0" />
+          <span className="truncate">{first.displayName}</span>
+          {workspaces.length > 1 ? <span>+{workspaces.length - 1}</span> : null}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" sideOffset={6}>
+        {translate('auto.components.TaskPage.pluginTaskWorkspaces', 'Workspaces: {{value0}}', {
+          value0: names
+        })}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 export function PluginTaskStartButton({
   item,
+  hasWorkspaces,
   onStart
 }: {
   item: PluginTaskItem
+  hasWorkspaces: boolean
   onStart: (item: PluginTaskItem) => void
 }): React.JSX.Element {
   const label = item.start
-    ? translate('auto.components.TaskPage.9497f2787c', 'Start workspace')
+    ? hasWorkspaces
+      ? translate('auto.components.TaskPage.pluginTaskStartAnother', 'Start another workspace')
+      : translate('auto.components.TaskPage.9497f2787c', 'Start workspace')
     : (item.startBlockedReason ??
       translate(
         'auto.components.TaskPage.pluginTaskNotStartable',
@@ -77,13 +125,17 @@ export function PluginTaskStartButton({
 function PluginTaskRow({
   item,
   selected,
+  workspaces,
   onOpen,
-  onStart
+  onStart,
+  onOpenWorkspace
 }: {
   item: PluginTaskItem
   selected: boolean
+  workspaces: readonly Worktree[]
   onOpen: (item: PluginTaskItem) => void
   onStart: (item: PluginTaskItem) => void
+  onOpenWorkspace: (worktreeId: string) => void
 }): React.JSX.Element {
   const labels = (item.labels ?? []).slice(0, 3)
   const hiddenLabelCount = (item.labels?.length ?? 0) - labels.length
@@ -112,7 +164,10 @@ function PluginTaskRow({
       )}
     >
       <div className="min-w-0">
-        <h3 className="min-w-0 truncate text-[13px] font-medium text-foreground">{item.title}</h3>
+        <div className="flex min-w-0 items-center gap-2">
+          <h3 className="min-w-0 truncate text-[13px] font-medium text-foreground">{item.title}</h3>
+          <PluginTaskWorkspaceChip workspaces={workspaces} onOpenWorkspace={onOpenWorkspace} />
+        </div>
         <div className="mt-1 flex min-w-0 items-center gap-1.5 md:!hidden">
           <PluginTaskStatusBadge item={item} />
           {item.priority ? (
@@ -160,7 +215,11 @@ function PluginTaskRow({
       </span>
 
       <div className="flex shrink-0 items-center justify-end gap-1 md:opacity-0 md:transition-opacity md:group-hover/row:opacity-100 md:group-focus-within/row:opacity-100">
-        <PluginTaskStartButton item={item} onStart={onStart} />
+        <PluginTaskStartButton
+          item={item}
+          hasWorkspaces={workspaces.length > 0}
+          onStart={onStart}
+        />
         {item.url ? (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -191,13 +250,17 @@ function PluginTaskRow({
 export function PluginTaskList({
   items,
   selectedItemId,
+  workspacesFor,
   onOpen,
-  onStart
+  onStart,
+  onOpenWorkspace
 }: {
   items: readonly PluginTaskItem[]
   selectedItemId: string | null
+  workspacesFor: (itemId: string) => readonly Worktree[]
   onOpen: (item: PluginTaskItem) => void
   onStart: (item: PluginTaskItem) => void
+  onOpenWorkspace: (worktreeId: string) => void
 }): React.JSX.Element {
   return (
     <div className="divide-y divide-border/50">
@@ -206,8 +269,10 @@ export function PluginTaskList({
           key={item.id}
           item={item}
           selected={item.id === selectedItemId}
+          workspaces={workspacesFor(item.id)}
           onOpen={onOpen}
           onStart={onStart}
+          onOpenWorkspace={onOpenWorkspace}
         />
       ))}
     </div>

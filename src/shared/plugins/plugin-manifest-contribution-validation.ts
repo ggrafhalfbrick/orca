@@ -16,6 +16,7 @@ type ContributionValidationManifest = {
     vmRecipes: PathContribution[]
     agents: PathContribution[]
     taskSources: IdentifiedContribution[]
+    settings: { key: string }[]
   }
   capabilities: { kind: string }[]
 }
@@ -140,6 +141,27 @@ export function validatePluginManifestContributions(
       code: 'custom',
       path: ['capabilities'],
       message: 'events:subscribe capability required when contributes.events is non-empty'
+    })
+  }
+  const settingKeys = new Set<string>()
+  for (const [index, setting] of manifest.contributes.settings.entries()) {
+    if (settingKeys.has(setting.key)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['contributes', 'settings', index],
+        message: `duplicate settings key: ${setting.key}`
+      })
+    }
+    settingKeys.add(setting.key)
+  }
+  if (
+    manifest.contributes.settings.length > 0 &&
+    !manifest.capabilities.some((capability) => capability.kind === 'settings:own')
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['capabilities'],
+      message: 'settings:own capability required when contributes.settings is non-empty'
     })
   }
   if (manifest.contributes.taskSources.length > 0) {

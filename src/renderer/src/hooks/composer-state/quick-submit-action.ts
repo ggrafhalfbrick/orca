@@ -146,7 +146,7 @@ export function useQuickSubmitAction(input: QuickSubmitActionInput) {
           workspaceRunContext,
           repoId,
           selectedRepo,
-          options?.agentDraft
+          options
         )
       } catch (error) {
         if (isSubmissionCancelled()) {

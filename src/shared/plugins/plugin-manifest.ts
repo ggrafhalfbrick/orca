@@ -17,6 +17,10 @@ import {
 } from './plugin-manifest-fields'
 import { validatePluginManifestContributions } from './plugin-manifest-contribution-validation'
 import { PLUGIN_TASK_SOURCE_LIMIT, pluginTaskSourceContributionSchema } from './plugin-task-source'
+import {
+  PLUGIN_SETTING_LIMIT,
+  pluginSettingContributionSchema
+} from './plugin-settings-contribution'
 
 /**
  * Plugin manifest v1 (`orca-plugin.json` at the plugin root). The
@@ -119,7 +123,8 @@ export const pluginManifestSchema = z
         taskSources: z
           .array(pluginTaskSourceContributionSchema)
           .max(PLUGIN_TASK_SOURCE_LIMIT)
-          .default([])
+          .default([]),
+        settings: z.array(pluginSettingContributionSchema).max(PLUGIN_SETTING_LIMIT).default([])
       })
       .strict()
       .default(() => ({
@@ -130,7 +135,8 @@ export const pluginManifestSchema = z
         keybindings: [],
         vmRecipes: [],
         agents: [],
-        taskSources: []
+        taskSources: [],
+        settings: []
       })),
     capabilities: z.array(pluginCapabilitySchema).max(32).default([])
   })
