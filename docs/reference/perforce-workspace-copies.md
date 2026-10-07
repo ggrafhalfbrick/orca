@@ -16,6 +16,14 @@ Git worktree on a branch of its own.
 - A copy's own stream is a sparse stream (server 2024.1+). On older servers pick **Work directly on**
   in Create from.
 
+The requirement is the host's, not the desktop's: the readiness check runs where the workspace is, so
+a Mac connected to a Windows 11 SSH host makes copies there. Everywhere else (macOS, Linux, older
+Windows, a drive that does not block-clone) Perforce source control works as usual and a new
+workspace shares the project folder. The UI says so before anyone tries: the Create workspace option
+replaces its stream picker with the requirement when the host cannot make copies, and Manage Perforce
+copies and Settings › Perforce › Workspace Copies state it with a **Set up a Dev Drive** link
+(`PerforceCopyRequirement`).
+
 ## Perforce projects
 
 A Perforce project is a folder project marked `vcs: 'perforce'` (`isPerforceRepo`). Orca marks it the
@@ -37,7 +45,7 @@ Progress shows in the pending workspace row; a toast reports the disk the copy u
 Unity binding line. The sidebar card shows the copy's stream where a Git card shows its branch.
 
 The project menu (`…`) has **Manage Perforce copies…**: every copy of the workspace, including ones
-made with the p4-worktree tool and leftovers (a folder whose client is gone, a client whose folder is
+made outside Orca in the same layout and leftovers (a folder whose client is gone, a client whose folder is
 gone), each with Delete.
 
 Deleting a copy, from the sidebar, the context menu or the manage dialog, always opens the Perforce
@@ -64,7 +72,7 @@ Settings › Perforce › Workspace Copies: minimum free space (default 10 GB), 
 
 ## How a copy is made
 
-`createWorkspaceCopy` (`src/shared/perforce/workspace-copy/`), a port of the p4-worktree tool:
+`createWorkspaceCopy` (`src/shared/perforce/workspace-copy/`):
 
 1. **Check.** Windows build, the P4CONFIG binding, a stream client, `<root>.wt` not a junction, free
    space, and a **block-clone probe**: copy a 64 MB file next to the workspace with robocopy and check
@@ -102,11 +110,12 @@ folder is deleted in the background; a leftover `.removing-*` folder is retried 
 Before that, main stops file watchers and Orca terminals in the copy. It refuses a client whose Root
 is not the expected copy folder, so it can never delete anything else.
 
-## Interop with the p4-worktree tool
+## Copies made outside Orca
 
-Same folder layout, client and stream names, and marker file (`<root>.wt\<name>.p4-worktree.json`,
-schema 1, `createdBy: "orca"`). Copies made by the tool show up in Orca (the sidebar syncs once per
-session and from Manage), and the tool's `list` and `remove` work on Orca's copies.
+The layout and the client and stream names are a contract, and each copy has a marker file beside it
+(`<root>.wt\<name>.p4-worktree.json`, schema 1, `createdBy: "orca"`). Copies a script makes the same
+way show up in Orca (the sidebar syncs once per session and from Manage), and such a script can find,
+list and remove the ones Orca makes.
 
 ## Code map
 

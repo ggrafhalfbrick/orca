@@ -2,9 +2,11 @@ import { useEffect, useId, useState } from 'react'
 import { LoaderCircle, TriangleAlert } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
+import { isCopyPlatformUnsupported } from '../../../../shared/perforce/workspace-copy/workspace-copy-platform'
 import type { WorkspaceCopyReadiness } from '../../../../shared/perforce/workspace-copy/workspace-copy-types'
 import { isPerforceRepo } from '../../../../shared/repo-kind'
 import { usePerforceCopyComposerChoiceStore } from './perforce-copy-composer-choice'
+import { PerforceCopyRequirement } from './PerforceCopyRequirement'
 import { PerforceStreamPicker } from './PerforceStreamPicker'
 
 function gb(bytes: number): string {
@@ -72,6 +74,8 @@ export function PerforceCopyComposerOption({ repoId }: { repoId: string }) {
   const choice = usePerforceCopyComposerChoiceStore((s) => s.byRepo[repoId])
   const setChoice = usePerforceCopyComposerChoiceStore((s) => s.setChoice)
   const [readiness, setReadiness] = useState<WorkspaceCopyReadiness | null>(null)
+  // Only an answer from the host says it cannot make copies; a failed check is shown as an error.
+  const [unsupported, setUnsupported] = useState<{ windows: boolean } | null>(null)
   const labelId = useId()
 
   useEffect(() => {
@@ -80,6 +84,7 @@ export function PerforceCopyComposerOption({ repoId }: { repoId: string }) {
     }
     let cancelled = false
     setReadiness(null)
+    setUnsupported(null)
     void window.api.perforce.copyReadiness({ repoId }).then((result) => {
       if (cancelled) {
         return
@@ -97,6 +102,11 @@ export function PerforceCopyComposerOption({ repoId }: { repoId: string }) {
             blockCloning: null
           }
       setReadiness(value)
+      setUnsupported(
+        result.ok && isCopyPlatformUnsupported(result.value)
+          ? { windows: result.value.windowsBuild !== null }
+          : null
+      )
       setChoice(repoId, { ready: value.ready })
     })
     return () => {
@@ -106,6 +116,10 @@ export function PerforceCopyComposerOption({ repoId }: { repoId: string }) {
 
   if (!isPerforce) {
     return null
+  }
+  if (unsupported) {
+    // No copy can be made here, so there is no stream to pick either.
+    return <PerforceCopyRequirement unavailableHere showSetupLink={unsupported.windows} />
   }
   return (
     <div className="min-w-0 space-y-1.5">

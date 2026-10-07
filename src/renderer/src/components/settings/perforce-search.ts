@@ -179,9 +179,22 @@ export const getPerforceSettingsCatalog = createLocalizedCatalog((): PerforceCat
   ),
   entry(
     'workspace-copies',
-    'Workspace Copies',
-    'Copy-on-write copies of a stream workspace on a Windows Dev Drive, made by Create workspace in a Perforce project: what to leave out and how much free space to keep.',
-    ['perforce', 'copy', 'worktree', 'dev drive', 'refs', 'unity', 'clone', 'workspace']
+    translate('perforce.settings.workspace-copies.title', 'Workspace Copies'),
+    translate(
+      'perforce.settings.workspace-copies.description',
+      'Copies of a stream workspace that Create workspace makes in a Perforce project; they need Windows 11 24H2 or later with the workspace on a Dev Drive. What a copy leaves out and how much free space to keep.'
+    ),
+    [
+      'perforce',
+      'copy',
+      'worktree',
+      'dev drive',
+      'refs',
+      'windows 11',
+      'unity',
+      'clone',
+      'workspace'
+    ]
   )
 ])
 

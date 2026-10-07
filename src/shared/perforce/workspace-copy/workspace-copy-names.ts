@@ -3,7 +3,7 @@ import { basename, dirname, join } from 'node:path'
 import { WorkspaceCopyError } from './workspace-copy-errors'
 import { COPY_NAME_PATTERN } from './workspace-copy-name-rules'
 
-// Same layout and names as the p4-worktree tool, so copies made by either show up in both.
+// A fixed layout and names, so copies made outside Orca in the same way and Orca's own find each other.
 const COPIES_DIR_SUFFIX = '.wt'
 const MARKER_SUFFIX = '.p4-worktree.json'
 

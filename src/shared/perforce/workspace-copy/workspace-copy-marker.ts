@@ -4,8 +4,8 @@ import type { CopySource } from './workspace-copy-source'
 import type { WorkspaceCopyMode } from './workspace-copy-types'
 
 /**
- * The p4-worktree tool's marker (schema 1), written beside the copy and outside its client root so
- * no reconcile can add it. Keeping the format lets that tool and its agent bootstrap read Orca's copies.
+ * The copy's marker (schema 1), written beside the copy and outside its client root so no reconcile
+ * can add it. Scripts that make copies in the same layout read and write the same format.
  */
 export type WorkspaceCopyMarker = {
   schema: 1

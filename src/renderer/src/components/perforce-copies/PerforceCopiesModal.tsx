@@ -16,6 +16,7 @@ import type {
   WorkspaceCopyListEntry,
   WorkspaceCopyListResult
 } from '../../../../shared/perforce/workspace-copy/workspace-copy-types'
+import { PerforceCopyRequirement } from './PerforceCopyRequirement'
 
 /** The copy's state in words; null is ready, anything else is something Delete cleans up. */
 export function copyProblem(copy: WorkspaceCopyListEntry, serverChecked: boolean): string | null {
@@ -84,15 +85,16 @@ export default function PerforceCopiesModal() {
             {listing
               ? translate(
                   'perforce.copies.listDescription',
-                  'Copies of {{client}} in {{folder}}, including any made with the p4-worktree tool.',
+                  'Copies of {{client}} in {{folder}}, including any made outside Orca in the same layout.',
                   { client: listing.source.client, folder: listing.copiesDir }
                 )
               : translate(
                   'perforce.copies.listDescriptionPending',
-                  'Copies of this workspace, including any made with the p4-worktree tool.'
+                  'Copies of this workspace, including any made outside Orca in the same layout.'
                 )}
           </DialogDescription>
         </DialogHeader>
+        <PerforceCopyRequirement />
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         {listing && !listing.serverChecked ? (

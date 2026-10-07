@@ -6,7 +6,7 @@ const synced = new Set<string>()
 
 /**
  * Once per session per folder project: marks one inside a Perforce workspace as a Perforce project,
- * then lists its copies so ones made outside Orca (the p4-worktree tool) join the sidebar and deleted
+ * then lists its copies so ones made outside Orca in the same layout join the sidebar and deleted
  * ones leave it. Main notifies the sidebar on change.
  */
 export function usePerforceCopySync(): void {

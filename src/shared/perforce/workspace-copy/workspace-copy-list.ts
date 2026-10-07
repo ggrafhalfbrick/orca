@@ -34,7 +34,7 @@ function sweepLeftovers(host: WorkspaceCopyHost, copiesDir: string, entries: str
 
 /**
  * Copies of the workspace at `dir`: the markers and folders beside it, joined with the server's
- * `<client>_wt_*` clients. A copy made by the p4-worktree tool shows up the same way.
+ * `<client>_wt_*` clients. A copy a script made in the same layout shows up the same way.
  */
 export async function listWorkspaceCopies(
   host: WorkspaceCopyHost,

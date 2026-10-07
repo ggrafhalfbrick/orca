@@ -11,9 +11,9 @@ import {
   resolveCopySource,
   type CopySource
 } from './workspace-copy-source'
+import { MIN_BLOCK_CLONE_BUILD } from './workspace-copy-platform'
 import type { BlockCloningState, WorkspaceCopyReadiness } from './workspace-copy-types'
 
-export const MIN_BLOCK_CLONE_BUILD = 26100
 const PROBE_BYTES = 64 * 1024 * 1024
 const PROBE_CHUNK_BYTES = 1024 * 1024
 const verifiedVolumes = new Set<string>()
@@ -106,13 +106,13 @@ export async function checkCopyReadiness(
   }
   if (build === null) {
     result.problems.push(
-      'Perforce workspace copies need Windows 11 24H2 or later with a Dev Drive; this host is not Windows.'
+      'Perforce copies need Windows 11 24H2 or later with the workspace on a Dev Drive, and the computer this workspace is on does not run Windows.'
     )
     return result
   }
   if (build < MIN_BLOCK_CLONE_BUILD) {
     result.problems.push(
-      `Windows build ${build} is older than 24H2 (${MIN_BLOCK_CLONE_BUILD}); copies there do not block-clone, so each would duplicate the whole workspace.`
+      `Perforce copies need Windows 11 24H2 (build ${MIN_BLOCK_CLONE_BUILD}) or later. This computer runs build ${build}, which cannot block-clone files, so each copy would duplicate the whole workspace.`
     )
   }
   try {

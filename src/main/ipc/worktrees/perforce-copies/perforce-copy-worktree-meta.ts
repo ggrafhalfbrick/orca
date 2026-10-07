@@ -49,7 +49,7 @@ function createdAtOf(copy: WorkspaceCopyListEntry): number {
 }
 
 /**
- * Makes the sidebar match the copies on disk: adopts copies made outside Orca (the p4-worktree tool)
+ * Makes the sidebar match the copies on disk: adopts copies made outside Orca in the same layout
  * and forgets ones whose folder is gone. A folder whose client the server no longer has stays out of
  * the sidebar; Manage Perforce copies lists it for cleanup. Returns whether anything changed.
  */

@@ -3,7 +3,13 @@ import {
   DEFAULT_PERFORCE_SETTINGS,
   type PerforceSettings
 } from '../../../../shared/perforce/perforce-settings'
-import { NumberField, SettingsRow, SettingsSwitchRow } from './SettingsFormControls'
+import { PerforceCopyRequirement } from '../perforce-copies/PerforceCopyRequirement'
+import {
+  NumberField,
+  SettingsRow,
+  SettingsSubsectionHeader,
+  SettingsSwitchRow
+} from './SettingsFormControls'
 import { TemplateField } from './perforce-settings-inputs'
 
 /** Settings > Perforce > Workspace Copies: what a copy leaves out and the free-space floor. */
@@ -16,6 +22,12 @@ export function PerforceCopySettingsFields({
 }): React.JSX.Element {
   return (
     <div>
+      <div className="space-y-2 pt-4 pb-2">
+        <SettingsSubsectionHeader
+          title={translate('perforce.settings.workspace-copies.title', 'Workspace Copies')}
+        />
+        <PerforceCopyRequirement />
+      </div>
       <NumberField
         label={translate('perforce.copies.minFreeSpace', 'Minimum free space')}
         description={translate(
@@ -44,7 +56,7 @@ export function PerforceCopySettingsFields({
         label={translate('perforce.copies.excludedFolders', 'Folders to leave out')}
         description={translate(
           'perforce.copies.excludedFoldersDescription',
-          'Workspace-relative folders a copy does not take, one per line (for example tool state such as .jarvis). Files Perforce tracks in them come back from the depot.'
+          'Workspace-relative folders a copy does not take, one per line (for example a tool’s local state folder). Files Perforce tracks in them come back from the depot.'
         )}
         control={
           <TemplateField
@@ -53,7 +65,7 @@ export function PerforceCopySettingsFields({
               'perforce.copies.excludedFoldersAria',
               'Folders to leave out of copies'
             )}
-            placeholder={translate('perforce.copies.excludedFoldersPlaceholder', '.jarvis')}
+            placeholder={translate('perforce.copies.excludedFoldersPlaceholder', '.cache')}
             onCommit={(copyExcludedFolders) => update({ copyExcludedFolders })}
           />
         }
