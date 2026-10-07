@@ -3,6 +3,7 @@ import type {
   AgentSessionBackgroundTaskState
 } from './agent-session-background-task-wire'
 import type { AgentSessionRewindReason, AgentSessionRewindSupport } from './agent-session-rewind'
+import type { AgentSessionPermissionModeReport } from './agent-session-permission-mode'
 import type { AgentSessionWireRefusal } from './agent-session-wire-refusals'
 import type { AgentChildWorkView } from './agent-status-child-work-view'
 import type {
@@ -472,10 +473,8 @@ export type AgentSessionOptionsResult = {
   models: AgentSessionModelOption[]
   /** Session/account/transport support. Absent means unknown, never unsupported. */
   fastModeSupport?: AgentSessionFastModeSupport
-  /** The mode tools run under and the modes the session can switch to; session-wide, not per
-   *  model. Absent where the session cannot switch, so no picker is offered. Strings, not the
-   *  union: a newer host may name a mode this client lacks. */
-  permissionMode?: { current: string; modes: readonly string[]; confirmed: boolean }
+  /** Absent where the session's provider offers no permission modes, so no picker shows. */
+  permissionMode?: AgentSessionPermissionModeReport
   current: {
     model: string
     effort?: string

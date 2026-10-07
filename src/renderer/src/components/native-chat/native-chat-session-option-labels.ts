@@ -4,6 +4,7 @@ import type {
   SessionOptionSelectChoice
 } from '../../../../shared/native-chat-session-options'
 import { translate } from '@/i18n/i18n'
+import { AGENT_SESSION_PERMISSION_MODE_KEY } from '../../../../shared/agent-session-permission-mode'
 
 export function nativeChatSessionOptionLabel(descriptor: SessionOptionDescriptor): string {
   switch (descriptor.id) {
@@ -15,84 +16,21 @@ export function nativeChatSessionOptionLabel(descriptor: SessionOptionDescriptor
       return translate('components.native-chat.composer.fastMode', 'Fast mode')
     case 'thinking':
       return translate('components.native-chat.composer.thinking', 'Thinking')
-    case 'permissionMode':
+    case AGENT_SESSION_PERMISSION_MODE_KEY:
       return translate('components.native-chat.composer.permissionMode', 'Permissions')
     default:
       return descriptor.label
   }
 }
 
-function permissionModeChoiceLabel(choice: SessionOptionSelectChoice): string {
-  switch (choice.value) {
-    case 'default':
-      return translate(
-        'components.native-chat.composer.permissionModeValue.default',
-        'Ask permissions'
-      )
-    case 'acceptEdits':
-      return translate(
-        'components.native-chat.composer.permissionModeValue.acceptEdits',
-        'Accept edits'
-      )
-    case 'plan':
-      return translate('components.native-chat.composer.permissionModeValue.plan', 'Plan mode')
-    case 'auto':
-      return translate('components.native-chat.composer.permissionModeValue.auto', 'Auto mode')
-    case 'bypassPermissions':
-      return translate(
-        'components.native-chat.composer.permissionModeValue.bypassPermissions',
-        'Bypass permissions'
-      )
-    default:
-      return choice.label
-  }
-}
-
-export function nativeChatSessionChoiceDescription(
-  choice: SessionOptionSelectChoice,
-  optionId: string
-): string | undefined {
-  if (optionId !== 'permissionMode') {
-    return choice.description
-  }
-  switch (choice.value) {
-    case 'default':
-      return translate(
-        'components.native-chat.composer.permissionModeDescription.default',
-        'Ask before edits and commands'
-      )
-    case 'acceptEdits':
-      return translate(
-        'components.native-chat.composer.permissionModeDescription.acceptEdits',
-        'Edit files without asking; ask before commands'
-      )
-    case 'plan':
-      return translate(
-        'components.native-chat.composer.permissionModeDescription.plan',
-        'Explore and propose a plan without changing anything'
-      )
-    case 'auto':
-      return translate(
-        'components.native-chat.composer.permissionModeDescription.auto',
-        'A safety check approves or blocks each action instead of asking'
-      )
-    case 'bypassPermissions':
-      return translate(
-        'components.native-chat.composer.permissionModeDescription.bypassPermissions',
-        'Run everything without asking'
-      )
-    default:
-      return choice.description
-  }
-}
-
-/** `optionId` scopes values another option could share, such as `default`. */
+/** `optionId` keeps a provider's own permission modes, whose ids may repeat an effort's, out of
+ *  the effort translations. */
 export function nativeChatSessionChoiceLabel(
   choice: SessionOptionSelectChoice,
   optionId?: string
 ): string {
-  if (optionId === 'permissionMode') {
-    return permissionModeChoiceLabel(choice)
+  if (optionId === AGENT_SESSION_PERMISSION_MODE_KEY) {
+    return choice.label
   }
   switch (choice.value) {
     case 'minimal':

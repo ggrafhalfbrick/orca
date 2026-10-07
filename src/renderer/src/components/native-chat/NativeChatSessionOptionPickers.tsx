@@ -28,12 +28,12 @@ import {
   nativeChatOptionsPillLabel,
   nativeChatOptionsPillTitle,
   nativeChatPermissionModePillLabel,
-  nativeChatSessionChoiceDescription,
   nativeChatSessionChoiceLabel,
   nativeChatSessionOptionDisabledReason,
   nativeChatSessionOptionLabel
 } from './native-chat-session-option-labels'
 import type { NativeChatOptionPickerRequest } from './native-chat-composer-types'
+import { AGENT_SESSION_PERMISSION_MODE_KEY } from '../../../../shared/agent-session-permission-mode'
 import { agentSessionThrownFailure } from '../../../../shared/agent-session-write-failure'
 import { RuntimeRpcCallError } from '@/runtime/runtime-rpc-result'
 import { agentSessionWriteFailureText } from './agent-session-write-notice-text'
@@ -179,7 +179,7 @@ function DescriptorMenuRows(props: {
         >
           <NativeChatSessionOptionChoiceBody
             label={nativeChatSessionChoiceLabel(choice, descriptor.id)}
-            description={nativeChatSessionChoiceDescription(choice, descriptor.id)}
+            description={choice.description}
           />
         </DropdownMenuRadioItem>
       ))}
@@ -221,7 +221,9 @@ function NativeChatSessionOptionPickersInner({
   const [pendingId, setPendingId] = useState<string | null>(null)
   const model = snapshot.find((descriptor) => descriptor.category === 'model')
   // Its own pill: which mode tools run under should be readable at a glance.
-  const permission = snapshot.find((descriptor) => descriptor.id === 'permissionMode')
+  const permission = snapshot.find(
+    (descriptor) => descriptor.id === AGENT_SESSION_PERMISSION_MODE_KEY
+  )
   const options = sortNativeChatSessionOptions(snapshot).filter(
     (descriptor) => descriptor !== permission
   )

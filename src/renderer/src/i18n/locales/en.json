@@ -18018,20 +18018,6 @@
           "ultra": "Ultra"
         },
         "permissionMode": "Permissions",
-        "permissionModeValue": {
-          "default": "Ask permissions",
-          "acceptEdits": "Accept edits",
-          "plan": "Plan mode",
-          "auto": "Auto mode",
-          "bypassPermissions": "Bypass permissions"
-        },
-        "permissionModeDescription": {
-          "default": "Ask before edits and commands",
-          "acceptEdits": "Edit files without asking; ask before commands",
-          "plan": "Explore and propose a plan without changing anything",
-          "auto": "A safety check approves or blocks each action instead of asking",
-          "bypassPermissions": "Run everything without asking"
-        },
         "pendingAttachmentLimit": "Too many attachments are waiting. Finish composing before attaching more.",
         "viewAttachment": "View image",
         "imagePreview": "Full-size image preview",

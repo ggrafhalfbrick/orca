@@ -11,7 +11,7 @@ import {
   readClaudeSettingsFastMode
 } from './claude-structured-session-options'
 import type { ClaudeSession } from './claude-structured-session-state'
-import { claudeStructuredPermissionModeChoices } from './claude-structured-permission-mode'
+import { claudeStructuredEnterablePermissionMode } from './claude-structured-permission-mode'
 import { decodeStructuredAgentSessionOptionValue } from '../../shared/structured-agent-session-option-codec'
 
 const OPTION_ORDER = ['model', 'effort', 'fastMode', 'permissionMode'] as const
@@ -75,7 +75,7 @@ export async function setClaudeStructuredOption(
   // The CLI refuses bypass to a child not launched with it; refused here, the pick is never saved.
   const permissionMode =
     input.key === 'permissionMode'
-      ? claudeStructuredPermissionModeChoices(session).find((mode) => mode === input.value)
+      ? claudeStructuredEnterablePermissionMode(session, input.value)
       : undefined
   if (input.key === 'permissionMode' && !permissionMode) {
     throw new AgentSessionOptionRejectedError(

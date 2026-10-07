@@ -75,8 +75,11 @@ function identity(providerSessionId: string): AgentSessionJournalIdentity {
 const setMode = (adapter: ClaudeStructuredSessionAdapter, value: string) =>
   adapter.setOption({ sessionId: SESSION_ID, key: 'permissionMode', value, fence: 1 })
 
-const readMode = async (adapter: ClaudeStructuredSessionAdapter) =>
-  (await adapter.readOptions({ sessionId: SESSION_ID, fence: 1 })).permissionMode
+/** The session's report with its modes as ids. */
+const readMode = async (adapter: ClaudeStructuredSessionAdapter) => {
+  const report = (await adapter.readOptions({ sessionId: SESSION_ID, fence: 1 })).permissionMode
+  return report && { ...report, modes: report.modes.map((mode) => mode.id) }
+}
 
 describe.skipIf(!realClaudeAvailable)(suiteTitle, () => {
   // The init frame is the only report of the mode a turn actually ran under; a pick the CLI took

@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AgentSessionOptionsResult } from './agent-session-wire'
-import {
-  CLAUDE_SESSION_OPTION_CATALOG,
-  CODEX_SESSION_OPTION_CATALOG
-} from './agent-session-option-catalog-claude-codex'
+import { AGENT_SESSION_PERMISSION_MODE_KEY } from './agent-session-permission-mode'
+import { CODEX_SESSION_OPTION_CATALOG } from './agent-session-option-catalog-claude-codex'
 import { buildNativeChatSessionOptionSnapshot } from './native-chat-session-option-snapshot'
 import { createNativeChatSessionOptionRecord } from './native-chat-session-option-state'
 import {
@@ -219,69 +217,85 @@ describe('structured agent session options', () => {
 })
 
 describe('structured agent session permission mode', () => {
-  const claudeResult = (
+  // Deliberately not Claude's vocabulary: the client knows no provider's modes.
+  const SANDBOX_MODES = [
+    { id: 'read-only', label: 'Read only', description: 'Look, never touch' },
+    { id: 'workspace', label: 'Workspace', description: 'Edit inside the workspace' },
+    { id: 'full', label: 'Full access' }
+  ]
+  const reported = (
     permissionMode?: AgentSessionOptionsResult['permissionMode']
   ): AgentSessionOptionsResult => ({
-    models: [{ id: 'opus', label: 'Opus', isDefault: true, efforts: [] }],
+    models: [{ id: 'model-a', label: 'Model A', isDefault: true, efforts: [] }],
     ...(permissionMode ? { permissionMode } : {}),
-    current: { model: 'opus' }
+    current: { model: 'model-a' }
   })
-  const permissionDescriptor = (
-    state: ReturnType<typeof createStructuredAgentSessionOptionState>
-  ) =>
+  const apply = (result: AgentSessionOptionsResult) =>
+    applyStructuredAgentSessionOptions(
+      createStructuredAgentSessionOptionState('codex'),
+      CODEX_SESSION_OPTION_CATALOG,
+      result
+    )
+  const permissionDescriptor = (state: ReturnType<typeof apply>) =>
     structuredAgentSessionOptionSnapshot(state).find(
-      (descriptor) => descriptor.id === 'permissionMode'
+      (descriptor) => descriptor.id === AGENT_SESSION_PERMISSION_MODE_KEY
     )
 
-  it('offers the modes a live session reports, dropping ones this client does not know', () => {
-    const state = applyStructuredAgentSessionOptions(
-      createStructuredAgentSessionOptionState('claude'),
-      CLAUDE_SESSION_OPTION_CATALOG,
-      claudeResult({
-        modes: ['default', 'acceptEdits', 'plan', 'auto', 'dontAsk'],
-        current: 'acceptEdits',
-        confirmed: true
-      })
-    )
+  it("renders any provider's modes in its own words", () => {
+    const state = apply(reported({ current: 'workspace', modes: SANDBOX_MODES, confirmed: true }))
 
     expect(permissionDescriptor(state)).toMatchObject({
       category: 'mode',
       settable: true,
       valueSource: 'reported',
-      kind: { type: 'select', currentValue: 'acceptEdits' }
+      kind: {
+        type: 'select',
+        currentValue: 'workspace',
+        choices: [
+          { value: 'read-only', label: 'Read only', description: 'Look, never touch' },
+          { value: 'workspace', label: 'Workspace', description: 'Edit inside the workspace' },
+          { value: 'full', label: 'Full access' }
+        ]
+      }
     })
-    const descriptor = permissionDescriptor(state)
     expect(
-      descriptor?.kind.type === 'select' && descriptor.kind.choices.map((choice) => choice.value)
-    ).toEqual(['default', 'acceptEdits', 'plan', 'auto'])
-    expect(canSetStructuredAgentSessionOption(state, 'permissionMode', 'plan')).toBe(true)
-    expect(canSetStructuredAgentSessionOption(state, 'permissionMode', 'bypassPermissions')).toBe(
-      false
-    )
+      canSetStructuredAgentSessionOption(state, AGENT_SESSION_PERMISSION_MODE_KEY, 'full')
+    ).toBe(true)
+    expect(
+      canSetStructuredAgentSessionOption(state, AGENT_SESSION_PERMISSION_MODE_KEY, 'bypass')
+    ).toBe(false)
   })
 
-  it('offers nothing from a host that reports no modes', () => {
-    const state = applyStructuredAgentSessionOptions(
-      createStructuredAgentSessionOptionState('claude'),
-      CLAUDE_SESSION_OPTION_CATALOG,
-      claudeResult()
+  it('drops a mode a newer host describes in a shape this client cannot render', () => {
+    const malformed: unknown[] = [{ id: 'nameless' }, 'full', null, ...SANDBOX_MODES]
+    const state = apply(
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: models a host whose report this client's types do not describe.
+      reported({ current: 'full', modes: malformed as typeof SANDBOX_MODES, confirmed: false })
     )
+    const descriptor = permissionDescriptor(state)
 
-    expect(permissionDescriptor(state)).toBeUndefined()
+    expect(
+      descriptor?.kind.type === 'select' && descriptor.kind.choices.map((choice) => choice.value)
+    ).toEqual(['read-only', 'workspace', 'full'])
+  })
+
+  it('offers nothing from a host or provider that reports no modes', () => {
+    expect(permissionDescriptor(apply(reported()))).toBeUndefined()
+    expect(
+      permissionDescriptor(apply(reported({ current: 'x', modes: [], confirmed: false })))
+    ).toBeUndefined()
   })
 
   it('shows a committed pick before the next read confirms it', () => {
-    const state = applyStructuredAgentSessionOptions(
-      createStructuredAgentSessionOptionState('claude'),
-      CLAUDE_SESSION_OPTION_CATALOG,
-      claudeResult({ modes: ['default', 'plan'], current: 'default', confirmed: false })
-    )
+    const state = apply(reported({ current: 'read-only', modes: SANDBOX_MODES, confirmed: false }))
 
-    const committed = commitStructuredAgentSessionOptionValues(state, { permissionMode: 'plan' })
+    const committed = commitStructuredAgentSessionOptionValues(state, {
+      [AGENT_SESSION_PERMISSION_MODE_KEY]: 'workspace'
+    })
 
     expect(permissionDescriptor(committed)).toMatchObject({
       valueSource: 'dispatched',
-      kind: { currentValue: 'plan' }
+      kind: { currentValue: 'workspace' }
     })
   })
 })

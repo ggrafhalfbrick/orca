@@ -63,7 +63,14 @@ describe('options at rest', () => {
   // A chat is at rest after every app start, so the pill must not wait for its child.
   it("offers the agent's permission mode for the next start", async () => {
     const record = { ...restingRecord(), provider: 'claude', options: { permissionMode: 'plan' } }
-    const answer = { current: 'plan', modes: ['default', 'plan', 'auto'], confirmed: false }
+    const answer = {
+      current: 'plan',
+      modes: [
+        { id: 'default', label: 'Ask' },
+        { id: 'plan', label: 'Plan' }
+      ],
+      confirmed: false
+    }
     const readRestingPermissionMode = vi.fn(async () => answer)
     const agents = new StructuredAgentRegistry([
       {

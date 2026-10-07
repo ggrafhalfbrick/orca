@@ -295,10 +295,7 @@ export function commitStructuredAgentSessionOptionValues(
       next = commitStructuredAgentSessionOption(next, id, value)
     }
   }
-  const permissionMode = committedStructuredAgentSessionPermissionMode(
-    next.permissionMode,
-    values.permissionMode
-  )
+  const permissionMode = committedStructuredAgentSessionPermissionMode(next.permissionMode, values)
   return permissionMode ? { ...next, permissionMode } : next
 }
 

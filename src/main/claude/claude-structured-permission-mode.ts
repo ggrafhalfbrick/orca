@@ -1,11 +1,15 @@
 import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import { resolvedTuiAgentArgsBypassPermissions } from '../../shared/tui-agent-launch-defaults'
-import {
-  AGENT_SESSION_PERMISSION_MODES,
-  type AgentSessionPermissionMode
+import type {
+  AgentSessionPermissionModeOption,
+  AgentSessionPermissionModeReport
 } from '../../shared/agent-session-permission-mode'
-import type { AgentSessionOptionsResult } from '../../shared/agent-session-wire'
+import {
+  enterableStructuredAgentPermissionModes,
+  structuredAgentPermissionModeReport,
+  type StructuredAgentPermissionMode
+} from '../native-chat/agent-session-wire/structured-agent-permission-modes'
 import type { ClaudeSession } from './claude-structured-session-state'
 
 /**
@@ -43,16 +47,74 @@ export function claudeStructuredLaunchPermissionMode(
   return argumentsMode ?? setting
 }
 
+/** Claude's modes as the chat offers them; the SDK's `dontAsk` is reported but not offered. */
+const CLAUDE_STRUCTURED_PERMISSION_MODES: readonly (StructuredAgentPermissionMode & {
+  id: PermissionMode
+})[] = [
+  { id: 'default', label: 'Ask permissions', description: 'Ask before edits and commands' },
+  {
+    id: 'acceptEdits',
+    label: 'Accept edits',
+    description: 'Edit files without asking; ask before commands'
+  },
+  {
+    id: 'plan',
+    label: 'Plan mode',
+    description: 'Explore and propose a plan without changing anything'
+  },
+  {
+    id: 'auto',
+    label: 'Auto mode',
+    description: 'A safety check approves or blocks each action instead of asking'
+  },
+  {
+    id: 'bypassPermissions',
+    label: 'Bypass permissions',
+    description: 'Run everything without asking',
+    // The CLI refuses to enter bypass unless it was launched with it.
+    needsLaunchGrant: true
+  }
+]
+
+/** What a running child can be switched to. */
+export function claudeStructuredPermissionModeChoices(
+  session: Pick<ClaudeSession, 'bypassPermissionsAvailable'>
+): AgentSessionPermissionModeOption[] {
+  return enterableStructuredAgentPermissionModes(
+    CLAUDE_STRUCTURED_PERMISSION_MODES,
+    session.bypassPermissionsAvailable === true
+  )
+}
+
+/** `id` as a mode this child can be switched into now, else undefined. */
+export function claudeStructuredEnterablePermissionMode(
+  session: Pick<ClaudeSession, 'bypassPermissionsAvailable'>,
+  id: string
+): PermissionMode | undefined {
+  const mode = CLAUDE_STRUCTURED_PERMISSION_MODES.find((entry) => entry.id === id)
+  return mode && (!mode.needsLaunchGrant || session.bypassPermissionsAvailable === true)
+    ? mode.id
+    : undefined
+}
+
 /** A chat at rest: its saved pick, else the mode its next launch starts in. */
 export function claudeStructuredRestingPermissionMode(
   saved: Readonly<Record<string, string>> | undefined,
   launchMode: PermissionMode
-): NonNullable<AgentSessionOptionsResult['permissionMode']> {
-  const modes = claudeStructuredPermissionModeChoices(
-    launchMode === 'bypassPermissions' ? { bypassPermissionsAvailable: true } : {}
-  )
-  const pick = modes.find((mode) => mode === saved?.permissionMode)
-  return { current: pick ?? launchMode, modes, confirmed: false }
+): AgentSessionPermissionModeReport {
+  const launchGranted = launchMode === 'bypassPermissions'
+  const pick = saved?.permissionMode
+  const enterable =
+    pick !== undefined &&
+    claudeStructuredEnterablePermissionMode(
+      launchGranted ? { bypassPermissionsAvailable: true } : {},
+      pick
+    )
+  return structuredAgentPermissionModeReport(CLAUDE_STRUCTURED_PERMISSION_MODES, {
+    current: enterable ? pick : launchMode,
+    launchGranted,
+    confirmed: false
+  })
 }
 
 type PermissionModeSession = Pick<
@@ -64,33 +126,19 @@ type PermissionModeSession = Pick<
   | 'bypassPermissionsAvailable'
 >
 
-/** What a running child can be switched to: the CLI refuses bypass unless it was launched with it. */
-export function claudeStructuredPermissionModeChoices(
-  session: Pick<ClaudeSession, 'bypassPermissionsAvailable'>
-): AgentSessionPermissionMode[] {
-  return AGENT_SESSION_PERMISSION_MODES.filter(
-    (mode) => mode !== 'bypassPermissions' || session.bypassPermissionsAvailable === true
-  )
-}
-
 /** What the child last reported or accepted, else the pick, else the mode it was launched in. */
-function claudeStructuredCurrentPermissionMode(session: PermissionModeSession): string {
-  return (
-    session.reportedOptions.permissionMode ??
-    session.options.get('permissionMode') ??
-    session.launchedPermissionMode ??
-    'default'
-  )
-}
-
 export function claudeStructuredPermissionModeReport(
   session: PermissionModeSession
-): NonNullable<AgentSessionOptionsResult['permissionMode']> {
-  return {
-    current: claudeStructuredCurrentPermissionMode(session),
-    modes: claudeStructuredPermissionModeChoices(session),
+): AgentSessionPermissionModeReport {
+  return structuredAgentPermissionModeReport(CLAUDE_STRUCTURED_PERMISSION_MODES, {
+    current:
+      session.reportedOptions.permissionMode ??
+      session.options.get('permissionMode') ??
+      session.launchedPermissionMode ??
+      'default',
+    launchGranted: session.bypassPermissionsAvailable === true,
     confirmed: session.confirmedOptions.has('permissionMode')
-  }
+  })
 }
 
 /**
