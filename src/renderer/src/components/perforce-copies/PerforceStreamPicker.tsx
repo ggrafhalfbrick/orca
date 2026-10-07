@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Check, ChevronsUpDown, LoaderCircle } from 'lucide-react'
 import {
   Command,
@@ -50,6 +50,7 @@ export function PerforceStreamPicker({
   labelId: string
 }) {
   const [open, setOpen] = useState(false)
+  const listId = useId()
   const [list, setList] = useState<PerforceStreamList | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -89,6 +90,7 @@ export function PerforceStreamPicker({
           type="button"
           role="combobox"
           aria-expanded={open}
+          aria-controls={listId}
           aria-labelledby={labelId}
           className={cn(
             COMBOBOX_FIELD_SHELL,
@@ -107,7 +109,7 @@ export function PerforceStreamPicker({
           <CommandInput
             placeholder={translate('perforce.copies.searchStreams', 'Search streams…')}
           />
-          <CommandList>
+          <CommandList id={listId}>
             <CommandEmpty>
               {translate('perforce.copies.noMatchingStream', 'No matching stream.')}
             </CommandEmpty>
