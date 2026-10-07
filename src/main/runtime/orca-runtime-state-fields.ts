@@ -30,7 +30,6 @@ import {
   installRuntimePerforceCommandSurface
 } from './runtime-perforce-commands'
 import { RuntimePerforceCopyCommands } from './runtime-perforce-copy-commands'
-import { teardownFolderWorkspacePtys } from './folder-workspace-pty-teardown'
 import {
   RuntimeSkillCommands,
   installRuntimeSkillCommandSurface
@@ -219,20 +218,12 @@ export class OrcaRuntimeWithStateFields extends OrcaRuntimeWithLinearCommands {
         acquireFileWatcherRemoval: (path, connectionId) =>
           this.acquireFileWatcherRemoval(path, connectionId),
         stopWorkspaceTerminals: (worktreeId, connectionId) =>
-          teardownFolderWorkspacePtys(
-            {
-              runtime,
-              getSshProvider: this.getSshProviderFn,
-              getLocalProvider: () => this.getLocalProvider(),
-              onPtyStopped: this.onPtyStopped
-            },
+          this.stopPtysForDestructiveWorktreeRemoval(
             worktreeId,
-            connectionId
+            connectionId ? { connectionId } : {}
           ),
-        forgetWorktree: (worktreeId, hostId) => {
-          this.removeWorktreeMetadataAndHistory(this.requireStore(), worktreeId, hostId)
-          this.invalidateResolvedWorktreeCache()
-        },
+        forgetWorktree: (worktreeId, repoId, hostId) =>
+          this.purgeRemovedWorktree(this.requireStore(), worktreeId, repoId, hostId),
         worktreesChanged: (repoId) => {
           this.invalidateWorktreeScanCacheForRepo(repoId)
           this.notifyWorktreesChanged(repoId)

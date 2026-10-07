@@ -46,3 +46,28 @@ export function detectPerforceWorkspace(target: PerforceWorkspaceTarget): Promis
   }
   return pending
 }
+
+// Why a few minutes: a plain folder project is not asked p4 on every save, yet a workspace set up
+// later is still found.
+const NOT_PERFORCE_RECHECK_MS = 5 * 60_000
+const notPerforceUntil = new Map<string, number>()
+
+/** For saves and diffs: true for a workspace detected now or earlier this session. */
+export async function isPerforceWorkspaceForFiles(
+  target: PerforceWorkspaceTarget
+): Promise<boolean> {
+  const key = perforceWorkspaceKey(target)
+  if (knownWorkspaces.has(key)) {
+    return true
+  }
+  if ((notPerforceUntil.get(key) ?? 0) > Date.now()) {
+    return false
+  }
+  const detected = await detectPerforceWorkspace(target)
+  if (detected) {
+    notPerforceUntil.delete(key)
+  } else {
+    notPerforceUntil.set(key, Date.now() + NOT_PERFORCE_RECHECK_MS)
+  }
+  return detected
+}

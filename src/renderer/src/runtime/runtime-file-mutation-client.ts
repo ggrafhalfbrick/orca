@@ -39,10 +39,10 @@ export async function writeRuntimeFile(
   content: string,
   access?: LocalFileAccess
 ): Promise<void> {
-  await checkoutPerforceFileBeforeWrite(context, filePath)
   const remoteArgs = getRemoteFileArgs(context, filePath)
   if (!remoteArgs) {
     assertLocalFilesystemFallbackAllowed(context)
+    await checkoutPerforceFileBeforeWrite(context, filePath)
     await window.api.fs.writeFile(
       withSshMutationExpectation(context, {
         filePath,
@@ -53,6 +53,7 @@ export async function writeRuntimeFile(
     )
     return
   }
+  await checkoutPerforceFileBeforeWrite(context, filePath)
   await callRuntimeFileMutation(
     remoteArgs.target,
     'files.write',

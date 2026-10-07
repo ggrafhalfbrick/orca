@@ -18,6 +18,12 @@ describe('perforce argument validation', () => {
     expect(() => requireRelativePath('a\0b')).toThrow()
   })
 
+  it('answers with forward slashes, which every host and p4 accept', () => {
+    // A Windows desktop checks the path, and a Linux SSH host or Orca server runs p4 with it.
+    expect(requireRelativePath('src\\Game\\a.txt')).toBe('src/Game/a.txt')
+    expect(requireRelativePath('./src//a.txt')).toBe('src/a.txt')
+  })
+
   it('refuses Windows paths that leave the workspace on any host', () => {
     // Drive-relative: resolve('C:\\ws', 'C:..\\x') is C:\x, outside the workspace.
     expect(() => requireRelativePath('C:..\\..\\Windows\\System32\\drivers\\etc\\hosts')).toThrow()

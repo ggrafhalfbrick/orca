@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useAppStore } from '@/store'
 import { getRepoExecutionHostId } from '../../../../shared/execution-host'
 import { isFolderRepo } from '../../../../shared/repo-kind'
+import { PERFORCE_UPDATE_REQUIRED_MESSAGE } from '../../../../shared/protocol-version'
 import { runPerforceCopyOperation } from '../../runtime/runtime-perforce-client'
 import { perforceProjectTarget } from '@/lib/perforce-workspace-target'
 
@@ -23,12 +24,18 @@ export function usePerforceCopySync(): void {
       }
       synced.add(key)
       const target = perforceProjectTarget(repo.id, hostId)
-      void runPerforceCopyOperation(target, 'detectProject', {})
-        .then((detected) =>
-          detected.ok && detected.value ? runPerforceCopyOperation(target, 'syncCopies', {}) : null
-        )
-        // Why: a folder that is not a Perforce workspace, or an unreachable server, is not an error here.
-        .catch(() => synced.delete(key))
+      void (async () => {
+        const detected = await runPerforceCopyOperation(target, 'detectProject', {})
+        const outcome =
+          detected.ok && detected.value
+            ? await runPerforceCopyOperation(target, 'syncCopies', {})
+            : detected
+        // Why: an unreachable host or server is retried on the next project change; a folder that
+        // is not a workspace, or a server too old for Perforce, is not.
+        if (!outcome.ok && outcome.error !== PERFORCE_UPDATE_REQUIRED_MESSAGE) {
+          synced.delete(key)
+        }
+      })()
     }
   }, [repos])
 }

@@ -6,6 +6,7 @@ const state: { repos: Repo[] } = { repos: [] }
 vi.mock('@/store', () => ({ useAppStore: { getState: () => state } }))
 
 import {
+  perforceCopyChoiceKey,
   readPerforceCopyComposerChoice,
   usePerforceCopyComposerChoiceStore
 } from './perforce-copy-composer-choice'
@@ -43,11 +44,24 @@ describe('readPerforceCopyComposerChoice', () => {
 
   it('uses the chosen base, and shares the folder when the drive cannot hold a copy', () => {
     const { setChoice } = usePerforceCopyComposerChoiceStore.getState()
-    setChoice('p4', { stream: { kind: 'child', parent: '//game/dev' } })
+    setChoice(perforceCopyChoiceKey('p4', null), {
+      stream: { kind: 'child', parent: '//game/dev' }
+    })
     expect(readPerforceCopyComposerChoice('p4')).toEqual({
       stream: { kind: 'child', parent: '//game/dev' }
     })
-    setChoice('p4', { ready: false })
+    setChoice(perforceCopyChoiceKey('p4', null), { ready: false })
     expect(readPerforceCopyComposerChoice('p4')).toBeUndefined()
+  })
+
+  it('reads the project on the host the composer picked', () => {
+    state.repos = [
+      repo('dup', { kind: 'folder' }),
+      repo('dup', { kind: 'folder', vcs: 'perforce', executionHostId: 'ssh:build-box' })
+    ]
+    expect(readPerforceCopyComposerChoice('dup', 'ssh:build-box')).toEqual({
+      stream: { kind: 'child' }
+    })
+    expect(readPerforceCopyComposerChoice('dup', 'local')).toBeUndefined()
   })
 })

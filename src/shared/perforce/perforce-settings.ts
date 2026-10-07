@@ -1,4 +1,5 @@
 // Pure module: imported by the renderer, the main process, and the relay.
+import { P4_SUBMIT_TIMEOUT_MS, P4_SYNC_TIMEOUT_MS } from './perforce-timeouts'
 
 export type PerforceGroupOrder = 'default-first' | 'numbered-first' | 'unopened-first'
 export type PerforceCompareAgainst = 'have' | 'head'
@@ -181,8 +182,9 @@ export function perforceSettingsForRemoteHost(settings: PerforceSettings): Perfo
 
 /**
  * What an Orca server applies to a client's request: the client's settings, with the p4 path,
- * client and P4CONFIG from the server's own Settings > Perforce. A client that sends none (mobile,
- * an older desktop) gets the server's settings unchanged.
+ * client and P4CONFIG from the server's own Settings > Perforce, and the server's P4PORT and P4USER
+ * where the client leaves them empty. A client that sends none (mobile, an older desktop) gets the
+ * server's settings unchanged.
  */
 export function perforceSettingsOnHost(
   clientSettings: unknown,
@@ -191,16 +193,28 @@ export function perforceSettingsOnHost(
   if (clientSettings === undefined || clientSettings === null) {
     return hostSettings
   }
+  const client = normalizePerforceSettings(clientSettings)
   const { p4Path, p4Client, p4Config } = hostSettings
-  return { ...normalizePerforceSettings(clientSettings), p4Path, p4Client, p4Config }
+  return {
+    ...client,
+    p4Path,
+    p4Client,
+    p4Config,
+    p4Port: client.p4Port || hostSettings.p4Port,
+    p4User: client.p4User || hostSettings.p4User
+  }
 }
 
 /**
- * How long a transport (SSH relay, Orca server) waits for one Perforce request. p4 enforces each
- * command's own limit, so this only has to outlast a status scan plus one command after it.
+ * How long a transport (SSH relay, Orca server) waits for Perforce operation `operation`. p4 stops
+ * each command at its own limit, so this outlasts that limit: a status scan plus one command, or
+ * p4's longer limit for submit and sync.
  */
-export function perforceRequestTimeoutMs(settings: PerforceSettings): number {
-  return (settings.statusScanTimeoutSeconds + settings.commandTimeoutSeconds) * 1000 + 30_000
+export function perforceRequestTimeoutMs(settings: PerforceSettings, operation: string): number {
+  const p4Limit =
+    operation === 'sync' ? P4_SYNC_TIMEOUT_MS : operation === 'submit' ? P4_SUBMIT_TIMEOUT_MS : 0
+  const scanAndCommand = (settings.statusScanTimeoutSeconds + settings.commandTimeoutSeconds) * 1000
+  return Math.max(p4Limit, scanAndCommand) + 30_000
 }
 
 /** The copy-excluded folders setting as a list (one per line or comma-separated). */

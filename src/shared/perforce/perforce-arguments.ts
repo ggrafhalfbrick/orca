@@ -1,4 +1,4 @@
-import { isAbsolute, normalize, posix, relative, resolve, win32 } from 'node:path'
+import { isAbsolute, posix, relative, resolve, win32 } from 'node:path'
 import type { PerforceEntry } from './perforce-types'
 
 // `C:foo` is relative to drive C's current folder, not to the workspace.
@@ -24,7 +24,9 @@ export function requireRelativePath(value: unknown): string {
   if (value.includes('...')) {
     throw new Error('Perforce file paths cannot contain "..."')
   }
-  return normalize(value)
+  // Why forward slashes: the path may be checked on Windows and run on a POSIX host (SSH, an Orca
+  // server), and p4 takes `/` on every platform.
+  return posix.normalize(value.replaceAll('\\', '/'))
 }
 
 /** `filePath` resolved inside `cwd`; refuses anything that would land outside it. */

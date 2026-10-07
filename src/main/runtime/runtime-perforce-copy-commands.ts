@@ -59,9 +59,18 @@ export async function createRuntimePerforceCopy(
       settings
     })
   )
-  // Why: a copy's folder is an authorized root, so file operations must see it at once.
-  invalidateAuthorizedRootsCache()
   return creation
+}
+
+function readableProjectError(error: unknown): string {
+  const code = error instanceof Error ? error.message : String(error)
+  if (code === 'repo_not_found') {
+    return 'This project is no longer in Orca on this host. Refresh projects and try again.'
+  }
+  if (code === 'selector_ambiguous') {
+    return 'More than one project on this host has this id. Refresh projects and try again.'
+  }
+  return code
 }
 
 export type RuntimePerforceCopyCommandHost = {
@@ -72,9 +81,9 @@ export type RuntimePerforceCopyCommandHost = {
     path: string,
     connectionId?: string
   ): Promise<{ finish(completed: boolean): Promise<void> }>
-  /** Stops the workspace's terminals and agent sessions; never throws. */
+  /** Stops the workspace's terminals and agent sessions; throws when it cannot prove they stopped. */
   stopWorkspaceTerminals(worktreeId: string, connectionId: string | null): Promise<void>
-  forgetWorktree(worktreeId: string, hostId: ExecutionHostId): void
+  forgetWorktree(worktreeId: string, repoId: string, hostId: ExecutionHostId): void
   worktreesChanged(repoId: string): void
   reposChanged(): void
 }
@@ -91,7 +100,18 @@ export class RuntimePerforceCopyCommands {
     operation: PerforceCopyOperationName,
     params: Readonly<Record<string, unknown>>
   ): Promise<unknown> {
-    const repo = await this.host.resolveRepo(repoSelector)
+    const repo = await this.host.resolveRepo(repoSelector).catch((error: unknown) => {
+      throw new Error(readableProjectError(error))
+    })
+    return this.runPerforceCopyOperationOnRepo(repo, operation, params)
+  }
+
+  /** For a caller that already resolved the project on its host (desktop IPC). */
+  runPerforceCopyOperationOnRepo(
+    repo: Repo,
+    operation: PerforceCopyOperationName,
+    params: Readonly<Record<string, unknown>>
+  ): Promise<unknown> {
     if (!isFolderRepo(repo)) {
       throw new Error('Perforce copies belong to a folder project; this project is not one.')
     }
@@ -146,8 +166,10 @@ export class RuntimePerforceCopyCommands {
     backend: WorkspaceCopyBackend
   ): Promise<WorkspaceCopyListResult> {
     const listing = await backend.list(repo.path)
-    const forget = (worktreeId: string): void => this.host.forgetWorktree(worktreeId, hostId)
+    const forget = (worktreeId: string): void =>
+      this.host.forgetWorktree(worktreeId, repo.id, hostId)
     if (syncCopyWorktrees(this.host.getStore(), repo, listing, forget)) {
+      // Why: an adopted copy's folder is an authorized root, so file operations must see it at once.
       invalidateAuthorizedRootsCache()
       this.host.worktreesChanged(repo.id)
     }
@@ -185,9 +207,8 @@ export class RuntimePerforceCopyCommands {
       await gate?.finish(completed)
     }
     if (found) {
-      this.host.forgetWorktree(found.worktreeId, hostId)
+      this.host.forgetWorktree(found.worktreeId, repo.id, hostId)
     }
-    invalidateAuthorizedRootsCache()
     this.host.worktreesChanged(repo.id)
     return result
   }

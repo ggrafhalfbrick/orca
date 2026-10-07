@@ -51,10 +51,11 @@ Every one of these operations is one entry of `PERFORCE_WORKSPACE_OPERATIONS`
 (`src/shared/perforce/perforce-operations.ts`), so local, relay and Orca-server workspaces support the same set and
 validate arguments the same way.
 
-Saving a read-only workspace file from Orca's editor first runs `p4 edit` on it (after asking, by default). The
-renderer does this before every write into a Perforce workspace, whichever host owns it
+Saving a read-only workspace file from Orca's editor first runs `p4 edit` on it (after asking in an in-app dialog, by
+default). The renderer does this before every write into a Perforce workspace, whichever host owns it
 (`lib/perforce-checkout-before-write.ts`), and the editor loads a Perforce workspace's file diffs from `p4` rather than
-Git (`runtime/runtime-worktree-file-diff.ts`).
+Git (`runtime/runtime-worktree-file-diff.ts`). Both find the workspace that holds the file, even one opened from
+another workspace, and detect a folder project not yet marked Perforce (a negative answer is kept five minutes).
 
 Keyboard chords on the active Perforce file (editor or unstaged-diff tab): **Alt+P, Alt+E** opens it for edit (`p4 edit`),
 **Alt+P, Alt+R** reverts its changes. `PerforceChordDetector` (`src/shared/perforce/perforce-file-chord.ts`) is a pure
@@ -89,9 +90,11 @@ submit, and the AI description button.
 Settings travel with each request and reach the p4 runner through a request-scoped context
 (`p4-settings-context.ts`): desktop IPC applies this desktop's settings, and the relay and Orca-server methods apply
 the `settings` param the client sends. Those omit the p4 path, client and P4CONFIG, which name things on the client's
-machine. An Orca server fills them from its own Settings > Perforce (`perforceSettingsOnHost`), and a client that
-sends no settings (mobile, an older desktop) gets the server's. Transports wait
-`perforceRequestTimeoutMs` (one status scan plus one command) rather than their usual default.
+machine. An Orca server fills them from its own Settings > Perforce (`perforceSettingsOnHost`), along with its
+P4PORT and P4USER where the client leaves those empty, and a client that sends no settings (mobile, an older
+desktop) gets the server's. Transports wait `perforceRequestTimeoutMs` (a status scan plus one command, or p4's own
+limit for submit and sync) rather than their usual default, and Perforce calls to a server use their own RPC queue so
+a long scan never holds the slots Git status needs.
 
 "Test connection" runs `p4 info` (the `info` operation). "Generate description" (`perforce:generateDescription`, or
 `perforce.generateDescription` on an Orca server) runs the agent, model, and instructions from Settings > Perforce

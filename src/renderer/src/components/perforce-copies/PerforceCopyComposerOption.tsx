@@ -5,7 +5,10 @@ import { useAppStore } from '@/store'
 import { isCopyPlatformUnsupported } from '../../../../shared/perforce/workspace-copy/workspace-copy-platform'
 import type { WorkspaceCopyReadiness } from '../../../../shared/perforce/workspace-copy/workspace-copy-types'
 import { isPerforceRepo } from '../../../../shared/repo-kind'
-import { usePerforceCopyComposerChoiceStore } from './perforce-copy-composer-choice'
+import {
+  perforceCopyChoiceKey,
+  usePerforceCopyComposerChoiceStore
+} from './perforce-copy-composer-choice'
 import { PerforceCopyRequirement } from './PerforceCopyRequirement'
 import { PerforceStreamPicker } from './PerforceStreamPicker'
 import { findRepoForHost } from '@/store/slices/repo-host-identity'
@@ -81,7 +84,8 @@ export function PerforceCopyComposerOption({
     const repo = findRepoForHost(s.repos, repoId, { hostId, settings: s.settings })
     return repo ? isPerforceRepo(repo) : false
   })
-  const choice = usePerforceCopyComposerChoiceStore((s) => s.byRepo[repoId])
+  const choiceKey = perforceCopyChoiceKey(repoId, hostId)
+  const choice = usePerforceCopyComposerChoiceStore((s) => s.byRepo[choiceKey])
   const setChoice = usePerforceCopyComposerChoiceStore((s) => s.setChoice)
   const [readiness, setReadiness] = useState<WorkspaceCopyReadiness | null>(null)
   // Only an answer from the host says it cannot make copies; a failed check is shown as an error.
@@ -118,13 +122,13 @@ export function PerforceCopyComposerOption({
             ? { windows: result.value.windowsBuild !== null }
             : null
         )
-        setChoice(repoId, { ready: value.ready })
+        setChoice(choiceKey, { ready: value.ready })
       }
     )
     return () => {
       cancelled = true
     }
-  }, [isPerforce, repoId, hostId, setChoice])
+  }, [isPerforce, repoId, hostId, choiceKey, setChoice])
 
   if (!isPerforce) {
     return null
@@ -143,7 +147,7 @@ export function PerforceCopyComposerOption({
         hostId={hostId}
         labelId={labelId}
         value={choice?.stream ?? { kind: 'child' }}
-        onChange={(stream) => setChoice(repoId, { stream })}
+        onChange={(stream) => setChoice(choiceKey, { stream })}
       />
       <ReadinessLine readiness={readiness} />
     </div>

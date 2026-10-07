@@ -28,6 +28,6 @@ export type PerforceApi = {
   /** One copy operation of the Perforce folder project `repoId`; failures come back as `{ ok: false }`. */
   runCopy: <K extends PerforceCopyOperationName>(
     operation: K,
-    args: { repoId: string } & PerforceCopyOperationParams<K>
+    args: { repoId: string; hostId?: string } & PerforceCopyOperationParams<K>
   ) => Promise<WorkspaceCopyIpcResult<PerforceCopyOperationResult<K>>>
 }

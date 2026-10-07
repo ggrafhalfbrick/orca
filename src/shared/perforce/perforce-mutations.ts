@@ -1,3 +1,4 @@
+import { P4_SUBMIT_TIMEOUT_MS, P4_SYNC_TIMEOUT_MS } from './perforce-timeouts'
 import { access, constants, lstat, rm } from 'node:fs/promises'
 import { resolveInWorkspace } from './perforce-arguments'
 import type { PerforceEntry, PerforceOperationResult } from './perforce-types'
@@ -87,18 +88,22 @@ export async function submitDefaultChangelist(
   cwd: string,
   description: string
 ): Promise<PerforceOperationResult> {
-  return toResult(await runP4(['submit', '-d', description], { cwd, timeoutMs: 600_000 }))
+  return toResult(
+    await runP4(['submit', '-d', description], { cwd, timeoutMs: P4_SUBMIT_TIMEOUT_MS })
+  )
 }
 
 export async function submitChangelist(
   cwd: string,
   changelist: number
 ): Promise<PerforceOperationResult> {
-  return toResult(await runP4(['submit', '-c', String(changelist)], { cwd, timeoutMs: 600_000 }))
+  return toResult(
+    await runP4(['submit', '-c', String(changelist)], { cwd, timeoutMs: P4_SUBMIT_TIMEOUT_MS })
+  )
 }
 
 export async function syncLatest(cwd: string): Promise<PerforceOperationResult> {
-  return toResult(await runP4(['sync'], { cwd, timeoutMs: 1_800_000 }))
+  return toResult(await runP4(['sync'], { cwd, timeoutMs: P4_SYNC_TIMEOUT_MS }))
 }
 
 /** True for an existing regular file the user cannot write, i.e. a synced file not yet opened for edit. */

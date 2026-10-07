@@ -207,11 +207,22 @@ describe('settings on an Orca server', () => {
     })
   })
 
+  it("keeps the server's P4PORT and P4USER where the client leaves them empty", () => {
+    const merged = perforceSettingsOnHost(normalizePerforceSettings({ p4User: 'me' }), {
+      ...host,
+      p4User: 'server-user'
+    })
+    expect(merged).toMatchObject({ p4Port: 'ssl:server:1666', p4User: 'me' })
+  })
+
   it("keeps the server's settings for a client that sends none", () => {
     expect(perforceSettingsOnHost(undefined, host)).toBe(host)
   })
 
-  it('waits for a status scan and one command after it', () => {
-    expect(perforceRequestTimeoutMs(DEFAULT_PERFORCE_SETTINGS)).toBe((180 + 60) * 1000 + 30_000)
+  it('waits for a status scan and one command, or for p4 itself on submit and sync', () => {
+    const settings = DEFAULT_PERFORCE_SETTINGS
+    expect(perforceRequestTimeoutMs(settings, 'status')).toBe((180 + 60) * 1000 + 30_000)
+    expect(perforceRequestTimeoutMs(settings, 'submit')).toBe(10 * 60_000 + 30_000)
+    expect(perforceRequestTimeoutMs(settings, 'sync')).toBe(30 * 60_000 + 30_000)
   })
 })

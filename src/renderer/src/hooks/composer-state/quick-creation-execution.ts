@@ -197,7 +197,9 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
 
       const request = buildQuickCreationRequest({
         repoId,
-        perforceCopy: selectedRepoIsGit ? undefined : readPerforceCopyComposerChoice(repoId),
+        perforceCopy: selectedRepoIsGit
+          ? undefined
+          : readPerforceCopyComposerChoice(repoId, selectedRepoExecutionHostId),
         ephemeralVmRecipe,
         indeterminateProgress:
           Boolean(activeEphemeralVmRecipeId) ||

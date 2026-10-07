@@ -23,6 +23,7 @@ import {
 import type { CommitMessageAgentEnvironmentResolvers } from '../text-generation/commit-message-agent-environment'
 import type { GenerateCommitMessageResult } from '../text-generation/commit-message-text-generation'
 import { isTuiAgent } from '../../shared/tui-agent-config'
+import { parseWslUncPath } from '../../shared/wsl-paths'
 import type { TuiAgent } from '../../shared/tui-agent'
 import type { RuntimePerforceCopyCommands } from './runtime-perforce-copy-commands'
 
@@ -105,6 +106,8 @@ export class RuntimePerforceCommands {
   ): Promise<GenerateCommitMessageResult> {
     const target = await this.host.resolveRuntimeFileTarget(worktreeSelector)
     const connectionId = perforceConnectionIdForHost(target.executionHostId)
+    // Why: a workspace on a WSL path runs its description agent inside that distro, as Git's does.
+    const wslDistro = connectionId ? undefined : parseWslUncPath(target.worktree.path)?.distro
     const host = this.host.getRuntimeSettings()
     const perforce = perforceSettingsForRequest(request.settings, host.perforce)
     const settings = {
@@ -127,7 +130,11 @@ export class RuntimePerforceCommands {
         filePaths: request.filePaths,
         agentHost: connectionId
           ? { kind: 'ssh', connectionId }
-          : { kind: 'local', agentEnvironment: this.host.getCommitMessageAgentEnvironment?.() }
+          : {
+              kind: 'local',
+              ...(wslDistro ? { wslDistro } : {}),
+              agentEnvironment: this.host.getCommitMessageAgentEnvironment?.()
+            }
       })
     )
   }
@@ -137,6 +144,7 @@ export type RuntimePerforceCommandSurface = {
   runPerforceOperation: RuntimePerforceCommands['runPerforceOperation']
   generatePerforceDescription: RuntimePerforceCommands['generatePerforceDescription']
   runPerforceCopyOperation: RuntimePerforceCopyCommands['runPerforceCopyOperation']
+  runPerforceCopyOperationOnRepo: RuntimePerforceCopyCommands['runPerforceCopyOperationOnRepo']
 }
 
 export function installRuntimePerforceCommandSurface(
@@ -147,6 +155,7 @@ export function installRuntimePerforceCommandSurface(
   Object.assign(target, {
     runPerforceOperation: workspaces.runPerforceOperation.bind(workspaces),
     generatePerforceDescription: workspaces.generatePerforceDescription.bind(workspaces),
-    runPerforceCopyOperation: copies.runPerforceCopyOperation.bind(copies)
+    runPerforceCopyOperation: copies.runPerforceCopyOperation.bind(copies),
+    runPerforceCopyOperationOnRepo: copies.runPerforceCopyOperationOnRepo.bind(copies)
   })
 }

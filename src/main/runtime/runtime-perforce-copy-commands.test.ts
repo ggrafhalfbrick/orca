@@ -110,7 +110,9 @@ function makeCommands(repo: Repo, meta: Record<string, Partial<WorktreeMeta>> = 
       return { finish: async (completed: boolean) => void events.push(`gate-done:${completed}`) }
     }),
     stopWorkspaceTerminals: vi.fn(async () => void events.push('stop-terminals')),
-    forgetWorktree: vi.fn((worktreeId: string) => void events.push(`forget:${worktreeId}`)),
+    forgetWorktree: vi.fn(
+      (worktreeId: string, _repoId: string) => void events.push(`forget:${worktreeId}`)
+    ),
     worktreesChanged: vi.fn(() => void events.push('worktrees-changed')),
     reposChanged: vi.fn(() => void events.push('repos-changed'))
   }
@@ -189,9 +191,16 @@ describe('RuntimePerforceCopyCommands', () => {
       'remove',
       'gate-done:true',
       'forget:repo-1::D:\\ws.wt\\copy-1',
-      'invalidate-roots',
       'worktrees-changed'
     ])
+  })
+
+  it('names a project that is gone instead of answering with a selector code', async () => {
+    const { commands, host } = makeCommands(makeRepo())
+    host.resolveRepo.mockRejectedValueOnce(new Error('repo_not_found'))
+    await expect(commands.runPerforceCopyOperation('id:repo-1', 'syncCopies', {})).rejects.toThrow(
+      'no longer in Orca on this host'
+    )
   })
 
   it('makes the copy behind a new workspace with the client’s copy options', async () => {
@@ -219,6 +228,6 @@ describe('RuntimePerforceCopyCommands', () => {
       expect.objectContaining({ minFreeBytes: 7 * 1024 ** 3 }),
       expect.any(Function)
     )
-    expect(events).toEqual(['backend:local', 'create:7', 'invalidate-roots'])
+    expect(events).toEqual(['backend:local', 'create:7'])
   })
 })

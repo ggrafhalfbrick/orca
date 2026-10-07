@@ -34,6 +34,9 @@ const PerforceCopyDeleteModal = lazyWithRetry(
   () => import('../perforce-copies/PerforceCopyDeleteModal')
 )
 const PerforceCopiesModal = lazyWithRetry(() => import('../perforce-copies/PerforceCopiesModal'))
+const PerforceOpenForEditDialog = lazyWithRetry(
+  () => import('../right-sidebar/perforce/PerforceOpenForEditDialog')
+)
 const AgentDashboardSidebarHost = lazyWithRetry(() => import('./AgentDashboardSidebarHost'))
 
 const MIN_WIDTH = 220
@@ -261,6 +264,7 @@ function Sidebar({
         {activeModal === 'forget-ssh-workspace' ? <ForgetSshWorkspaceDialog /> : null}
         {activeModal === 'delete-perforce-copy' ? <PerforceCopyDeleteModal /> : null}
         {activeModal === 'perforce-copies' ? <PerforceCopiesModal /> : null}
+        {activeModal === 'perforce-open-for-edit' ? <PerforceOpenForEditDialog /> : null}
       </React.Suspense>
       {sidebarOpen ? (
         <WorkspaceKanbanDrawer

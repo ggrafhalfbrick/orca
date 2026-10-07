@@ -1,10 +1,10 @@
-import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
+import { relativePathInsideRoot } from '../../../shared/cross-platform-path'
 import { normalizePerforceSettings } from '../../../shared/perforce/perforce-settings'
 import type { RuntimeFileOperationArgs } from '../runtime/runtime-file-client-types'
-import { getRelativePathInsideWorktree } from '../runtime/runtime-file-routing'
 import { runPerforceOperation } from '../runtime/runtime-perforce-client'
-import { perforceTargetForFileContext } from './perforce-workspace-target'
+import { askToOpenForEdit } from './perforce-open-for-edit-prompt'
+import { perforceTargetForFile } from './perforce-workspace-target'
 
 export const PERFORCE_EDIT_DECLINED_MESSAGE =
   'Save cancelled: the file is not opened for edit in Perforce.'
@@ -22,17 +22,19 @@ export async function checkoutPerforceFileBeforeWrite(
   const behavior = normalizePerforceSettings(
     useAppStore.getState().settings?.perforce
   ).saveReadOnlyBehavior
-  const { worktreePath } = context
-  if (behavior === 'never' || !worktreePath) {
+  if (behavior === 'never') {
     return
   }
-  const target = perforceTargetForFileContext({
-    settings: context.settings,
-    worktreeId: context.worktreeId,
-    worktreePath,
-    ...(context.connectionId ? { connectionId: context.connectionId } : {})
-  })
-  const relativePath = getRelativePathInsideWorktree(worktreePath, filePath)
+  const target = await perforceTargetForFile(
+    {
+      settings: context.settings,
+      worktreeId: context.worktreeId,
+      worktreePath: context.worktreePath ?? '',
+      ...(context.connectionId ? { connectionId: context.connectionId } : {})
+    },
+    filePath
+  )
+  const relativePath = target ? relativePathInsideRoot(target.worktreePath, filePath) : null
   if (!target || !relativePath) {
     return
   }
@@ -42,16 +44,7 @@ export async function checkoutPerforceFileBeforeWrite(
   if (!readOnly) {
     return
   }
-  if (
-    behavior === 'ask' &&
-    !window.confirm(
-      translate(
-        'perforce.ui.saveNeedsOpenForEdit',
-        '{{path}} is not opened for edit in Perforce. Open it for edit and save?',
-        { path: relativePath }
-      )
-    )
-  ) {
+  if (behavior === 'ask' && !(await askToOpenForEdit(relativePath))) {
     throw new Error(PERFORCE_EDIT_DECLINED_MESSAGE)
   }
   // The write reports the failure if the file stayed read-only.

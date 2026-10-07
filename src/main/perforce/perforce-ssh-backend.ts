@@ -30,7 +30,7 @@ function createSshPerforceBackend(connectionId: string): PerforceBackend {
       return (await provider.requestRelay(
         `perforce.${method}`,
         { cwd, ...params, settings: remotePerforceSettings() },
-        { timeoutMs: perforceRequestTimeoutMs(currentPerforceSettings()) }
+        { timeoutMs: perforceRequestTimeoutMs(currentPerforceSettings(), method) }
       )) as T
     } catch (error) {
       throw isJsonRpcMethodNotFoundError(error) ? new Error(RELAY_TOO_OLD_MESSAGE) : error

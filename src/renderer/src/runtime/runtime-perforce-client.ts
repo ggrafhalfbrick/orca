@@ -35,6 +35,8 @@ import {
   getActiveRuntimeTarget
 } from './runtime-rpc-client'
 import { toRuntimeWorktreeSelector } from './runtime-worktree-selector'
+import { isPairedWebClientWindow } from '@/lib/desktop-window-chrome'
+import type { ExecutionHostId } from '../../../shared/execution-host'
 
 export type PerforceClientSettings = RuntimeGitSettings & Partial<Pick<GlobalSettings, 'perforce'>>
 
@@ -69,6 +71,16 @@ export async function assertPerforceRuntime(target: RuntimeClientTarget): Promis
   }
 }
 
+/** This desktop's Perforce IPC; a paired browser has none, so a workspace it cannot route fails here. */
+function desktopPerforceApi(): Window['api']['perforce'] {
+  if (isPairedWebClientWindow()) {
+    throw new Error(
+      'Orca could not tell which server owns this workspace. Reconnect and try again.'
+    )
+  }
+  return window.api.perforce
+}
+
 export async function runPerforceOperation<K extends PerforceOperationName>(
   target: PerforceWorkspaceTarget,
   operation: K,
@@ -76,7 +88,7 @@ export async function runPerforceOperation<K extends PerforceOperationName>(
 ): Promise<PerforceOperationResult<K>> {
   const runtimeTarget = getActiveRuntimeTarget(target.settings)
   if (runtimeTarget.kind === 'local' || !target.worktreeId) {
-    return window.api.perforce.run(operation, {
+    return desktopPerforceApi().run(operation, {
       ...params,
       worktreePath: resolveLocalWorktreePath(target),
       ...(target.connectionId ? { connectionId: target.connectionId } : {})
@@ -88,7 +100,7 @@ export async function runPerforceOperation<K extends PerforceOperationName>(
     runtimeTarget,
     `perforce.${operation}`,
     { ...params, worktree: toRuntimeWorktreeSelector(target.worktreeId), settings },
-    { timeoutMs: perforceRequestTimeoutMs(settings) }
+    { timeoutMs: perforceRequestTimeoutMs(settings, operation) }
   )
 }
 
@@ -104,6 +116,8 @@ export function perforceOperationsFor(target: PerforceWorkspaceTarget) {
 export type PerforceProjectTarget = {
   settings: PerforceClientSettings | null | undefined
   repoId: string
+  /** The project's execution host, for a desktop that has the same project id on several hosts. */
+  hostId?: ExecutionHostId
 }
 
 /** One copy operation of a Perforce folder project; failures come back as `{ ok: false }` on every route. */
@@ -113,10 +127,14 @@ export async function runPerforceCopyOperation<K extends PerforceCopyOperationNa
   params: PerforceCopyOperationParams<K>
 ): Promise<WorkspaceCopyIpcResult<PerforceCopyOperationResult<K>>> {
   const runtimeTarget = getActiveRuntimeTarget(target.settings)
-  if (runtimeTarget.kind === 'local') {
-    return window.api.perforce.runCopy(operation, { ...params, repoId: target.repoId })
-  }
   try {
+    if (runtimeTarget.kind === 'local') {
+      return await desktopPerforceApi().runCopy(operation, {
+        ...params,
+        repoId: target.repoId,
+        ...(target.hostId ? { hostId: target.hostId } : {})
+      })
+    }
     await assertPerforceRuntime(runtimeTarget)
     const value = await callRuntimeRpc<PerforceCopyOperationResult<K>>(
       runtimeTarget,
@@ -141,7 +159,7 @@ export async function generatePerforceDescription(
 ): Promise<PerforceDescriptionResult> {
   const runtimeTarget = getActiveRuntimeTarget(target.settings)
   if (runtimeTarget.kind === 'local' || !target.worktreeId) {
-    return window.api.perforce.generateDescription({
+    return desktopPerforceApi().generateDescription({
       ...request,
       worktreePath: resolveLocalWorktreePath(target),
       ...(target.connectionId ? { connectionId: target.connectionId } : {})
