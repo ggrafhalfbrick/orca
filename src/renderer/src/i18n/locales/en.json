@@ -19804,6 +19804,7 @@
       "directlyOnStream": "{{stream}} directly (no new stream)",
       "newStreamFrom": "New stream from {{stream}}",
       "searchStreams": "Search streams…",
+      "noProjectInDepot": "No Perforce project in Orca is in {{depot}}. Add your Perforce workspace as a project, then start again.",
       "noMatchingStream": "No matching stream.",
       "loadingStreams": "Loading streams…",
       "newStreamFromHeading": "New stream from",

@@ -335,6 +335,7 @@ export default function NewWorkspaceComposerCard(
         <PerforceCopyComposerOption
           repoId={props.repoId}
           hostId={selectedRepoExecutionHostId ?? null}
+          initialParentStream={props.baseBranch}
         />
         <NewWorkspaceComposerAgentSection
           {...props}
