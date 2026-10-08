@@ -20,7 +20,7 @@ import type { WorkspaceCopyIpcResult } from '../../../shared/perforce/workspace-
 import {
   PERFORCE_RUNTIME_CAPABILITY,
   PERFORCE_UPDATE_REQUIRED_MESSAGE
-} from '../../../shared/protocol-version'
+} from '../../../shared/perforce/perforce-runtime-capability'
 import { isTuiAgent } from '../../../shared/tui-agent-config'
 import type { RuntimeClientTarget } from './runtime-client-target'
 import {
