@@ -17,10 +17,17 @@ export function remotePerforceSettings(): ReturnType<typeof perforceSettingsForR
 
 const RELAY_TOO_OLD_MESSAGE =
   'The Orca relay on this SSH host does not support Perforce yet. Reconnect the SSH target to update it.'
+const RELAY_TOO_OLD_FOR_LATEST_MESSAGE =
+  'Reading the latest Perforce version needs a newer Orca relay on this SSH host. Reconnect the SSH target to update it.'
 
 function createSshPerforceBackend(connectionId: string): PerforceBackend {
   // SAFETY: the relay's perforce.* handlers return exactly the PerforceBackend result shapes.
-  const call = async <T>(method: string, cwd: string, params: Record<string, unknown> = {}) => {
+  const call = async <T>(
+    method: string,
+    cwd: string,
+    params: Record<string, unknown> = {},
+    tooOldMessage = RELAY_TOO_OLD_MESSAGE
+  ) => {
     const provider = getSshGitProvider(connectionId)
     if (!provider) {
       throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
@@ -33,7 +40,7 @@ function createSshPerforceBackend(connectionId: string): PerforceBackend {
         { timeoutMs: perforceRequestTimeoutMs(currentPerforceSettings(), method) }
       )) as T
     } catch (error) {
-      throw isJsonRpcMethodNotFoundError(error) ? new Error(RELAY_TOO_OLD_MESSAGE) : error
+      throw isJsonRpcMethodNotFoundError(error) ? new Error(tooOldMessage) : error
     }
   }
   type Result = Awaited<ReturnType<PerforceBackend['open']>>
@@ -69,7 +76,21 @@ function createSshPerforceBackend(connectionId: string): PerforceBackend {
     checkoutIfReadOnly: (cwd, filePath) => call<void>('checkoutIfReadOnly', cwd, { filePath }),
     isReadOnlyFile: (cwd, filePath) => call<boolean>('isReadOnlyFile', cwd, { filePath }),
     diffText: (cwd, filePaths) => call<string>('diffText', cwd, { filePaths }),
-    info: (cwd) => call<Awaited<ReturnType<PerforceBackend['info']>>>('info', cwd)
+    info: (cwd) => call<Awaited<ReturnType<PerforceBackend['info']>>>('info', cwd),
+    latestMarkdownFiles: (cwd, folder) =>
+      call<Awaited<ReturnType<PerforceBackend['latestMarkdownFiles']>>>(
+        'latestMarkdownFiles',
+        cwd,
+        { folder },
+        RELAY_TOO_OLD_FOR_LATEST_MESSAGE
+      ),
+    printDepotFiles: (cwd, files) =>
+      call<Awaited<ReturnType<PerforceBackend['printDepotFiles']>>>(
+        'printDepotFiles',
+        cwd,
+        { files },
+        RELAY_TOO_OLD_FOR_LATEST_MESSAGE
+      )
   }
 }
 

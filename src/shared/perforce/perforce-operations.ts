@@ -3,12 +3,15 @@ import {
   requireChangelistId,
   requireChangelistTarget,
   requireDepotPaths,
+  requireDepotRevisions,
   requireDescription,
   requireDiscardEntries,
   requireRelativePath,
   requireRelativePathList,
-  requireRelativePaths
+  requireRelativePaths,
+  requireWorkspaceFolder
 } from './perforce-arguments'
+import { PERFORCE_PRINT_FILE_LIMIT } from './perforce-latest-files'
 import type { PerforceEntry } from './perforce-types'
 
 type Params = Readonly<Record<string, unknown>>
@@ -75,7 +78,10 @@ export const PERFORCE_WORKSPACE_OPERATIONS = {
       requireRelativePaths(p.filePaths),
       requireChangelistTarget(p.changelist)
     ),
-  deleteChangelist: (b, cwd, p) => b.deleteChangelist(cwd, requireChangelistId(p.changelist))
+  deleteChangelist: (b, cwd, p) => b.deleteChangelist(cwd, requireChangelistId(p.changelist)),
+  latestMarkdownFiles: (b, cwd, p) => b.latestMarkdownFiles(cwd, requireWorkspaceFolder(p.folder)),
+  printDepotFiles: (b, cwd, p) =>
+    b.printDepotFiles(cwd, requireDepotRevisions(p.files, PERFORCE_PRINT_FILE_LIMIT))
 } satisfies Record<string, Operation>
 
 export type PerforceOperationName = keyof typeof PERFORCE_WORKSPACE_OPERATIONS
@@ -114,6 +120,8 @@ export type PerforceOperationParams = {
   editDescription: { changelist: number; description: string }
   moveToChangelist: { filePaths: string[]; changelist: ChangelistTarget }
   deleteChangelist: { changelist: number }
+  latestMarkdownFiles: { folder: string }
+  printDepotFiles: { files: { depotFile: string; rev: number }[] }
 }
 
 export function isPerforceOperationName(value: unknown): value is PerforceOperationName {

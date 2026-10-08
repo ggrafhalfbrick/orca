@@ -1,14 +1,49 @@
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { escapeP4FileArg } from './p4-command'
+import { escapeP4FileArg, unescapeP4Path } from './p4-command'
 import {
   requireChangelistId,
   requireChangelistTarget,
   requireDepotPaths,
+  requireDepotRevisions,
   requireDescription,
   requireRelativePath,
+  requireWorkspaceFolder,
   resolveInWorkspace
 } from './perforce-arguments'
+
+describe('latest-file arguments', () => {
+  it('takes the whole workspace or a folder inside it', () => {
+    expect(requireWorkspaceFolder('')).toBe('')
+    expect(requireWorkspaceFolder(undefined)).toBe('')
+    expect(requireWorkspaceFolder('docs/plans')).toBe('docs/plans')
+    expect(() => requireWorkspaceFolder('../elsewhere')).toThrow()
+    expect(() => requireWorkspaceFolder('docs/...')).toThrow()
+  })
+
+  it('takes escaped depot files at positive revisions, within the limit', () => {
+    expect(requireDepotRevisions([{ depotFile: '//depot/a%40b.md', rev: 2 }], 5)).toEqual([
+      { depotFile: '//depot/a%40b.md', rev: 2 }
+    ])
+    for (const bad of [
+      [],
+      [{ depotFile: '//depot/a.md', rev: 0 }],
+      [{ depotFile: '//depot/a.md#3', rev: 3 }],
+      [{ depotFile: '//depot/....md', rev: 1 }],
+      [{ depotFile: 'local/a.md', rev: 1 }],
+      [{ rev: 1 }]
+    ]) {
+      expect(() => requireDepotRevisions(bad, 5)).toThrow()
+    }
+    const six = Array.from({ length: 6 }, () => ({ depotFile: '//depot/a.md', rev: 1 }))
+    expect(() => requireDepotRevisions(six, 5)).toThrow(/Between 1 and 5/)
+  })
+
+  it('unescapes p4 paths back to file names', () => {
+    expect(unescapeP4Path('a%40b%23c%2Ad%2540')).toBe('a@b#c*d%40')
+    expect(unescapeP4Path(escapeP4FileArg('x@y#z*%'))).toBe('x@y#z*%')
+  })
+})
 
 describe('perforce argument validation', () => {
   it('accepts workspace-relative paths only', () => {

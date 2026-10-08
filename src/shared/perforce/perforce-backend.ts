@@ -1,6 +1,12 @@
 import type { GitDiffResult } from '../git-diff-compare-types'
 import { detectPerforceWorkspace } from './perforce-detection'
 import {
+  listLatestMarkdownFiles,
+  printDepotFiles,
+  type PerforceLatestFiles,
+  type PerforcePrintedFile
+} from './perforce-latest-files'
+import {
   createChangelistWithFiles,
   deleteChangelistWithFiles,
   deleteEmptyChangelist,
@@ -95,6 +101,13 @@ export type PerforceBackend = {
   isReadOnlyFile: (cwd: Cwd, filePath: string) => Promise<boolean>
   diffText: (cwd: Cwd, filePaths: Files) => Promise<string>
   info: (cwd: Cwd) => ReturnType<typeof getPerforceInfo>
+  /** Head revisions of markdown under a folder of the workspace, from the server (nothing synced). */
+  latestMarkdownFiles: (cwd: Cwd, folder: string) => Promise<PerforceLatestFiles>
+  /** Reads files at exact revisions from the server. */
+  printDepotFiles: (
+    cwd: Cwd,
+    files: readonly { depotFile: string; rev: number }[]
+  ) => Promise<PerforcePrintedFile[]>
 }
 
 /** The operation changes which files are opened or what is on disk: the next status rescans. */
@@ -139,5 +152,7 @@ export const localPerforceBackend: PerforceBackend = {
   checkoutIfReadOnly: rescansAfter(checkoutIfReadOnly),
   isReadOnlyFile: isReadOnlyWorkspaceFile,
   diffText: getPerforceDiffText,
-  info: getPerforceInfo
+  info: getPerforceInfo,
+  latestMarkdownFiles: listLatestMarkdownFiles,
+  printDepotFiles
 }

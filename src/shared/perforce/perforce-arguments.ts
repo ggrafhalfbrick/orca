@@ -72,6 +72,30 @@ export function requireDepotPaths(value: unknown): string[] {
   })
 }
 
+/** '' for the whole workspace folder, else a workspace-relative folder. */
+export function requireWorkspaceFolder(value: unknown): string {
+  return value === undefined || value === '' ? '' : requireRelativePath(value)
+}
+
+/** Depot files at exact revisions, as `latestMarkdownFiles` listed them. */
+export function requireDepotRevisions(
+  value: unknown,
+  limit: number
+): { depotFile: string; rev: number }[] {
+  if (!Array.isArray(value) || value.length === 0 || value.length > limit) {
+    throw new Error(`Between 1 and ${limit} files are required`)
+  }
+  return value.map((raw: unknown) => {
+    const depotFile =
+      typeof raw === 'object' && raw !== null && 'depotFile' in raw ? raw.depotFile : null
+    const rev = typeof raw === 'object' && raw !== null && 'rev' in raw ? raw.rev : null
+    if (typeof rev !== 'number' || !Number.isInteger(rev) || rev < 1) {
+      throw new Error('Invalid Perforce revision')
+    }
+    return { depotFile: requireDepotPaths([depotFile])[0], rev }
+  })
+}
+
 export function requireChangelistId(value: unknown): number {
   if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
     throw new Error('A pending changelist number is required')
