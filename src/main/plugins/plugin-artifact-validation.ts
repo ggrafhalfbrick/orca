@@ -3,6 +3,10 @@ import { realpath, stat } from 'node:fs/promises'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import type { PluginManifest } from '../../shared/plugins/plugin-manifest'
 import { parsePluginVmRecipeArtifact } from '../../shared/plugins/plugin-vm-recipe-artifact'
+import {
+  isPluginWorktreeBadgeSvgIcon,
+  PLUGIN_WORKTREE_BADGE_SVG_MAX_BYTES
+} from '../../shared/plugins/plugin-worktree-badge'
 
 export type PluginArtifactValidationResult = { ok: true } | { ok: false; error: string }
 
@@ -62,7 +66,15 @@ function declaredArtifactPaths(manifest: PluginManifest): DeclaredArtifact[] {
       path: agent.path,
       kind: 'file' as const,
       maxBytes: PLUGIN_AGENT_PROFILE_MAX_BYTES
-    }))
+    })),
+    ...manifest.contributes.worktreeBadges
+      .filter((badge) => isPluginWorktreeBadgeSvgIcon(badge.icon))
+      .map((badge) => ({
+        label: `worktree badge "${badge.id}" icon`,
+        path: badge.icon,
+        kind: 'file' as const,
+        maxBytes: PLUGIN_WORKTREE_BADGE_SVG_MAX_BYTES
+      }))
   ]
 }
 

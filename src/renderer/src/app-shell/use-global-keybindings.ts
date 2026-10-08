@@ -226,7 +226,9 @@ export function useGlobalKeybindings(args: {
         )
         if (pluginCommand) {
           input.preventDefault()
-          void executePluginCommand(pluginCommand, 'plugin-keybinding').catch(() => {
+          void executePluginCommand(pluginCommand, 'plugin-keybinding', {
+            worktreeId: activeWorktreeId
+          }).catch(() => {
             toast.error(
               translate('auto.App.pluginCommandFailed', 'Could not run the plugin command.')
             )

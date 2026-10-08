@@ -15,6 +15,8 @@ import {
   isOfficialPluginIdentity
 } from '../../shared/plugins/plugin-marketplace'
 import { mapWithConcurrency } from '../../shared/map-with-concurrency'
+import type { PluginWorktreeBadgeEntry } from '../../shared/plugins/plugin-worktree-badge'
+import { projectPluginWorktreeBadges } from './plugin-worktree-badge-projection'
 
 const PLUGIN_LIST_PROJECTION_CONCURRENCY = 4
 
@@ -64,6 +66,7 @@ export type PluginListEntry = {
     handler: { type: 'built-in'; action: PluginCommandAliasActionId } | { type: 'worker' }
     keybindings: { key: string; when: 'global' | 'worktree' }[]
   }[]
+  worktreeBadges: PluginWorktreeBadgeEntry[]
   hasWorker: boolean
   vmRecipes: {
     id: string
@@ -113,6 +116,7 @@ export async function buildPluginList(
           capabilities: [],
           panels: [],
           commands: [],
+          worktreeBadges: [],
           hasWorker: false,
           vmRecipes: [],
           restarts: 0
@@ -184,6 +188,7 @@ export async function buildPluginList(
           handler: command.handler,
           keybindings: command.keybindings
         })),
+        worktreeBadges: await projectPluginWorktreeBadges(plugin),
         hasWorker: Boolean(plugin.manifest.main),
         vmRecipes: service.contentPacks.vmRecipes.preview(plugin.pluginKey).map(({ recipe }) => ({
           id: recipe.id,

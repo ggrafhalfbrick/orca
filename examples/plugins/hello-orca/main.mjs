@@ -10,6 +10,14 @@ export default function activate(orca) {
     return { pong: true, count, args: args ?? null }
   })
 
+  // Worktree commands get `args.worktree` (path, displayName, branch, host) when run from a
+  // worktree badge, the worktree context menu, or the palette; `message` is shown as a toast.
+  orca.commands.register('hello-worktree', async (args) => ({
+    message: args?.worktree
+      ? `${args.worktree.displayName} is at ${args.worktree.path}`
+      : 'Run this command on a worktree.'
+  }))
+
   orca.events.on('worktree.created', async (payload) => {
     orca.log(`worktree created: ${payload.worktreeId} at ${payload.path}`)
     await orca.host.call('notifications.show', {

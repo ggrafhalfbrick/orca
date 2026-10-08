@@ -11687,7 +11687,7 @@
           "keepDisabled": "Garder désactivé",
           "enable": "Activer le plugin",
           "capability": {
-            "workspaceRead": "Lire le nom, la branche et la liste des terminaux de votre worktree actif",
+            "workspaceRead": "Lire le nom, la branche et la liste des terminaux de votre worktree actif, ainsi que le dossier d'un worktree sur lequel vous exécutez l'une de ses commandes",
             "terminalSend": "Saisir du texte dans un terminal visible (toujours un terminal spécifique)",
             "notificationsShow": "Afficher des notifications de bureau libellées avec le nom du plugin",
             "storage": "Stocker des données dans le dossier de stockage propre au plugin",

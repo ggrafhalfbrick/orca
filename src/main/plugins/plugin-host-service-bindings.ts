@@ -4,9 +4,10 @@ import type { PluginHostServices } from './plugin-host-methods'
 import { PluginSecretsStore } from './plugin-secrets-store'
 import { PluginKvStore } from './plugin-storage-store'
 import type { TerminalInputKind } from '../../shared/terminal-input-kind'
+import type { PluginWorktreeContextResolver } from './plugin-command-invocation'
 
 /** Structural subset of OrcaRuntimeService exposed to plugin facade bindings. */
-export type PluginRuntimeDelegate = {
+export type PluginRuntimeDelegate = PluginWorktreeContextResolver & {
   resolveActiveWorktreeContext(): Promise<{
     worktreeId: string
     path: string

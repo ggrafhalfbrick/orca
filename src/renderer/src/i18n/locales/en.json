@@ -6569,6 +6569,9 @@
         "WorktreeListScrollToTopButton": {
           "jumpToTop": "Jump to top"
         },
+        "WorktreePluginBadgeMenuItems": {
+          "failed": "Could not run {{value0}}"
+        },
         "WorktreeVisibilitySourceList": {
           "claude": "Claude Code",
           "gsd": "GSD",
@@ -11806,7 +11809,7 @@
           "keepDisabled": "Keep Disabled",
           "enable": "Enable plugin",
           "capability": {
-            "workspaceRead": "Read the name, branch, and terminal list of your focused worktree",
+            "workspaceRead": "Read the name, branch, and terminal list of your focused worktree, and the folder of a worktree you run one of its commands on",
             "terminalSend": "Type text into a terminal you can see (always a specific terminal)",
             "notificationsShow": "Show desktop notifications labeled with the plugin name",
             "storage": "Store data in the plugin's own storage folder",

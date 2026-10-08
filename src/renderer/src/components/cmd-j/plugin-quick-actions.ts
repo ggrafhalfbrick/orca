@@ -26,8 +26,8 @@ export function buildPluginQuickActions(
       command.context === 'worktree' && !context.activeWorktreeId
         ? { available: false, reason: 'no-active-workspace' }
         : { available: true },
-    run: async () => {
-      await executePluginCommand(command, 'plugin-palette')
+    run: async (ctx) => {
+      await executePluginCommand(command, 'plugin-palette', { worktreeId: ctx.activeWorktreeId })
       return { status: 'ok' }
     }
   }))

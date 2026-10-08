@@ -12,6 +12,7 @@ import { resolveRepoHeaderColor } from './project-header-color'
 import { formatSparseDirectoryPreview, shouldBeginWorktreeRename } from './worktree-card-model'
 import type { WorktreeCardPresentation } from './worktree-card-presentation'
 import { WorktreeCardSshHostControl } from './WorktreeCardSshHostControl'
+import { WorktreeCardPluginBadges } from './WorktreeCardPluginBadges'
 import { WorktreeTitleInlineRename } from './WorktreeTitleInlineRename'
 import type { WorktreeCardController } from './use-worktree-card-controller'
 
@@ -76,6 +77,7 @@ export function WorktreeCardHeader({
     titleRenaming,
     handleOpenRenameErrorDialog,
     isFolder,
+    isActive,
     handleWorkspaceQuickAction
   } = card
   const {
@@ -183,6 +185,16 @@ export function WorktreeCardHeader({
           }
           onBeginEditingConsumed={affiliateListMode ? undefined : () => setRenamingWorktreeId(null)}
         />
+
+        {!titleRenaming && !affiliateListMode && !isDeleting && (
+          <WorktreeCardPluginBadges
+            worktreeId={worktree.id}
+            worktreePath={worktree.path}
+            connectionId={repo?.connectionId ?? null}
+            isActive={isActive}
+            onPointerDown={stopQuickActionPointerPropagation}
+          />
+        )}
 
         {typeof worktree.firstAgentMessageRenameError === 'string' &&
         worktree.firstAgentMessageRenameError.length > 0 &&

@@ -15,6 +15,7 @@ type ContributionValidationManifest = {
     keybindings: { command: string; key: string; when?: 'global' | 'worktree' }[]
     vmRecipes: PathContribution[]
     agents: PathContribution[]
+    worktreeBadges: (IdentifiedContribution & { commands: string[] })[]
   }
   capabilities: { kind: string }[]
 }
@@ -139,6 +140,45 @@ export function validatePluginManifestContributions(
       code: 'custom',
       path: ['capabilities'],
       message: 'events:subscribe capability required when contributes.events is non-empty'
+    })
+  }
+  validateWorktreeBadges(manifest, ctx)
+}
+
+function validateWorktreeBadges(
+  manifest: ContributionValidationManifest,
+  ctx: RefinementCtx
+): void {
+  const badges = manifest.contributes.worktreeBadges
+  rejectDuplicateValues(
+    badges,
+    (entry) => (entry as IdentifiedContribution).id,
+    'worktreeBadges',
+    'worktreeBadges id',
+    ctx
+  )
+  const commands = new Map(manifest.contributes.commands.map((command) => [command.id, command]))
+  for (const [index, badge] of badges.entries()) {
+    for (const [commandIndex, commandId] of badge.commands.entries()) {
+      const command = commands.get(commandId)
+      if (!command || command.action !== undefined || command.context !== 'worktree') {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['contributes', 'worktreeBadges', index, 'commands', commandIndex],
+          message: `must name a contributed worker command with context "worktree": ${commandId}`
+        })
+      }
+    }
+  }
+  // Why: running a badge command hands the plugin the worktree's folder path.
+  if (
+    badges.length > 0 &&
+    !manifest.capabilities.some((capability) => capability.kind === 'workspace:read')
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['capabilities'],
+      message: 'workspace:read capability required when contributes.worktreeBadges is non-empty'
     })
   }
 }

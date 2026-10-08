@@ -7,6 +7,7 @@ import type { PluginLanguagePackRegistration } from '../../shared/plugins/plugin
 import type { PluginChangeEvent } from '../../shared/plugins/plugin-change-event'
 import type { PluginManifest } from '../../shared/plugins/plugin-manifest'
 import type { PluginMarketplaceGitSource } from '../../shared/plugins/plugin-marketplace'
+import type { PluginWorktreeBadgeEntry } from '../../shared/plugins/plugin-worktree-badge'
 
 /** Panel contribution as surfaced by the main-process plugin service. */
 export type PluginHostPanel = {
@@ -53,6 +54,8 @@ export type PluginHostListEntry = {
     handler: { type: 'built-in'; action: string } | { type: 'worker' }
     keybindings: { key: string; when: 'global' | 'worktree' }[]
   }[]
+  /** Absent from hosts that predate worktree badges. */
+  worktreeBadges?: PluginWorktreeBadgeEntry[]
   hasWorker: boolean
   vmRecipes?: {
     id: string
