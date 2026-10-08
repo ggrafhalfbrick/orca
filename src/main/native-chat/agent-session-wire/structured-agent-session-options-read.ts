@@ -21,7 +21,10 @@ import { structuredAgentSessionOptionModels } from './structured-agent-session-o
 import type { AgentSessionTurnContext, TurnOutcome } from './structured-agent-session-turns'
 import type { StructuredAgentSessionMutationContext } from './structured-agent-session-host-mutations'
 
-type RestingOptions = Pick<AgentSessionOptionsResult, 'models' | 'fastModeSupport' | 'current'>
+type RestingOptions = Pick<
+  AgentSessionOptionsResult,
+  'models' | 'fastModeSupport' | 'permissionMode' | 'current'
+>
 
 /** The at-rest rules of the record's agent, as this runtime registered it; null for any other. */
 function restingOptionRules(
@@ -63,11 +66,16 @@ async function readStructuredAgentSessionOptionsAtRest(
     (rules?.effortDefaultsToModel
       ? models.find((entry) => entry.id === model)?.defaultEffort
       : undefined)
+  // Only the agent's adapter knows the mode its next launch starts in.
+  const permissionMode = await deps.agents
+    .registration(record.provider)
+    ?.adapter.readRestingPermissionMode?.(record)
   return {
     models: listed ? structuredAgentSessionOptionModels(listed, model, (row) => row) : [],
     ...(catalog.origin !== 'unknown' && catalog.fastModeSupport
       ? { fastModeSupport: catalog.fastModeSupport }
       : {}),
+    ...(permissionMode ? { permissionMode } : {}),
     current: {
       model,
       ...(effort ? { effort } : {}),

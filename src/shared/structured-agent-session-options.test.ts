@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
+import type { AgentSessionOptionsResult } from './agent-session-wire'
+import { AGENT_SESSION_PERMISSION_MODE_KEY } from './agent-session-permission-mode'
 import { CODEX_SESSION_OPTION_CATALOG } from './agent-session-option-catalog-claude-codex'
 import { buildNativeChatSessionOptionSnapshot } from './native-chat-session-option-snapshot'
 import { createNativeChatSessionOptionRecord } from './native-chat-session-option-state'
 import {
   applyStructuredAgentSessionOptions,
+  canSetStructuredAgentSessionOption,
+  commitStructuredAgentSessionOptionValues,
   createStructuredAgentSessionOptionState,
   structuredAgentSessionOptionSnapshot,
   structuredAgentSessionOptionView
@@ -209,5 +213,89 @@ describe('structured agent session options', () => {
     expect(viewModel(live, seed, {})).toBe('gpt-5.6-luna')
     expect(viewModel(live, seed, { model: 'gpt-5.5' })).toBe('gpt-5.5')
     expect(live.record.model?.value).toBe('gpt-5.6-luna')
+  })
+})
+
+describe('structured agent session permission mode', () => {
+  // Deliberately not Claude's vocabulary: the client knows no provider's modes.
+  const SANDBOX_MODES = [
+    { id: 'read-only', label: 'Read only', description: 'Look, never touch' },
+    { id: 'workspace', label: 'Workspace', description: 'Edit inside the workspace' },
+    { id: 'full', label: 'Full access' }
+  ]
+  const reported = (
+    permissionMode?: AgentSessionOptionsResult['permissionMode']
+  ): AgentSessionOptionsResult => ({
+    models: [{ id: 'model-a', label: 'Model A', isDefault: true, efforts: [] }],
+    ...(permissionMode ? { permissionMode } : {}),
+    current: { model: 'model-a' }
+  })
+  const apply = (result: AgentSessionOptionsResult) =>
+    applyStructuredAgentSessionOptions(
+      createStructuredAgentSessionOptionState('codex'),
+      CODEX_SESSION_OPTION_CATALOG,
+      result
+    )
+  const permissionDescriptor = (state: ReturnType<typeof apply>) =>
+    structuredAgentSessionOptionSnapshot(state).find(
+      (descriptor) => descriptor.id === AGENT_SESSION_PERMISSION_MODE_KEY
+    )
+
+  it("renders any provider's modes in its own words", () => {
+    const state = apply(reported({ current: 'workspace', modes: SANDBOX_MODES, confirmed: true }))
+
+    expect(permissionDescriptor(state)).toMatchObject({
+      category: 'mode',
+      settable: true,
+      valueSource: 'reported',
+      kind: {
+        type: 'select',
+        currentValue: 'workspace',
+        choices: [
+          { value: 'read-only', label: 'Read only', description: 'Look, never touch' },
+          { value: 'workspace', label: 'Workspace', description: 'Edit inside the workspace' },
+          { value: 'full', label: 'Full access' }
+        ]
+      }
+    })
+    expect(
+      canSetStructuredAgentSessionOption(state, AGENT_SESSION_PERMISSION_MODE_KEY, 'full')
+    ).toBe(true)
+    expect(
+      canSetStructuredAgentSessionOption(state, AGENT_SESSION_PERMISSION_MODE_KEY, 'bypass')
+    ).toBe(false)
+  })
+
+  it('drops a mode a newer host describes in a shape this client cannot render', () => {
+    const malformed: unknown[] = [{ id: 'nameless' }, 'full', null, ...SANDBOX_MODES]
+    const state = apply(
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: models a host whose report this client's types do not describe.
+      reported({ current: 'full', modes: malformed as typeof SANDBOX_MODES, confirmed: false })
+    )
+    const descriptor = permissionDescriptor(state)
+
+    expect(
+      descriptor?.kind.type === 'select' && descriptor.kind.choices.map((choice) => choice.value)
+    ).toEqual(['read-only', 'workspace', 'full'])
+  })
+
+  it('offers nothing from a host or provider that reports no modes', () => {
+    expect(permissionDescriptor(apply(reported()))).toBeUndefined()
+    expect(
+      permissionDescriptor(apply(reported({ current: 'x', modes: [], confirmed: false })))
+    ).toBeUndefined()
+  })
+
+  it('shows a committed pick before the next read confirms it', () => {
+    const state = apply(reported({ current: 'read-only', modes: SANDBOX_MODES, confirmed: false }))
+
+    const committed = commitStructuredAgentSessionOptionValues(state, {
+      [AGENT_SESSION_PERMISSION_MODE_KEY]: 'workspace'
+    })
+
+    expect(permissionDescriptor(committed)).toMatchObject({
+      valueSource: 'dispatched',
+      kind: { currentValue: 'workspace' }
+    })
   })
 })

@@ -14,6 +14,7 @@ import type {
   ClaudeStreamJsonConnection,
   openClaudeStreamJsonConnection
 } from './claude-stream-json-connection'
+import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk'
 import type { ClaudeStructuredLaunch } from './claude-structured-launch-resolution'
 import type { ClaudeJournalTranslator } from './claude-journal-translator-contract'
 import type { ClaudePendingPrompt, ClaudePromptRegistry } from './claude-structured-prompt-replies'
@@ -103,6 +104,8 @@ export type ClaudeStructuredSessionAdapterDeps = {
   resolveLaunch: (input: {
     identity: AgentSessionJournalIdentity
   }) => Promise<ClaudeStructuredLaunch>
+  /** The mode a launch would start in now; absent offers a chat at rest no permission switch. */
+  resolveLaunchPermissionMode?: () => Promise<PermissionMode>
   onEvent?: (event: ClaudeStructuredSessionEvent) => void
   /** Direct settlement path for provider-proven late dispatch outcomes. */
   onDispatchSettledLate?: (input: { sessionId: string } & ClaudeLateDispatchOutcome) => void
@@ -172,7 +175,11 @@ export type ClaudeSession = {
   /** Once a retired waiter is evicted, legacy content-only replay matching is unsafe. */
   replayContentFallbackBlocked: boolean
   options: Map<string, string>
-  reportedOptions: { model?: string; effort?: string; fastMode?: boolean }
+  reportedOptions: { model?: string; effort?: string; fastMode?: boolean; permissionMode?: string }
+  /** The mode the child was spawned in; absent is the CLI's own default. */
+  launchedPermissionMode?: string
+  /** The child was launched able to bypass permissions; the CLI refuses to enter that mode otherwise. */
+  bypassPermissionsAvailable?: true
   /** What `get_settings` says the next request will send, after Claude's own env and settings
    *  precedence: the lowest-ranked answer, unconfirmed until a turn reports it. */
   appliedOptions?: { model?: string; effort?: string }

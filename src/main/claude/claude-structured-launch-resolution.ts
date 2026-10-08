@@ -26,7 +26,7 @@ import {
   type ClaudeEnvDeps
 } from './claude-structured-child-env'
 import { claudeStructuredLaunchArgs } from './claude-structured-launch-args'
-import type { ClaudeCliFlagSupport } from './claude-cli-flag-support'
+import { CLAUDE_ALLOW_BYPASS_FLAG, type ClaudeCliFlagSupport } from './claude-cli-flag-support'
 import { resolveClaudeLaunchFlags } from './claude-structured-launch-flags'
 import {
   withNativeChatVisualsEnv,
@@ -36,6 +36,7 @@ import {
   claudeLaunchResumesTranscript,
   resolveClaudeStructuredLaunchHome
 } from './claude-structured-launch-home'
+import { claudeStructuredLaunchPermissionMode } from './claude-structured-permission-mode'
 import type { AgentSessionRecordStore } from '../runtime/agent-session-record-store'
 import { resolveAgentSessionLaunchDirectory } from '../runtime/agent-session-launch-directory'
 import { CLAUDE_STRUCTURED_AGENT } from './claude-structured-agent-definition'
@@ -82,15 +83,18 @@ export const CLAUDE_STRUCTURED_BASE_OPTIONS: ClaudeStructuredSdkOptions = {
 }
 
 /**
- * Agent Permissions as query-start options.
+ * The launch's permission mode as query-start options.
  *
  * The owned CLI flag preserves the user-installed binary contract. The SDK's typed bypass option
  * emits a newer allow flag that older Claude binaries reject before a structured session starts.
  */
 export function claudeStructuredPermissionOptions(
   mode: PermissionMode
-): Pick<ClaudeStructuredSdkOptions, 'extraArgs'> {
-  return mode === 'bypassPermissions' ? { extraArgs: { 'dangerously-skip-permissions': null } } : {}
+): Pick<ClaudeStructuredSdkOptions, 'extraArgs' | 'permissionMode'> {
+  if (mode === 'bypassPermissions') {
+    return { extraArgs: { 'dangerously-skip-permissions': null } }
+  }
+  return mode === 'default' ? {} : { permissionMode: mode }
 }
 
 export type ClaudeStructuredLaunch = {
@@ -109,6 +113,8 @@ export type ClaudeStructuredLaunch = {
   /** Lineage: the record's chain already heads this provider session, so the child continues it
    *  even when no transcript exists to `--resume`. Never derived from the launch mode. */
   continuesChain: boolean
+  /** A bypassing launch whose CLI can hold bypass available while starting in another mode. */
+  keepsBypassAvailable?: true
 }
 
 export type ClaudeStructuredLaunchResolverDeps = {
@@ -225,15 +231,21 @@ export function createClaudeStructuredLaunchResolver(
     const probeLaunch = { command: sources.command, cwd, env: claudeProbeEnv(sources) }
     const launchFlags = resolveClaudeLaunchFlags(deps, record.sessionId, probeLaunch)
     const configured = claudeStructuredLaunchArgs(await deps.resolveLaunchArgs())
+    const mode = claudeStructuredLaunchPermissionMode(
+      (await deps.resolvePermissionMode?.()) ?? 'default',
+      configured.permissionMode
+    )
+    // Only a bypassing launch has a bypass a saved pick could need to keep; shares the flags' probe.
+    const keepsBypass =
+      mode === 'bypassPermissions' && deps.cliFlags?.supports(CLAUDE_ALLOW_BYPASS_FLAG, probeLaunch)
     const { thinkingDisplayArgs, visuals } = await launchFlags
+    const keepsBypassAvailable = (await keepsBypass) === true
     const additionalDirectories = [
       ...configured.additionalDirectories,
       ...(deps.attachmentDirectory ? [deps.attachmentDirectory] : []),
       ...(visuals ? [visuals.visuals.folder] : [])
     ]
-    const permission = claudeStructuredPermissionOptions(
-      (await deps.resolvePermissionMode?.()) ?? 'default'
-    )
+    const permission = claudeStructuredPermissionOptions(mode)
     const { command, env, account } = await resolveClaudeStructuredInvocation(
       deps,
       (base) =>
@@ -287,7 +299,8 @@ export function createClaudeStructuredLaunchResolver(
       providerSessionId,
       resumeLeafUuid: resumesTranscript ? leafUuid : null,
       resumesTranscript,
-      continuesChain
+      continuesChain,
+      ...(keepsBypassAvailable ? { keepsBypassAvailable: true } : {})
     }
   }
 }

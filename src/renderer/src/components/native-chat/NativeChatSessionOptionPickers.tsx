@@ -27,11 +27,13 @@ import {
   nativeChatModelPillLabel,
   nativeChatOptionsPillLabel,
   nativeChatOptionsPillTitle,
+  nativeChatPermissionModePillLabel,
   nativeChatSessionChoiceLabel,
   nativeChatSessionOptionDisabledReason,
   nativeChatSessionOptionLabel
 } from './native-chat-session-option-labels'
 import type { NativeChatOptionPickerRequest } from './native-chat-composer-types'
+import { AGENT_SESSION_PERMISSION_MODE_KEY } from '../../../../shared/agent-session-permission-mode'
 import { agentSessionThrownFailure } from '../../../../shared/agent-session-write-failure'
 import { RuntimeRpcCallError } from '@/runtime/runtime-rpc-result'
 import { agentSessionWriteFailureText } from './agent-session-write-notice-text'
@@ -176,7 +178,7 @@ function DescriptorMenuRows(props: {
           disabled={!descriptor.settable || pending}
         >
           <NativeChatSessionOptionChoiceBody
-            label={nativeChatSessionChoiceLabel(choice)}
+            label={nativeChatSessionChoiceLabel(choice, descriptor.id)}
             description={choice.description}
           />
         </DropdownMenuRadioItem>
@@ -218,7 +220,13 @@ function NativeChatSessionOptionPickersInner({
 }: NativeChatSessionOptionPickersProps): React.JSX.Element | null {
   const [pendingId, setPendingId] = useState<string | null>(null)
   const model = snapshot.find((descriptor) => descriptor.category === 'model')
-  const options = sortNativeChatSessionOptions(snapshot)
+  // Its own pill: which mode tools run under should be readable at a glance.
+  const permission = snapshot.find(
+    (descriptor) => descriptor.id === AGENT_SESSION_PERMISSION_MODE_KEY
+  )
+  const options = sortNativeChatSessionOptions(snapshot).filter(
+    (descriptor) => descriptor !== permission
+  )
   if (!surface || !model) {
     return null
   }
@@ -228,6 +236,8 @@ function NativeChatSessionOptionPickersInner({
   const requestedOptionsSequence = options.some((descriptor) => descriptor.id === pickerRequest?.id)
     ? (pickerRequest?.sequence ?? null)
     : null
+  const requestedPermissionSequence =
+    permission && pickerRequest?.id === permission.id ? pickerRequest.sequence : null
 
   const setOption = (descriptor: SessionOptionDescriptor, value: SessionOptionValue): void => {
     runSurfaceCall(descriptor.id, setPendingId, () => surface.setOption(descriptor.id, value))
@@ -252,6 +262,7 @@ function NativeChatSessionOptionPickersInner({
     options.length > 0 && options.every((descriptor) => !descriptor.settable)
       ? nativeChatSessionOptionDisabledReason(options[0]?.disabledReason)
       : null
+  const permissionReason = nativeChatSessionOptionDisabledReason(permission?.disabledReason)
 
   return (
     <div className="flex min-w-0 items-center gap-0.5 text-chat-foreground-faint">
@@ -320,6 +331,33 @@ function NativeChatSessionOptionPickersInner({
                 </div>
               )
             })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
+      {permission ? (
+        <DropdownMenu
+          key={`permission:${requestedPermissionSequence ?? 'idle'}`}
+          defaultOpen={requestedPermissionSequence !== null}
+        >
+          <PickerTrigger
+            Trigger={DropdownMenuTrigger}
+            label={nativeChatPermissionModePillLabel(permission)}
+            tooltipLabel={nativeChatSessionOptionLabel(permission)}
+            // Not held for a running turn: switching to accept edits mid-turn is the point.
+            disabled={pendingId !== null}
+            disabledReason={permissionReason}
+            dispatched={sessionOptionDispatchUnconfirmed(permission)}
+          />
+          <DropdownMenuContent align="start" side="top" collisionPadding={8} className="w-72">
+            {permissionReason && !permission.settable ? (
+              <DropdownMenuLabel>{permissionReason}</DropdownMenuLabel>
+            ) : null}
+            <DescriptorMenuRows
+              descriptor={permission}
+              pending={pendingId !== null}
+              setValue={(value) => setOption(permission, value)}
+              invokeAction={() => invokeAction(permission)}
+            />
           </DropdownMenuContent>
         </DropdownMenu>
       ) : null}

@@ -1,4 +1,6 @@
+import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk'
 import { StructuredAgentArgumentsError } from '../native-chat/structured-agent-arguments-error'
+import { isClaudePermissionMode } from './claude-structured-spawn-options'
 
 /** Flags supplied by the SDK or owned by Orca's structured transport. */
 const OWNED_FLAGS = new Set([
@@ -46,9 +48,13 @@ const SHORT_FLAGS: Record<string, string> = {
 export function claudeStructuredLaunchArgs(args: readonly string[]): {
   extraArgs: Record<string, string | null>
   additionalDirectories: string[]
+  /** The Arguments' `--permission-mode`: owned, so it never passes through, but it names the
+   *  mode a terminal launch would start in. */
+  permissionMode?: PermissionMode
 } {
   const extraArgs: Record<string, string | null> = {}
   const additionalDirectories: string[] = []
+  let permissionMode: PermissionMode | undefined
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!
     if (arg === '--') {
@@ -66,6 +72,10 @@ export function claudeStructuredLaunchArgs(args: readonly string[]): {
     while (args[index + 1] !== undefined && !args[index + 1]!.startsWith('-')) {
       values.push(args[++index]!)
     }
+    const [mode] = values
+    if (flag === 'permission-mode' && values.length === 1 && mode && isClaudePermissionMode(mode)) {
+      permissionMode = mode
+    }
     if (OWNED_FLAGS.has(flag)) {
       continue
     }
@@ -81,5 +91,5 @@ export function claudeStructuredLaunchArgs(args: readonly string[]): {
     }
     extraArgs[flag] = values[0] ?? null
   }
-  return { extraArgs, additionalDirectories }
+  return { extraArgs, additionalDirectories, ...(permissionMode ? { permissionMode } : {}) }
 }

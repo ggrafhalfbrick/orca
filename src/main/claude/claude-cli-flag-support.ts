@@ -17,6 +17,13 @@ export const CLAUDE_PLUGIN_DIR_FLAG: ClaudeCliFlag = {
   firstVersion: '2.0.25'
 }
 
+// Why 2.1.143: the earliest release the CLI changelog names it in, not a parser reading. If older,
+// that only costs an older CLI its bypass after a relaunch in another mode, as before the flag.
+export const CLAUDE_ALLOW_BYPASS_FLAG: ClaudeCliFlag = {
+  option: '--allow-dangerously-skip-permissions',
+  firstVersion: '2.1.143'
+}
+
 /** How long a launch waits on a binary nothing is known about yet. A warm probe answers in tens of
  *  milliseconds; this covers a cold disk, a node install and an antivirus scan, paid once per key
  *  during a start that already takes seconds. */

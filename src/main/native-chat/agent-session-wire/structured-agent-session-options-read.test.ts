@@ -10,7 +10,13 @@ import {
 import type { StructuredAgentSessionMutationContext } from './structured-agent-session-host-mutations'
 import { readStructuredAgentSessionOptions } from './structured-agent-session-options-read'
 import { StructuredAgentSessionTaskQueue } from './structured-agent-session-task-queue'
-import { NO_STRUCTURED_AGENTS } from './structured-agent-session-adapter-router-test-support'
+import {
+  NO_STRUCTURED_AGENTS,
+  declaringNothing
+} from './structured-agent-session-adapter-router-test-support'
+import { StructuredAgentRegistry } from './structured-agent-registry'
+import type { StructuredAgentSessionAdapter } from './structured-agent-session-adapter'
+import { CLAUDE_STRUCTURED_AGENT } from '../../claude/claude-structured-agent-definition'
 
 const SESSION = 'session-1'
 
@@ -52,6 +58,40 @@ describe('options at rest', () => {
     const result = await readStructuredAgentSessionOptions(context, SESSION)
     expect(probe).toHaveBeenCalledTimes(1)
     expect(result.models).toEqual([])
+  })
+
+  // A chat is at rest after every app start, so the pill must not wait for its child.
+  it("offers the agent's permission mode for the next start", async () => {
+    const record = { ...restingRecord(), provider: 'claude', options: { permissionMode: 'plan' } }
+    const answer = {
+      current: 'plan',
+      modes: [
+        { id: 'default', label: 'Ask' },
+        { id: 'plan', label: 'Plan' }
+      ],
+      confirmed: false
+    }
+    const readRestingPermissionMode = vi.fn(async () => answer)
+    const agents = new StructuredAgentRegistry([
+      {
+        definition: declaringNothing(CLAUDE_STRUCTURED_AGENT),
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: a definition declaring nothing needs no other adapter method.
+        adapter: { readRestingPermissionMode } as unknown as StructuredAgentSessionAdapter
+      }
+    ])
+    const resting = { child: null, params: { provider: 'claude' } }
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the resting read touches only these members.
+    const context = {
+      deps: { adapter: {}, agents, store: { getRecord: () => record } },
+      serialize: (_sessionId: string, task: () => Promise<unknown>) => task(),
+      openConversation: async () => resting,
+      conversation: async () => resting
+    } as unknown as StructuredAgentSessionMutationContext
+
+    const result = await readStructuredAgentSessionOptions(context, SESSION)
+
+    expect(readRestingPermissionMode).toHaveBeenCalledWith(record)
+    expect(result.permissionMode).toEqual(answer)
   })
 })
 

@@ -18280,6 +18280,7 @@
           "max": "Max",
           "ultra": "Ultra"
         },
+        "permissionMode": "Permissions",
         "pendingAttachmentLimit": "Too many attachments are waiting. Finish composing before attaching more.",
         "viewAttachment": "View image",
         "imagePreview": "Full-size image preview",

@@ -240,8 +240,8 @@ export class OrcaRuntimeWithGetWorktreePs extends OrcaRuntimeWithStartTuiIdleVis
         nativeChatShellEnvironmentPolicy(this.requireStore().getSettings()),
       resolveClaudeAuthPolicy: () =>
         claudeStructuredAuthPolicyForSettings(this.requireStore().getSettings()),
-      // Re-read per acquisition, like the auth policy above it: the Agent Permissions setting is
-      // the one copy of this fact, even when Arguments contain permission flags.
+      // Re-read per acquisition, like the auth policy above it. Only Yolo's bypass is read here; the
+      // launch takes a `--permission-mode` from the Arguments itself when Yolo is off.
       resolveClaudePermissionMode: () =>
         claudeStructuredPermissionModeForSettings(this.requireStore().getSettings()),
       resolveCodexPermissionPolicy: () =>

@@ -21,6 +21,8 @@ import { openClaudeStreamJsonConnection } from '../claude/claude-stream-json-con
 import type { ClaudeCliFlagSupport } from '../claude/claude-cli-flag-support'
 import { prewarmClaudeCliFlags } from '../claude/claude-cli-flag-prewarm'
 import type { PrepareNativeChatVisuals } from '../native-chat/native-chat-visuals-delivery'
+import { claudeStructuredLaunchArgs } from '../claude/claude-structured-launch-args'
+import { claudeStructuredLaunchPermissionMode } from '../claude/claude-structured-permission-mode'
 
 export type StructuredClaudeRuntimeAdapterDeps = {
   store: AgentSessionRecordStore
@@ -82,6 +84,23 @@ export function structuredClaudeLifecycleEvent(
   return null
 }
 
+/** The mode a chat's next launch starts in, read from the settings the launch reads. */
+async function claudeLaunchPermissionModeOf(
+  deps: Pick<
+    StructuredClaudeRuntimeAdapterDeps,
+    'resolveClaudePermissionMode' | 'resolveClaudeLaunchArgs'
+  >
+): Promise<PermissionMode> {
+  const setting = (await deps.resolveClaudePermissionMode?.()) ?? 'default'
+  try {
+    const configured = claudeStructuredLaunchArgs(await deps.resolveClaudeLaunchArgs())
+    return claudeStructuredLaunchPermissionMode(setting, configured.permissionMode)
+  } catch {
+    // Arguments a launch would refuse name no mode; that launch reports the refusal itself.
+    return setting
+  }
+}
+
 export function createStructuredClaudeRuntimeAdapter(
   deps: StructuredClaudeRuntimeAdapterDeps
 ): ClaudeStructuredSessionAdapter {
@@ -119,6 +138,7 @@ export function createStructuredClaudeRuntimeAdapter(
       ...(deps.claudeCliFlags ? { cliFlags: deps.claudeCliFlags } : {}),
       ...(deps.prepareVisuals ? { prepareVisuals: deps.prepareVisuals } : {})
     }),
+    resolveLaunchPermissionMode: () => claudeLaunchPermissionModeOf(deps),
     persistHandle: async ({ sessionId, providerSessionId, leafUuid, fence }) => {
       const currentFence = store.getRecord(sessionId)?.lease.runtimeFence ?? fence
       const observedAt = Date.now()

@@ -4,6 +4,7 @@ import type {
   SessionOptionSelectChoice
 } from '../../../../shared/native-chat-session-options'
 import { translate } from '@/i18n/i18n'
+import { AGENT_SESSION_PERMISSION_MODE_KEY } from '../../../../shared/agent-session-permission-mode'
 
 export function nativeChatSessionOptionLabel(descriptor: SessionOptionDescriptor): string {
   switch (descriptor.id) {
@@ -15,12 +16,22 @@ export function nativeChatSessionOptionLabel(descriptor: SessionOptionDescriptor
       return translate('components.native-chat.composer.fastMode', 'Fast mode')
     case 'thinking':
       return translate('components.native-chat.composer.thinking', 'Thinking')
+    case AGENT_SESSION_PERMISSION_MODE_KEY:
+      return translate('components.native-chat.composer.permissionMode', 'Permissions')
     default:
       return descriptor.label
   }
 }
 
-export function nativeChatSessionChoiceLabel(choice: SessionOptionSelectChoice): string {
+/** `optionId` keeps a provider's own permission modes, whose ids may repeat an effort's, out of
+ *  the effort translations. */
+export function nativeChatSessionChoiceLabel(
+  choice: SessionOptionSelectChoice,
+  optionId?: string
+): string {
+  if (optionId === AGENT_SESSION_PERMISSION_MODE_KEY) {
+    return choice.label
+  }
   switch (choice.value) {
     case 'minimal':
       return translate('components.native-chat.composer.optionValue.minimal', 'Minimal')
@@ -79,6 +90,20 @@ export function nativeChatModelPillLabel(descriptor: SessionOptionDescriptor): s
       value: descriptor.kind.currentValue,
       label: descriptor.kind.currentValue
     }
+  )
+}
+
+export function nativeChatPermissionModePillLabel(descriptor: SessionOptionDescriptor): string {
+  const current = descriptor.kind.type === 'select' ? descriptor.kind.currentValue : undefined
+  if (!current || descriptor.kind.type !== 'select') {
+    return nativeChatSessionOptionLabel(descriptor)
+  }
+  return nativeChatSessionChoiceLabel(
+    descriptor.kind.choices.find((choice) => choice.value === current) ?? {
+      value: current,
+      label: current
+    },
+    descriptor.id
   )
 }
 

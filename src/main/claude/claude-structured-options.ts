@@ -1,4 +1,4 @@
-import type { EffortLevel, PermissionMode } from '@anthropic-ai/claude-agent-sdk'
+import type { EffortLevel } from '@anthropic-ai/claude-agent-sdk'
 import { ClaudeControlRequestError } from './claude-stream-json-connection'
 import { AgentSessionOptionRejectedError } from '../native-chat/agent-session-wire/structured-agent-session-option-error'
 import {
@@ -11,6 +11,7 @@ import {
   readClaudeSettingsFastMode
 } from './claude-structured-session-options'
 import type { ClaudeSession } from './claude-structured-session-state'
+import { claudeStructuredEnterablePermissionMode } from './claude-structured-permission-mode'
 import { decodeStructuredAgentSessionOptionValue } from '../../shared/structured-agent-session-option-codec'
 
 const OPTION_ORDER = ['model', 'effort', 'fastMode', 'permissionMode'] as const
@@ -71,11 +72,21 @@ export async function setClaudeStructuredOption(
     input.key === 'fastMode'
       ? decodeStructuredAgentSessionOptionValue('fastMode', input.value)
       : null
+  // The CLI refuses bypass to a child not launched with it; refused here, the pick is never saved.
+  const permissionMode =
+    input.key === 'permissionMode'
+      ? claudeStructuredEnterablePermissionMode(session, input.value)
+      : undefined
+  if (input.key === 'permissionMode' && !permissionMode) {
+    throw new AgentSessionOptionRejectedError(
+      `claude cannot switch this session to permission mode ${input.value}`
+    )
+  }
   const apply =
     input.key === 'model'
       ? () => session.connection.setModel(input.value, { timeoutMs })
-      : input.key === 'permissionMode'
-        ? () => session.connection.setPermissionMode(input.value as PermissionMode, { timeoutMs })
+      : permissionMode
+        ? () => session.connection.setPermissionMode(permissionMode, { timeoutMs })
         : input.key === 'effort'
           ? () =>
               session.connection.applyFlagSettings(
@@ -190,8 +201,10 @@ export async function setClaudeStructuredOption(
   }
   // apply_flag_settings answers `success` for an effort it then ignores, so the
   // absence of a throw proves nothing. Ask what the child actually holds.
-  const adopted =
-    (input.key === 'effort' && !UNREPORTED_EFFORTS.has(input.value)) || input.key === 'fastMode'
+  // set_permission_mode switches before it answers, so its acceptance is the adoption.
+  const adopted = permissionMode
+    ? permissionMode
+    : (input.key === 'effort' && !UNREPORTED_EFFORTS.has(input.value)) || input.key === 'fastMode'
       ? await session.connection
           .getSettings({ timeoutMs })
           .then((settings) =>
@@ -206,6 +219,9 @@ export async function setClaudeStructuredOption(
   }
   if (input.key === 'fastMode' && typeof adopted === 'boolean') {
     session.reportedOptions.fastMode = adopted
+  }
+  if (permissionMode) {
+    session.reportedOptions.permissionMode = permissionMode
   }
   // A disagreement stops main vouching for the value, it does not veto the write:
   // the pre-flight guard already refused levels the model advertises no control for,
