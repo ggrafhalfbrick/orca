@@ -1,5 +1,4 @@
 import { list, scalar } from './note-record.mjs'
-import { describeOwner } from './people.mjs'
 
 export const AGENT_PROMPT_MAX_CHARS = 16 * 1024
 const BODY_MAX_CHARS = 512 * 1024
@@ -11,11 +10,22 @@ const WORKSPACE_NAME_MAX = 48
 /**
  * @typedef {{
  *   settings: import('./settings.mjs').VaultSettings,
- *   person: (owner: string) => import('./people.mjs').Person | undefined,
- *   workProjectId: string,
- *   workSourceControl: string
+ *   vaultProjectId: string,
+ *   vaultSourceControl: string
  * }} ItemContext
  */
+
+/**
+ * Where Start creates the workspace: the vault config's `work-project` (a depot path or Git remote,
+ * which Orca matches to each person's own project), else the vault project itself.
+ * @param {ItemContext} context
+ */
+function workProject(context) {
+  const source = context.settings.workProjectSource
+  return source
+    ? { projectSource: clip(source, 512), perforce: source.startsWith('//') }
+    : { projectId: context.vaultProjectId, perforce: context.vaultSourceControl === 'perforce' }
+}
 
 /** Maps a note to the Tasks item shape (strict: optional keys are omitted, never undefined). */
 export function toTaskItem(record, context) {
@@ -29,7 +39,7 @@ export function toTaskItem(record, context) {
     item.priority = clip(record.priority, 32)
   }
   if (record.owner) {
-    item.owner = clip(context.person(record.owner)?.name ?? record.owner, 256)
+    item.owner = clip(record.owner, 256)
   }
   const labels = record.labels.slice(0, 16).map((label) => clip(label, 64))
   if (labels.length > 0) {
@@ -55,20 +65,21 @@ export function toTaskItem(record, context) {
 function startRecipe(record, context) {
   const { settings } = context
   const values = templateValues(record, context)
+  const { perforce, ...project } = workProject(context)
   /** @type {Record<string, unknown>} */
   const recipe = {
     workspaceName: toWorkspaceName(
       record.slug,
-      context.workSourceControl === 'perforce' ? PERFORCE_COPY_NAME_MAX : WORKSPACE_NAME_MAX
+      perforce ? PERFORCE_COPY_NAME_MAX : WORKSPACE_NAME_MAX
     ),
-    projectId: context.workProjectId
+    ...project
   }
   const base = values.base
   if (base) {
     recipe.baseRef = clip(base, 512)
   }
   if (!startsWithoutAgent(record, settings)) {
-    const prompt = renderTemplate(settings.promptTemplate, values, record)
+    const prompt = renderTemplate(settings.agentMessage, values, record)
     if (prompt) {
       recipe.agentPrompt = clip(prompt, AGENT_PROMPT_MAX_CHARS)
     }
@@ -110,7 +121,6 @@ function startsWithoutAgent(record, settings) {
  * @param {ItemContext} context
  */
 export function templateValues(record, context) {
-  const person = record.owner ? context.person(record.owner) : undefined
   const rawBase = scalar(record.fields[context.settings.baseField])
   return {
     title: record.title,
@@ -118,8 +128,7 @@ export function templateValues(record, context) {
     slug: record.slug,
     status: record.status.label,
     statusText: record.statusText,
-    owner: describeOwner(record.owner, person),
-    ownerEmail: person?.email ?? record.owner,
+    owner: record.owner || 'the note owner',
     priority: record.priority,
     labels: record.labels.join(', '),
     base: qualifyBase(rawBase, context.settings.basePrefix)

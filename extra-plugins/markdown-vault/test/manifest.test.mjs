@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
-import { DEFAULT_SETTINGS } from '../src/settings.mjs'
+import { DEFAULT_USER_SETTINGS } from '../src/settings.mjs'
 
 const manifest = JSON.parse(await readFile(new URL('../orca-plugin.json', import.meta.url), 'utf8'))
 const settings = manifest.contributes.settings
@@ -31,16 +31,19 @@ test('declared settings follow the contributes.settings contract', () => {
   }
 })
 
-test('every setting the plugin reads is declared, with the default the plugin applies', () => {
-  assert.deepEqual(settings.map((entry) => entry.key).sort(), Object.keys(DEFAULT_SETTINGS).sort())
+test("each person's settings are declared, with the defaults the plugin applies", () => {
+  assert.deepEqual(
+    settings.map((entry) => entry.key).sort(),
+    Object.keys(DEFAULT_USER_SETTINGS).sort()
+  )
   for (const entry of settings) {
-    assert.equal(entry.default ?? '', DEFAULT_SETTINGS[entry.key], entry.key)
+    assert.equal(entry.default ?? '', DEFAULT_USER_SETTINGS[entry.key], entry.key)
   }
 })
 
-test('capabilities cover what the worker calls', () => {
+test('identity and capabilities', () => {
   const kinds = manifest.capabilities.map((capability) => capability.kind).sort()
   assert.deepEqual(kinds, ['projects:read', 'settings:own', 'storage', 'tasks:provide'])
-  assert.equal(manifest.publisher, 'georg-graf')
-  assert.equal(manifest.author.name, 'Georg Graf')
+  assert.equal(`${manifest.publisher}.${manifest.id}`, 'earlgeorg.markdown-vault')
+  assert.equal(manifest.author.name, 'earlgeorg')
 })

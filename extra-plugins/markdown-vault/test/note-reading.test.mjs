@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { toNoteRecord } from '../src/note-record.mjs'
-import { parsePeople, describeOwner } from '../src/people.mjs'
+import { parseNote, toNoteRecord } from '../src/note-record.mjs'
 import { resolveSettings } from '../src/settings.mjs'
 import { parseStatusTones, resolveStatus } from '../src/status-tones.mjs'
 import { noteText } from './fixtures.mjs'
 
 const settings = resolveSettings({})
+
+function record(path, text, using = settings) {
+  return toNoteRecord({ path, ...parseNote(text) }, using)
+}
 
 test('status words map to tones; long statuses keep their leading known phrase', () => {
   const tones = parseStatusTones(
@@ -26,11 +29,6 @@ test('status words map to tones; long statuses keep their leading known phrase',
     label: 'In progress',
     tone: 'active'
   })
-  assert.deepEqual(resolveStatus('Shipped', tones), {
-    key: 'shipped',
-    label: 'Shipped',
-    tone: 'done'
-  })
   assert.deepEqual(resolveStatus('Needs design', tones), {
     key: 'needs design',
     label: 'Needs design',
@@ -43,76 +41,75 @@ test('status words map to tones; long statuses keep their leading known phrase',
   assert.deepEqual(resolveStatus('', tones), { key: 'none', label: 'No status', tone: 'open' })
 })
 
-test('a note reads through the configured fields', () => {
-  const record = toNoteRecord(
-    {
-      path: 'plans/open-stance.md',
-      text: noteText({
-        state: 'in_progress',
-        status: 'Waiting for art',
-        priority: 'p1',
-        owner: 'mia@example.com',
-        tags: '["#ai", animation, ai]',
-        updated: '2026-10-01'
-      })
-    },
-    settings
+test('a note reads through the default fields', () => {
+  const note = record(
+    'plans/open-stance.md',
+    noteText({
+      state: 'in_progress',
+      status: 'Waiting for art',
+      priority: 'p1',
+      owner: 'mia@example.com',
+      tags: '["#ai", animation, ai]',
+      updated: '2026-10-01'
+    })
   )
-  assert.equal(record.slug, 'open-stance')
-  assert.equal(record.title, 'Note')
-  assert.equal(record.statusText, 'in_progress')
-  assert.deepEqual(record.status, { key: 'in progress', label: 'In progress', tone: 'active' })
-  assert.equal(record.priority, 'P1')
-  assert.deepEqual(record.labels, ['ai', 'animation'])
-
-  const custom = resolveSettings({
-    statusFields: 'phase',
-    titleField: 'name',
-    labelsField: 'areas'
-  })
-  const other = toNoteRecord(
-    { path: 'x.md', text: noteText({ name: 'Custom', phase: 'Shipped', areas: 'ui, net' }) },
-    custom
-  )
-  assert.equal(other.title, 'Custom')
-  assert.equal(other.status.tone, 'done')
-  assert.deepEqual(other.labels, ['ui', 'net'])
+  assert.equal(note.slug, 'open-stance')
+  assert.equal(note.title, 'Note')
+  assert.equal(note.statusText, 'in_progress')
+  assert.deepEqual(note.status, { key: 'in progress', label: 'In progress', tone: 'active' })
+  assert.equal(note.priority, 'P1')
+  assert.deepEqual(note.labels, ['ai', 'animation'])
 })
 
-test('people come from any table with email and name columns, by email, login, name or alias', () => {
-  const people = parsePeople(
+test('the vault config note renames fields and sets the start behaviour for everyone', () => {
+  const config = parseNote(
     [
-      '| Name | Email | Aliases |',
-      '|---|---|---|',
-      '| **Mia Example** | `Mia@Example.com` | mia e, Mimi |',
-      '| No mail | — | |'
+      '---',
+      'status-fields: [phase]',
+      'title-field: name',
+      'labels-field: areas',
+      'status-words: |',
+      '  done: landed',
+      '  active: cooking',
+      'work-project: //depot/main',
+      'base-field: parent-stream',
+      'base-prefix: //depot/',
+      'filters: [team, area, kind, size, extra]',
+      'start-without-agent-when: mode = Manual',
+      'agent-message: |',
+      '  Do {{title}}.',
+      '',
+      '  Read {{path}} first.',
+      'link-notes:',
+      '  - plan: {{path}}',
+      '  - 1bad: x',
+      '  - task: Do {{title}}',
+      '---',
+      '',
+      '# How this vault works'
     ].join('\n')
-  )
-  for (const key of ['mia@example.com', 'mia', 'mia example', 'mimi', 'mia e']) {
-    assert.deepEqual(people.get(key), { name: 'Mia Example', email: 'mia@example.com' }, key)
-  }
-  assert.equal(people.size, 5)
-  assert.equal(describeOwner('mia', people.get('mia')), 'Mia Example (mia@example.com)')
-  assert.equal(describeOwner('someone', undefined), 'someone')
-})
-
-test('settings fall back on bad values and parse their small formats', () => {
-  const resolved = resolveSettings({
-    folder: '\\docs\\plans\\',
-    source: 'elsewhere',
-    filterFields: 'a, b, c, d, e',
-    startWithoutAgentWhen: 'agent_mode = Manual',
-    linkNotes: 'plan: {{path}}\n1bad: x\ntask: Do {{title}}\nempty:',
-    basePrefix: '//depot/'
-  })
-  assert.equal(resolved.folder, 'docs/plans')
-  assert.equal(resolved.source, 'latest')
-  assert.deepEqual(resolved.filterFields, ['a', 'b', 'c', 'd'])
-  assert.deepEqual(resolved.startWithoutAgentWhen, { field: 'agent_mode', value: 'manual' })
-  assert.deepEqual(resolved.linkNotes, [
+  ).fields
+  const configured = resolveSettings({ folder: '\\plans\\', source: 'elsewhere' }, config)
+  assert.equal(configured.folder, 'plans')
+  assert.equal(configured.source, 'latest')
+  assert.deepEqual(configured.statusFields, ['phase'])
+  assert.deepEqual(configured.filterFields, ['team', 'area', 'kind', 'size'])
+  assert.equal(configured.workProjectSource, '//depot/main')
+  assert.equal(configured.basePrefix, '//depot')
+  assert.deepEqual(configured.startWithoutAgentWhen, { field: 'mode', value: 'manual' })
+  assert.equal(configured.agentMessage, 'Do {{title}}.\n\nRead {{path}} first.')
+  assert.deepEqual(configured.linkNotes, [
     { key: 'plan', template: '{{path}}' },
     { key: 'task', template: 'Do {{title}}' }
   ])
-  assert.equal(resolved.basePrefix, '//depot')
+
+  const note = record(
+    'x.md',
+    noteText({ name: 'Custom', phase: 'Landed', areas: 'ui, net' }),
+    configured
+  )
+  assert.equal(note.title, 'Custom')
+  assert.equal(note.status.tone, 'done')
+  assert.deepEqual(note.labels, ['ui', 'net'])
   assert.equal(resolveSettings({ folder: '../outside' }).folder, '')
 })

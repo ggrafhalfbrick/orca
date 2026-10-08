@@ -4,26 +4,28 @@ import {
   buildNoteFilters,
   fieldFilterId,
   filterAndSortNotes,
+  pickFilterFields,
   resolveSelection
 } from '../src/note-filters.mjs'
 import { noteBodyMarkdown, renderTemplate, toTaskItem, toWorkspaceName } from '../src/note-item.mjs'
-import { toNoteRecord } from '../src/note-record.mjs'
-import { parsePeople } from '../src/people.mjs'
+import { parseNote, toNoteRecord } from '../src/note-record.mjs'
 import { resolveSettings } from '../src/settings.mjs'
 import { noteText } from './fixtures.mjs'
 
-const people = parsePeople('| Name | Email |\n|---|---|\n| Mia Example | mia@example.com |\n')
-const settings = resolveSettings({
-  filterFields: 'mode, parent-stream',
-  baseField: 'parent-stream',
-  basePrefix: '//depot',
-  startWithoutAgentWhen: 'mode=manual',
-  promptTemplate: 'Do {{title}} ({{path}}) for {{owner}} on {{base}}. Checks: {{field:acceptance}}',
-  linkNotes: 'plan: {{path}}\ntask: {{title}}'
-})
+const settings = resolveSettings(
+  { me: 'Mia@Example.com' },
+  {
+    'base-field': 'parent-stream',
+    'base-prefix': '//depot',
+    'start-without-agent-when': 'mode=manual',
+    'agent-message':
+      'Do {{title}} ({{path}}) for {{owner}} on {{base}}. Checks: {{field:acceptance}}',
+    'link-notes': ['plan: {{path}}', 'task: {{title}}']
+  }
+)
 
-function note(path, fields, body) {
-  return toNoteRecord({ path, text: noteText(fields, body) }, settings)
+function note(path, fields) {
+  return toNoteRecord({ path, ...parseNote(noteText(fields)) }, settings)
 }
 
 const records = [
@@ -31,76 +33,96 @@ const records = [
     title: 'Alpha',
     status: 'Active',
     priority: 'P1',
-    owner: 'mia',
+    owner: 'mia@example.com',
     tags: 'ui',
     updated: '2026-10-02',
     mode: 'assisted',
     'parent-stream': 'main-dev',
     acceptance: '[Looks right, Runs fast]',
     model: 'opus',
-    effort: 'High'
+    effort: 'High',
+    type: 'plan'
   }),
-  note('plans/b.md', { title: 'Beta', status: 'Done', priority: 'P0', owner: 'bo@example.com' }),
+  note('plans/b.md', {
+    title: 'Beta',
+    status: 'Done',
+    priority: 'P0',
+    owner: 'bo@example.com',
+    type: 'plan',
+    mode: 'assisted'
+  }),
   note('plans/c.md', {
     title: 'Gamma',
     status: 'Draft for review',
     mode: 'manual',
-    updated: '2026-10-05'
+    updated: '2026-10-05',
+    type: 'spec',
+    'parent-stream': 'main-dev'
   }),
-  note('plans/d.md', { title: 'Delta', status: 'Draft', priority: 'P1', updated: '2026-10-09' })
+  note('plans/d.md', {
+    title: 'Delta',
+    status: 'Draft',
+    priority: 'P1',
+    updated: '2026-10-09',
+    type: 'plan',
+    note: 'one of a kind text'
+  })
 ]
-const context = { people, me: 'Mia Example', filterFields: settings.filterFields }
+
+test('filter fields come from what the notes use, unless the config lists them', () => {
+  assert.deepEqual(pickFilterFields(records, settings), ['type', 'mode'])
+  assert.deepEqual(pickFilterFields(records, resolveSettings({}, { filters: 'parent-stream' })), [
+    'parent-stream'
+  ])
+})
 
 test('open work is the default view, sorted by priority then most recently updated', () => {
-  const selection = resolveSelection({}, context)
-  const shown = filterAndSortNotes(records, { query: '', selection, context })
+  const context = { me: settings.me, filterFields: [] }
+  const shown = filterAndSortNotes(records, {
+    query: '',
+    selection: resolveSelection({}, context),
+    context
+  })
   assert.deepEqual(
     shown.map((r) => r.title),
     ['Delta', 'Alpha', 'Gamma']
   )
 })
 
-test('filters offer statuses, mine, labels and extra fields, and drop values no longer offered', () => {
+test('filters offer statuses, mine, labels and field values, and drop values no longer offered', () => {
+  const context = { me: settings.me, filterFields: ['mode'] }
   const { filters, allowed } = buildNoteFilters(records, context)
   assert.deepEqual(
     filters.map((filter) => filter.id),
-    ['status', 'priority', 'owner', 'label', 'field-mode', 'field-parent-stream']
+    ['status', 'priority', 'owner', 'label', 'field-mode']
   )
   const owner = filters.find((filter) => filter.id === 'owner')
   assert.deepEqual(owner.options.slice(0, 2), [
     { value: 'all', label: 'All', count: 4 },
     { value: 'mine', label: 'Mine', count: 1 }
   ])
-  assert.ok(owner.options.some((o) => o.value === 'mia@example.com' && o.label === 'Mia Example'))
-
   const selection = resolveSelection(
     { owner: 'mine', [fieldFilterId('mode')]: 'assisted', label: 'nowhere' },
     context,
     allowed
   )
   assert.equal(selection.label, 'all')
-  const shown = filterAndSortNotes(records, { query: 'alp', selection, context })
   assert.deepEqual(
-    shown.map((r) => r.title),
+    filterAndSortNotes(records, { query: 'alp', selection, context }).map((r) => r.title),
     ['Alpha']
   )
 })
 
-test('a note starts a workspace prefilled from its fields and the templates', () => {
-  const itemContext = {
-    settings,
-    person: (owner) => people.get(owner.toLowerCase()),
-    workProjectId: 'work',
-    workSourceControl: 'perforce'
-  }
+test('a note starts a workspace prefilled from its fields and the vault config', () => {
+  const itemContext = { settings, vaultProjectId: 'vault', vaultSourceControl: 'git' }
   const item = toTaskItem(records[0], itemContext)
-  assert.equal(item.owner, 'Mia Example')
+  assert.equal(item.owner, 'mia@example.com')
   assert.deepEqual(item.start, {
     workspaceName: 'a',
-    projectId: 'work',
+    projectId: 'vault',
     baseRef: '//depot/main-dev',
     agentPrompt:
-      'Do Alpha (plans/a.md) for Mia Example (mia@example.com) on //depot/main-dev. Checks: Looks right; Runs fast',
+      'Do Alpha (plans/a.md) for mia@example.com on //depot/main-dev. Checks: Looks right; Runs fast',
     sessionOptions: { agent: 'claude', model: 'opus', effort: 'high' },
     linkMetadata: { plan: 'plans/a.md', task: 'Alpha' }
   })
@@ -112,6 +134,13 @@ test('a note starts a workspace prefilled from its fields and the templates', ()
   const done = toTaskItem(records[1], itemContext)
   assert.equal(Object.hasOwn(done, 'start'), false)
   assert.equal(done.startBlockedReason, 'This note is done.')
+
+  const elsewhere = toTaskItem(records[3], {
+    ...itemContext,
+    settings: resolveSettings({}, { 'work-project': '//depot/main' })
+  })
+  assert.equal(elsewhere.start.projectSource, '//depot/main')
+  assert.equal(Object.hasOwn(elsewhere.start, 'projectId'), false)
 
   assert.match(noteBodyMarkdown(records[0], itemContext), /- \*\*Base:\*\* `\/\/depot\/main-dev`/)
 })

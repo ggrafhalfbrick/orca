@@ -1,105 +1,92 @@
+import { list, scalar } from './note-record.mjs'
 import { DEFAULT_STATUS_TONES, parseStatusTones } from './status-tones.mjs'
 
-export const DEFAULT_PROMPT_TEMPLATE = [
+/** The vault's own configuration: a note in the notes folder whose frontmatter is the config. */
+export const CONFIG_NOTE = 'markdown-vault.md'
+
+export const DEFAULT_AGENT_MESSAGE = [
   'Work on the note "{{title}}" ({{path}}).',
   '',
   'Read that note first: it is your brief.'
 ].join('\n')
 
-export const DEFAULT_LINK_NOTES = 'note: {{path}}'
-export const EXTRA_FILTER_LIMIT = 4
+export const MAX_FILTER_FIELDS = 4
 const LINK_NOTE_LIMIT = 8
 const LINK_KEY = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/
 
-/** Defaults of every `contributes.settings` key; only user-set values are stored. */
-export const DEFAULT_SETTINGS = Object.freeze({
+/** Each person's own settings (Settings > Plugins); only user-set values are stored. */
+export const DEFAULT_USER_SETTINGS = Object.freeze({
   project: '',
   folder: '',
   source: 'latest',
-  statusFields: 'state, status',
-  titleField: 'title',
-  priorityField: 'priority',
-  ownerField: 'owner',
-  labelsField: 'tags',
-  updatedField: 'updated',
-  filterFields: '',
-  statusTones: DEFAULT_STATUS_TONES,
-  peopleFile: '',
-  me: '',
-  workProject: '',
-  baseField: 'base',
-  basePrefix: '',
-  modelField: 'model',
-  effortField: 'effort',
-  agent: 'claude',
-  startWithoutAgentWhen: '',
-  promptTemplate: DEFAULT_PROMPT_TEMPLATE,
-  linkNotes: DEFAULT_LINK_NOTES
+  me: ''
 })
 
-/**
- * @typedef {ReturnType<typeof resolveSettings>} VaultSettings
- */
+/** What the vault's config note may set, as its frontmatter keys, and the defaults without one. */
+export const DEFAULT_VAULT_CONFIG = Object.freeze({
+  'status-fields': 'state, status',
+  'status-words': DEFAULT_STATUS_TONES,
+  'title-field': 'title',
+  'priority-field': 'priority',
+  'owner-field': 'owner',
+  'labels-field': 'tags',
+  'updated-field': 'updated',
+  filters: '',
+  'work-project': '',
+  'base-field': 'base',
+  'base-prefix': '',
+  'model-field': 'model',
+  'effort-field': 'effort',
+  agent: 'claude',
+  'start-without-agent-when': '',
+  'agent-message': DEFAULT_AGENT_MESSAGE,
+  'link-notes': 'note: {{path}}'
+})
+
+/** @typedef {ReturnType<typeof resolveSettings>} VaultSettings */
 
 /**
- * Stored values over the defaults; values of the wrong type or shape fall back.
- * @param {Record<string, unknown> | null | undefined} raw
+ * A person's settings plus the vault's config note (its frontmatter fields); bad values fall back.
+ * @param {Record<string, unknown> | null | undefined} user
+ * @param {Record<string, string | string[] | null>} [config]
  */
-export function resolveSettings(raw) {
-  /** @param {keyof typeof DEFAULT_SETTINGS} key */
+export function resolveSettings(user, config = {}) {
+  /** @param {keyof typeof DEFAULT_USER_SETTINGS} key */
+  const own = (key) => {
+    const value = user?.[key]
+    return typeof value === 'string' && value.trim() ? value.trim() : DEFAULT_USER_SETTINGS[key]
+  }
+  /** @param {keyof typeof DEFAULT_VAULT_CONFIG} key */
   const text = (key) => {
-    const value = raw?.[key]
-    return typeof value === 'string' && value.trim() ? value.trim() : DEFAULT_SETTINGS[key]
+    const value = Array.isArray(config[key]) ? config[key].join('\n') : scalar(config[key])
+    return value || DEFAULT_VAULT_CONFIG[key]
   }
+  /** @param {keyof typeof DEFAULT_VAULT_CONFIG} key */
+  const names = (key) => [...new Set(list(config[key] ?? DEFAULT_VAULT_CONFIG[key]))]
   return {
-    project: text('project'),
-    folder: normalizeFolder(text('folder')),
-    source: text('source') === 'disk' ? 'disk' : 'latest',
-    statusFields: names(text('statusFields')),
-    titleField: text('titleField'),
-    priorityField: text('priorityField'),
-    ownerField: text('ownerField'),
-    labelsField: text('labelsField'),
-    updatedField: text('updatedField'),
-    filterFields: names(text('filterFields')).slice(0, EXTRA_FILTER_LIMIT),
-    statusTones: parseStatusTones(text('statusTones')),
-    peopleFile: normalizeFolder(text('peopleFile')),
-    me: text('me'),
-    workProject: text('workProject'),
-    baseField: text('baseField'),
-    basePrefix: text('basePrefix').replace(/\/+$/, ''),
-    modelField: text('modelField'),
-    effortField: text('effortField'),
+    project: own('project'),
+    folder: normalizeFolder(own('folder')),
+    source: own('source') === 'disk' ? 'disk' : 'latest',
+    me: own('me'),
+    statusFields: names('status-fields').length > 0 ? names('status-fields') : ['state', 'status'],
+    statusTones: parseStatusTones(text('status-words')),
+    titleField: text('title-field'),
+    priorityField: text('priority-field'),
+    ownerField: text('owner-field'),
+    labelsField: text('labels-field'),
+    updatedField: text('updated-field'),
+    /** Empty means: pick filter fields from what the notes use. */
+    filterFields: names('filters').slice(0, MAX_FILTER_FIELDS),
+    workProjectSource: text('work-project'),
+    baseField: text('base-field'),
+    basePrefix: text('base-prefix').replace(/\/+$/, ''),
+    modelField: text('model-field'),
+    effortField: text('effort-field'),
     agent: text('agent'),
-    startWithoutAgentWhen: parseCondition(text('startWithoutAgentWhen')),
-    promptTemplate: text('promptTemplate'),
-    linkNotes: parseLinkNotes(text('linkNotes'))
+    startWithoutAgentWhen: parseCondition(text('start-without-agent-when')),
+    agentMessage: text('agent-message'),
+    linkNotes: parseLinkNotes(text('link-notes'))
   }
-}
-
-/** Fields that change how a note file reads; the cache is only valid for the same set. */
-export function readingFingerprint(settings) {
-  return JSON.stringify([
-    settings.statusFields,
-    settings.titleField,
-    settings.priorityField,
-    settings.ownerField,
-    settings.labelsField,
-    settings.updatedField,
-    [...settings.statusTones]
-  ])
-}
-
-/** @param {string} value */
-function names(value) {
-  return [
-    ...new Set(
-      value
-        .split(',')
-        .map((name) => name.trim())
-        .filter(Boolean)
-    )
-  ]
 }
 
 /** Project-relative with forward slashes; anything escaping the project becomes the root. */
@@ -109,6 +96,11 @@ export function normalizeFolder(value) {
   return folder && segments.every((segment) => segment && segment !== '.' && segment !== '..')
     ? folder
     : ''
+}
+
+/** The config note's project-relative path for a notes folder. */
+export function configNotePath(folder) {
+  return folder ? `${folder}/${CONFIG_NOTE}` : CONFIG_NOTE
 }
 
 /** "field=value" (case-insensitive value); anything else means never. */

@@ -1,62 +1,88 @@
-# Markdown Vault (Orca plugin)
+The Markdown Vault plugin for Orca lists the markdown notes in a folder of one of your Orca projects on the
+Tasks page. That covers plans, specs, tickets or anything else with YAML frontmatter. Choosing **Start** on a
+note opens Create workspace, prefilled from that note.
 
-Lists the markdown notes in a folder of one of your Orca projects on the Tasks page: plans, specs,
-tickets, anything with YAML frontmatter. **Start** on a note opens Create workspace prefilled from it.
+The notes can live in any Orca project, whether a local folder, a Git project or a Perforce project, and
+whether it sits on this computer or on an SSH host.
 
-The notes can live in any Orca project: a local folder, a Git or a Perforce project, on this computer or
-over SSH. By default the plugin reads the **latest version on the project's server** (Git: the upstream
-branch after a fetch; Perforce: the depot head), so nobody needs to sync before the list is current. Set
-**Read notes from** to disk to read the files in the project folder instead.
+By default the plugin reads the **latest version on the project's server**, so nobody has to sync before
+the list is current. For Git that means the upstream branch after a fetch; for Perforce it means the depot
+head. To read the files in the project folder instead, set **Read notes from** to disk.
 
-## Install
+## Set up
 
-1. Orca: **Settings > Plugins**, turn on the plugin system.
-2. Install this folder from a local path or its Git repository, then approve it. It asks to provide a
-   Tasks list, read its own settings, read your projects' markdown files and keep a cache in its storage.
-3. Open its settings and pick the **Vault project** and **Notes folder**.
+1. In Orca, open **Settings > Plugins** and turn on the plugin system.
+2. Install this folder from a local path or from its Git repository, then approve it. It asks for four
+   permissions:
+   - provide a Tasks list;
+   - read its own settings;
+   - read your projects' markdown files;
+   - keep a cache in its own storage.
+3. In the plugin's settings, choose the **Vault project** and the **Notes folder**. To use the Mine
+   filter, also fill in **You** with how notes name you as owner.
 
-## What a note needs
+Those are the only settings each person makes. Everything else about the vault comes from the folder's
+config note.
 
-Nothing but a file name. Everything else is read from frontmatter fields you name in the settings:
+## The config note
+
+A note named `markdown-vault.md` in the notes folder configures the vault for everyone who uses it. Its
+frontmatter holds the configuration, and its body can explain the vault to people. It never appears in the
+list. Every key is optional, and anything you leave out keeps the default shown here:
 
 ```markdown
 ---
-title: Faster level loading
-status: In progress since Monday
-priority: P1
-owner: mia@example.com
-tags: [loading, performance]
-updated: 2026-10-01
-base: release-2
+status-fields: [state, status]       # the first one a note sets wins
+status-words: |                      # which status words mean which tone
+  open: open, todo, ready, draft
+  active: active, in progress, doing
+  blocked: blocked, waiting
+  review: review, in review
+  done: done, complete, shipped
+  closed: cancelled, superseded, parked
+title-field: title                   # else the first heading, then the file name
+priority-field: priority             # P0 to P3 sort first
+owner-field: owner
+labels-field: tags
+updated-field: updated               # YYYY-MM-DD; newer first within a priority
+filters: []                          # fields to filter by; empty picks them from the notes
+work-project: ''                     # a depot path or Git remote; empty means the vault project
+base-field: base                     # branch or stream a new workspace starts from
+base-prefix: ''                      # put in front of bare names, e.g. //depot
+model-field: model
+effort-field: effort
+agent: claude                        # the agent the model and effort fields are written for
+start-without-agent-when: ''         # e.g. mode=manual
+agent-message: |
+  Work on the note "{{title}}" ({{path}}).
+
+  Read that note first: it is your brief.
+link-notes:                          # kept with the workspace's link to the note
+  - 'note: {{path}}'
 ---
 ```
 
-- **Status**: the first of the status fields a note sets (default `state, status`). Long statuses show
-  their leading words; the status words setting maps them to open, active, blocked, review, done and
-  closed. Done and closed notes can be read but not started.
-- **Filters**: status (open work by default), priority, owner (with Mine once you fill in **You**),
-  label, and up to four more fields you list under **Extra filters**.
-- **People file** (optional): a markdown table with Email and Name columns (and optional Aliases) so
-  owners show by name.
+Some of these keys need a word more:
 
-## What Start fills in
+- **`work-project`** names where work happens rather than naming a project, because project ids differ
+  from person to person. Orca matches the value to each person's own project: a depot path matches a
+  Perforce workspace on that depot, and a Git remote URL matches a clone of it.
+- **Templates** (`agent-message` and `link-notes`) can use these placeholders: `{{title}}`, `{{path}}`,
+  `{{slug}}`, `{{status}}`, `{{statusText}}`, `{{owner}}`, `{{priority}}`, `{{labels}}` and `{{base}}`.
+  `{{field:NAME}}` inserts any frontmatter field.
+- **Filters**: there are always filters for status, priority, owner and label. On top of those come the
+  fields in `filters`. If `filters` is empty, the plugin picks up to four fields itself: ones that many
+  notes set, with a few short values each.
 
-- the note's file name as the workspace name (24 characters for Perforce copies),
-- the **Work in project** (or the vault project),
-- the branch or stream from the **Base field** (bare names get the **Base prefix**),
-- a draft first message for the agent from the **Agent message** template, plus the note's model and
-  effort fields as launch options; notes matching **Start without an agent when** get neither,
-- **Workspace link notes**: `key: template` lines kept with the workspace's link to the note.
-
-Templates take `{{title}}`, `{{path}}`, `{{slug}}`, `{{status}}`, `{{statusText}}`, `{{owner}}`,
-`{{ownerEmail}}`, `{{priority}}`, `{{labels}}`, `{{base}}` and `{{field:NAME}}` for any frontmatter field.
-You review everything before the workspace is created, and the message is typed as a draft, not sent.
+Done and closed notes can be read but not started. Notes that match `start-without-agent-when` start a
+workspace with no agent message.
 
 ## Speed
 
-The list is re-read at most every 30 seconds, and only notes whose version changed are read again. The
-parsed list is saved in the plugin's storage, so the next Orca session starts from it.
+The plugin re-reads the list at most every 30 seconds, and only re-reads notes whose version changed.
+It keeps their frontmatter in its own storage, so the next Orca session starts from that copy instead of
+reading every file again.
 
 ## Development
 
-`node --test` in this folder runs the tests; the plugin has no dependencies.
+Run `node --test` in this folder to run the tests. The plugin has no dependencies.

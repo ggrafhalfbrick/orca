@@ -1,6 +1,9 @@
 import { parseFrontmatter } from './frontmatter.mjs'
 import { resolveStatus } from './status-tones.mjs'
 
+/** @typedef {Record<string, string | string[] | null>} NoteFields */
+/** What the cache keeps per note: everything a record needs except the body. */
+/** @typedef {{ fields: NoteFields, heading: string }} ParsedNote */
 /**
  * @typedef {{
  *   path: string,
@@ -12,34 +15,40 @@ import { resolveStatus } from './status-tones.mjs'
  *   owner: string,
  *   labels: string[],
  *   updated: string,
- *   fields: Record<string, string | string[] | null>,
+ *   fields: NoteFields,
  *   body: string
  * }} NoteRecord
  */
 
+/** @param {string} text */
+export function parseNote(text) {
+  const { data, body } = parseFrontmatter(text)
+  return { fields: data, heading: firstHeading(body), body }
+}
+
 /**
- * @param {{ path: string, text: string }} note path relative to the project
+ * A note as the vault's configuration reads it.
+ * @param {{ path: string, fields: NoteFields, heading: string, body?: string }} note path relative to the project
  * @param {import('./settings.mjs').VaultSettings} settings
  * @returns {NoteRecord}
  */
-export function toNoteRecord({ path, text }, settings) {
-  const { data, body } = parseFrontmatter(text)
+export function toNoteRecord({ path, fields, heading, body = '' }, settings) {
   const fileName = path.slice(path.lastIndexOf('/') + 1)
   const slug = fileName.replace(/\.(?:md|mdx|markdown)$/i, '')
-  const statusText = settings.statusFields.map((field) => scalar(data[field])).find(Boolean) ?? ''
+  const statusText = settings.statusFields.map((field) => scalar(fields[field])).find(Boolean) ?? ''
   return {
     path,
     slug,
-    title: scalar(data[settings.titleField]) || firstHeading(body) || slug,
+    title: scalar(fields[settings.titleField]) || heading || slug,
     status: resolveStatus(statusText, settings.statusTones),
     statusText,
-    priority: normalizePriority(scalar(data[settings.priorityField])),
-    owner: scalar(data[settings.ownerField]),
+    priority: normalizePriority(scalar(fields[settings.priorityField])),
+    owner: scalar(fields[settings.ownerField]),
     labels: [
-      ...new Set(list(data[settings.labelsField]).map((label) => label.replace(/^#+/, '').trim()))
+      ...new Set(list(fields[settings.labelsField]).map((label) => label.replace(/^#+/, '').trim()))
     ].filter(Boolean),
-    updated: scalar(data[settings.updatedField]),
-    fields: data,
+    updated: scalar(fields[settings.updatedField]),
+    fields,
     body
   }
 }

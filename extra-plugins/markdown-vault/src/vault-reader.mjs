@@ -1,5 +1,4 @@
-import { toNoteRecord } from './note-record.mjs'
-import { readingFingerprint } from './settings.mjs'
+import { parseNote } from './note-record.mjs'
 
 const READ_BATCH = 100
 const READ_PARALLEL = 3
@@ -10,11 +9,11 @@ const CACHE_VERSION = 1
 const CACHE_CHUNK_CHARS = 100_000
 
 /** @typedef {(method: string, params?: Record<string, unknown>) => Promise<any>} HostCall */
-/** @typedef {import('./note-record.mjs').NoteRecord} NoteRecord */
+/** @typedef {import('./note-record.mjs').ParsedNote} ParsedNote */
 /** @typedef {{ projectId: string, folder: string, source: 'latest' | 'disk' }} VaultLocation */
 /**
  * @typedef {{
- *   files: Map<string, { version: string | null, record: NoteRecord }>,
+ *   files: Map<string, { version: string | null, note: ParsedNote }>,
  *   listedAt: number,
  *   notice: string,
  *   truncated: boolean,
@@ -42,14 +41,9 @@ export function createVaultReader({ host, log = () => {}, now = Date.now }) {
   /** @type {Map<string, Promise<VaultState>>} */
   const inFlight = new Map()
 
-  /** @param {VaultLocation} vault @param {import('./settings.mjs').VaultSettings} settings */
-  function vaultKey(vault, settings) {
-    return JSON.stringify([
-      vault.projectId,
-      vault.folder,
-      vault.source,
-      readingFingerprint(settings)
-    ])
+  /** @param {VaultLocation} vault */
+  function vaultKey(vault) {
+    return JSON.stringify([vault.projectId, vault.folder, vault.source])
   }
 
   /** @param {VaultLocation} vault @param {{ path: string, version: string | null }[]} files */
@@ -89,8 +83,8 @@ export function createVaultReader({ host, log = () => {}, now = Date.now }) {
       const files = new Map()
       for (let chunk = 0; chunk < meta.chunks; chunk++) {
         const entries = (await host('storage.get', { key: `${base}:${chunk}` }))?.value
-        for (const [path, version, record] of Array.isArray(entries) ? entries : []) {
-          files.set(path, { version, record: { ...record, body: '' } })
+        for (const [path, version, note] of Array.isArray(entries) ? entries : []) {
+          files.set(path, { version, note })
         }
       }
       return { files, listedAt: 0, notice: '', truncated: false, unreadable: 0 }
@@ -108,8 +102,8 @@ export function createVaultReader({ host, log = () => {}, now = Date.now }) {
       const chunks = []
       let current = []
       let chars = 0
-      for (const [path, { version, record }] of state.files) {
-        const entry = [path, version, { ...record, body: '' }]
+      for (const [path, { version, note }] of state.files) {
+        const entry = [path, version, note]
         const size = JSON.stringify(entry).length
         if (current.length > 0 && chars + size > CACHE_CHUNK_CHARS) {
           chunks.push(current)
@@ -139,8 +133,8 @@ export function createVaultReader({ host, log = () => {}, now = Date.now }) {
     }
   }
 
-  /** @param {VaultLocation} vault @param {import('./settings.mjs').VaultSettings} settings @param {string} key */
-  async function refresh(vault, settings, key) {
+  /** @param {VaultLocation} vault @param {string} key */
+  async function refresh(vault, key) {
     const state = vaults.get(key) ??
       (vault.source === 'latest' ? await loadSaved(key) : null) ?? {
         files: new Map(),
@@ -161,8 +155,9 @@ export function createVaultReader({ host, log = () => {}, now = Date.now }) {
     let unreadable = 0
     for (const result of await readFiles(vault, changed)) {
       if (typeof result.content === 'string') {
-        const record = toNoteRecord({ path: result.path, text: result.content }, settings)
-        state.files.set(result.path, { version: listed.get(result.path) ?? null, record })
+        const { fields, heading } = parseNote(result.content)
+        const version = listed.get(result.path) ?? null
+        state.files.set(result.path, { version, note: { fields, heading } })
       } else {
         unreadable++
         state.files.delete(result.path)
@@ -186,19 +181,18 @@ export function createVaultReader({ host, log = () => {}, now = Date.now }) {
 
   return {
     /**
-     * Every note's record, re-listed at most every 30 seconds; concurrent callers share one read.
+     * Every note's frontmatter, re-listed at most every 30 seconds; concurrent callers share one read.
      * @param {VaultLocation} vault
-     * @param {import('./settings.mjs').VaultSettings} settings
      */
-    async readAll(vault, settings) {
-      const key = vaultKey(vault, settings)
+    async readAll(vault) {
+      const key = vaultKey(vault)
       const cached = vaults.get(key)
       if (cached && now() - cached.listedAt < RELIST_MS) {
         return cached
       }
       let pending = inFlight.get(key)
       if (!pending) {
-        pending = refresh(vault, settings, key).finally(() => inFlight.delete(key))
+        pending = refresh(vault, key).finally(() => inFlight.delete(key))
         inFlight.set(key, pending)
       }
       return pending

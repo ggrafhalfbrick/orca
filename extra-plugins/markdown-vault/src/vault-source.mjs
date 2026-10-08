@@ -1,125 +1,78 @@
-import { buildNoteFilters, filterAndSortNotes, resolveSelection } from './note-filters.mjs'
+import {
+  buildNoteFilters,
+  filterAndSortNotes,
+  pickFilterFields,
+  resolveSelection
+} from './note-filters.mjs'
 import { noteBodyMarkdown, toTaskItem } from './note-item.mjs'
-import { toNoteRecord } from './note-record.mjs'
-import { parsePeople } from './people.mjs'
-import { resolveSettings } from './settings.mjs'
+import { parseNote, toNoteRecord } from './note-record.mjs'
+import { configNotePath, resolveSettings } from './settings.mjs'
 import { createVaultReader } from './vault-reader.mjs'
 
 const LIST_ITEM_LIMIT = 500
 const NOTICE_MAX = 512
-// Why: a people file changes rarely; one more listing of its folder every few minutes is plenty.
-const PEOPLE_RECHECK_MS = 5 * 60_000
 
 /** @typedef {import('./vault-reader.mjs').HostCall} HostCall */
 
 /**
- * The "notes" task source: markdown notes in a folder of an Orca project.
+ * The "notes" task source: markdown notes in a folder of an Orca project, configured by the
+ * folder's own config note so every person sees the vault the same way.
  * @param {{ host: HostCall, log?: (message: string) => void, now?: () => number }} options
  */
 export function createVaultSource({ host, log = () => {}, now = Date.now }) {
   const reader = createVaultReader({ host, log, now })
-  /** @type {{ key: string, checkedAt: number, version: string | null, people: Map<string, import('./people.mjs').Person> } | null} */
-  let peopleCache = null
 
-  async function loadSettings() {
+  async function loadUserSettings() {
     try {
-      return resolveSettings((await host('settings.get'))?.settings)
+      return (await host('settings.get'))?.settings ?? {}
     } catch {
       // Why: no settings yet (or not granted) means the defaults apply.
-      return resolveSettings({})
+      return {}
     }
   }
 
-  /** Settings and projects, or the one line that tells the user what to set up. */
-  async function loadContext() {
-    const settings = await loadSettings()
-    if (!settings.project) {
+  /** The vault's notes and settings, or the one line that tells the user what to set up. */
+  async function loadVault() {
+    const user = await loadUserSettings()
+    const base = resolveSettings(user)
+    if (!base.project) {
       return { setup: 'Pick the vault project in Settings > Plugins > Markdown Vault.' }
     }
     /** @type {{ id: string, name: string, sourceControl: string, host: string }[]} */
     const projects = (await host('projects.list'))?.projects ?? []
-    const vaultProject = projects.find((project) => project.id === settings.project)
+    const vaultProject = projects.find((project) => project.id === base.project)
     if (!vaultProject) {
       return {
         setup:
           'The vault project is no longer in Orca. Pick it again in Settings > Plugins > Markdown Vault.'
       }
     }
-    const workProject =
-      projects.find((project) => project.id === (settings.workProject || settings.project)) ??
-      vaultProject
     /** @type {import('./vault-reader.mjs').VaultLocation} */
-    const vault = { projectId: settings.project, folder: settings.folder, source: settings.source }
-    return { settings, vaultProject, workProject, vault }
-  }
-
-  /** People from the configured file, re-checked every few minutes; failures mean no names. */
-  async function loadPeople(settings, vault) {
-    if (!settings.peopleFile) {
-      return new Map()
-    }
-    const key = JSON.stringify([vault.projectId, vault.source, settings.peopleFile])
-    if (peopleCache?.key === key && now() - peopleCache.checkedAt < PEOPLE_RECHECK_MS) {
-      return peopleCache.people
-    }
-    try {
-      const folder = settings.peopleFile.includes('/')
-        ? settings.peopleFile.slice(0, settings.peopleFile.lastIndexOf('/'))
-        : ''
-      const listing = await host('projects.listMarkdown', {
-        projectId: vault.projectId,
-        folder,
-        source: vault.source
-      })
-      const file = (listing?.files ?? []).find((entry) => entry.path === settings.peopleFile)
-      if (!file) {
-        throw new Error(`${settings.peopleFile} was not found`)
-      }
-      const people =
-        peopleCache?.key === key && file.version !== null && peopleCache.version === file.version
-          ? peopleCache.people
-          : parsePeople(await reader.readNote(vault, file.path, file.version))
-      peopleCache = { key, checkedAt: now(), version: file.version, people }
-      return people
-    } catch (error) {
-      log(
-        `could not read the people file: ${error instanceof Error ? error.message : String(error)}`
-      )
-      peopleCache = { key, checkedAt: now(), version: null, people: new Map() }
-      return peopleCache.people
-    }
-  }
-
-  async function loadNotes() {
-    const context = await loadContext()
-    if (!context.settings) {
-      return { setup: context.setup }
-    }
-    const { settings, vault, vaultProject, workProject } = context
-    const [state, people] = await Promise.all([
-      reader.readAll(vault, settings),
-      loadPeople(settings, vault)
-    ])
+    const vault = { projectId: base.project, folder: base.folder, source: base.source }
+    const state = await reader.readAll(vault)
+    const configPath = configNotePath(base.folder)
+    const settings = resolveSettings(user, state.files.get(configPath)?.note.fields ?? {})
+    const records = [...state.files]
+      .filter(([path]) => path !== configPath)
+      .map(([path, { note }]) => toNoteRecord({ path, ...note }, settings))
     /** @type {import('./note-item.mjs').ItemContext} */
     const itemContext = {
       settings,
-      person: (owner) => people.get(owner.trim().toLowerCase()),
-      workProjectId: workProject.id,
-      workSourceControl: workProject.sourceControl
+      vaultProjectId: vaultProject.id,
+      vaultSourceControl: vaultProject.sourceControl
     }
-    const records = [...state.files.values()].map((entry) => entry.record)
-    return { settings, vault, vaultProject, state, people, records, itemContext }
+    return { settings, vault, vaultProject, state, records, configPath, itemContext }
   }
 
   return {
     /** @param {{ query?: string, filters?: Record<string, string> }} params */
     async list(params = {}) {
-      const loaded = await loadNotes()
+      const loaded = await loadVault()
       if (!loaded.records) {
         return { items: [], notice: loaded.setup }
       }
-      const { settings, vaultProject, state, people, records, itemContext } = loaded
-      const filterContext = { people, me: settings.me, filterFields: settings.filterFields }
+      const { settings, vaultProject, state, records, itemContext } = loaded
+      const filterContext = { me: settings.me, filterFields: pickFilterFields(records, settings) }
       const { filters, allowed } = buildNoteFilters(records, filterContext)
       const selection = resolveSelection(params.filters, filterContext, allowed)
       const shown = filterAndSortNotes(records, {
@@ -148,17 +101,17 @@ export function createVaultSource({ host, log = () => {}, now = Date.now }) {
 
     /** @param {{ itemId: string }} params */
     async get({ itemId }) {
-      const loaded = await loadNotes()
+      const loaded = await loadVault()
       if (!loaded.records) {
         throw new Error(loaded.setup)
       }
-      const entry = loaded.state.files.get(itemId)
+      const entry = itemId === loaded.configPath ? undefined : loaded.state.files.get(itemId)
       if (!entry) {
         throw new Error(`There is no note ${itemId} in the vault folder.`)
       }
-      // Why: list records drop note bodies; the detail always shows the file as it is now.
+      // Why: the cache keeps frontmatter only; the detail always shows the file as it is now.
       const text = await reader.readNote(loaded.vault, itemId, entry.version)
-      const record = toNoteRecord({ path: itemId, text }, loaded.settings)
+      const record = toNoteRecord({ path: itemId, ...parseNote(text) }, loaded.settings)
       return {
         item: toTaskItem(record, loaded.itemContext),
         bodyMarkdown: noteBodyMarkdown(record, loaded.itemContext)
