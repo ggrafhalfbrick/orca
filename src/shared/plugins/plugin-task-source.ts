@@ -169,7 +169,7 @@ export const pluginTaskListResultSchema = z
   .object({
     items: z.array(pluginTaskItemSchema).max(PLUGIN_TASK_LIST_ITEM_LIMIT),
     nextCursor: z.string().min(1).max(1024).optional(),
-    /** Filters the source offers; selected values come back in list params. */
+    /** Filters the source offers; selected values come back in list params. A remembered value missing here is dropped. */
     filters: z.array(pluginTaskFilterSchema).max(PLUGIN_TASK_FILTER_LIMIT).optional(),
     /** One-line status the source wants shown above the list. */
     notice: z.string().min(1).max(512).optional()
