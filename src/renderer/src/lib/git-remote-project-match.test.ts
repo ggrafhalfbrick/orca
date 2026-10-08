@@ -80,6 +80,36 @@ describe('findGitProjectForSource', () => {
     ).toMatchObject({ missing: expect.any(String) })
   })
 
+  it('scopes a host-less fork parent to the clone’s own host, never github.com', () => {
+    const enterpriseFork = project('ghes-fork', 'git.corp.example/me/app', {
+      upstream: { owner: 'Acme', repo: 'App' }
+    })
+    expect(
+      findGitProjectForSource(
+        [enterpriseFork],
+        { projectSource: 'https://git.corp.example/acme/app' },
+        null
+      )
+    ).toEqual({ repoId: 'ghes-fork' })
+    expect(
+      findGitProjectForSource(
+        [enterpriseFork],
+        { projectSource: 'https://github.com/acme/app' },
+        null
+      )
+    ).toMatchObject({ missing: expect.any(String) })
+    const unprobedFork = project('unprobed-fork', null, {
+      upstream: { owner: 'acme', repo: 'app' }
+    })
+    expect(
+      findGitProjectForSource(
+        [unprobedFork],
+        { projectSource: 'https://github.com/acme/app' },
+        null
+      )
+    ).toMatchObject({ missing: expect.any(String) })
+  })
+
   it('names the remote when no Git project has it', () => {
     expect(
       findGitProjectForSource(repos, { projectSource: 'https://github.com/acme/other' }, 'app')

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => {
   const repos: unknown[] = []
-  return { openModal: vi.fn(), toastError: vi.fn(), repos }
+  return { openModal: vi.fn(), toastError: vi.fn(), findGitProject: vi.fn(), repos }
 })
 vi.mock('@/store', () => ({
   useAppStore: {
@@ -10,6 +10,7 @@ vi.mock('@/store', () => ({
   }
 }))
 vi.mock('sonner', () => ({ toast: { error: mocks.toastError } }))
+vi.mock('@/lib/git-remote-project-match', () => ({ findGitProjectForSource: mocks.findGitProject }))
 
 import { openComposerForPluginTask } from './plugin-task-start'
 
@@ -21,6 +22,7 @@ const repos = [
 beforeEach(() => {
   mocks.openModal.mockReset()
   mocks.toastError.mockReset()
+  mocks.findGitProject.mockReset().mockReturnValue(null)
   mocks.repos = repos
 })
 
@@ -70,6 +72,19 @@ describe('openComposerForPluginTask', () => {
     await expect(openComposerForPluginTask(item, SOURCE)).resolves.toBe(false)
     expect(mocks.openModal).not.toHaveBeenCalled()
     expect(mocks.toastError).toHaveBeenCalledWith(expect.stringContaining('/home/me/Gone'))
+  })
+
+  it('reports a project lookup that fails instead of rejecting', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    mocks.findGitProject.mockRejectedValue(new Error('remote lookup failed'))
+    const item = {
+      id: 'plan',
+      title: 'Plan',
+      start: { projectSource: 'https://example.com/a.git' }
+    }
+    await expect(openComposerForPluginTask(item, SOURCE)).resolves.toBe(false)
+    expect(mocks.openModal).not.toHaveBeenCalled()
+    expect(mocks.toastError).toHaveBeenCalledWith('remote lookup failed')
   })
 
   it('does nothing for an item without a start recipe', async () => {

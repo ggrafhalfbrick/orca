@@ -25,9 +25,12 @@ function repoName(parts: GitRemoteKeyParts): string {
 /** True when the project is a fork of the target, or the target is likely the project's own fork. */
 function isForkRelative(repo: Repo, own: GitRemoteKeyParts | null, target: GitRemoteKeyParts) {
   const parent = repo.upstream
-  if (parent?.owner && parent.repo) {
+  // Why: older persisted parents have no host; like repoUpstreamIdentityKey, use the clone's own
+  // host so an Enterprise parent never collapses into github.com, and refuse when it is unknown.
+  const parentHost = parent?.host?.trim().toLowerCase() || own?.host
+  if (parent?.owner && parent.repo && parentHost) {
     const parentParts = {
-      host: foldForgeHost((parent.host || 'github.com').replace(/:\d+$/, '')),
+      host: foldForgeHost(parentHost.replace(/:\d+$/, '')),
       tail: `${parent.owner}/${parent.repo.replace(/\.git$/i, '')}`.toLowerCase()
     }
     if (matchGitRemoteKeyParts(parentParts, target) === true) {

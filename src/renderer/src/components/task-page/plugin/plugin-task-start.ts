@@ -3,7 +3,8 @@ import { useAppStore } from '@/store'
 import type { PluginTaskItem } from '../../../../../shared/plugins/plugin-task-source'
 import type { LinkedPluginTask } from '../../../../../shared/plugins/plugin-task-link'
 import type { PluginTaskSourceRef } from '../../../../../shared/plugins/plugin-task-source-ref'
-import { resolvePluginTaskProject } from './plugin-task-project'
+import { pluginTaskErrorMessage } from './plugin-task-error-message'
+import { resolvePluginTaskProject, type PluginTaskProject } from './plugin-task-project'
 
 export function buildLinkedPluginTask(
   item: PluginTaskItem,
@@ -30,7 +31,15 @@ export async function openComposerForPluginTask(
     return false
   }
   const { repos, activeRepoId } = useAppStore.getState()
-  const project = await resolvePluginTaskProject(recipe, repos, activeRepoId)
+  let project: PluginTaskProject
+  try {
+    project = await resolvePluginTaskProject(recipe, repos, activeRepoId)
+  } catch (error) {
+    // Why: callers fire and forget, so a failing matcher must not become an unhandled rejection.
+    console.error('Failed to resolve the plugin task project:', error)
+    toast.error(pluginTaskErrorMessage(error))
+    return false
+  }
   if (project.kind === 'missing') {
     toast.error(project.message)
     return false
