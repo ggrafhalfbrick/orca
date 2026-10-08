@@ -4,6 +4,7 @@ import { getComposerEligibleRepos } from '@/lib/new-workspace-composer-repo'
 import type { ProjectSourceMatcher } from '@/lib/project-source-match'
 import type { PluginTaskStartRecipe } from '../../../../../shared/plugins/plugin-task-source'
 import type { Repo } from '../../../../../shared/repo-types'
+import { findPerforceProjectForHint } from '../../perforce-copies/perforce-stream-project'
 
 function normalizeProjectPath(value: string): string {
   return value.replace(/\\/g, '/').replace(/\/+$/, '')
@@ -28,7 +29,10 @@ export function findRepoIdForProjectPath(
 }
 
 /** One matcher per source-control kind; each recognises only its own `projectSource` form. */
-const PROJECT_SOURCE_MATCHERS: readonly ProjectSourceMatcher[] = [findGitProjectForSource]
+const PROJECT_SOURCE_MATCHERS: readonly ProjectSourceMatcher[] = [
+  findGitProjectForSource,
+  findPerforceProjectForHint
+]
 
 export type PluginTaskProject =
   | { kind: 'found'; repoId: string }

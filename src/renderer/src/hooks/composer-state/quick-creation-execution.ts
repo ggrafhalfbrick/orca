@@ -50,6 +50,7 @@ import { buildQuickCreationRequest } from './quick-creation-request'
 import type { PendingSmartGitHubSubmitResolution } from './source-selection-decisions'
 import type { QuickSubmitOptions } from './composer-submit-model'
 import { resolveAgentSessionLaunchRoute } from '@/lib/agent-session-launch-plan'
+import { resolvePerforceCopyComposerChoice } from '@/components/perforce-copies/perforce-copy-composer-choice'
 
 export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
   const {
@@ -206,6 +207,9 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
 
       const request = buildQuickCreationRequest({
         repoId,
+        perforceCopy: selectedRepoIsGit
+          ? undefined
+          : await resolvePerforceCopyComposerChoice(repoId, selectedRepoExecutionHostId),
         ephemeralVmRecipe,
         indeterminateProgress:
           Boolean(activeEphemeralVmRecipeId) ||
