@@ -35,7 +35,8 @@ describe('settings contributions', () => {
     const result = manifest([
       SORT,
       { key: 'listName', title: 'List name', type: 'string', default: 'Backlog', multiline: false },
-      { key: 'showDone', title: 'Show done', type: 'boolean', default: false }
+      { key: 'showDone', title: 'Show done', type: 'boolean', default: false },
+      { key: 'notes', title: 'Notes project', type: 'project' }
     ])
 
     expect(result).toMatchObject({ ok: true })
@@ -59,7 +60,9 @@ describe('settings contributions', () => {
       { key: 'flag', title: 'Flag', type: 'boolean', default: 'yes' },
       { key: 'name', title: 'Name', type: 'string', options: SORT.options },
       { key: 'flag', title: 'Flag', type: 'boolean', multiline: true },
-      { key: '1bad', title: 'Bad', type: 'string' }
+      { key: '1bad', title: 'Bad', type: 'string' },
+      { key: 'notes', title: 'Notes', type: 'project', default: 'repo-1' },
+      { key: 'notes', title: 'Notes', type: 'project', placeholder: 'Pick one' }
     ]
 
     for (const setting of invalid) {

@@ -21,7 +21,8 @@ export const pluginSettingContributionSchema = z
     key: settingKeySchema,
     title: z.string().min(1).max(64),
     description: z.string().min(1).max(512).optional(),
-    type: z.enum(['string', 'boolean', 'enum']),
+    /** `project`: one of the user's Orca projects, stored as its project id. */
+    type: z.enum(['string', 'boolean', 'enum', 'project']),
     default: z.union([z.string().max(PLUGIN_SETTING_STRING_MAX_CHARS), z.boolean()]).optional(),
     placeholder: z.string().min(1).max(256).optional(),
     /** String settings only: edit in a multi-line field. */
@@ -48,7 +49,9 @@ export const pluginSettingContributionSchema = z
     } else if (setting.options) {
       issue('only enum settings take options', 'options')
     }
-    if (setting.default !== undefined) {
+    if (setting.type === 'project' && setting.default !== undefined) {
+      issue('project settings have no default; project ids differ per user', 'default')
+    } else if (setting.default !== undefined) {
       const expected = setting.type === 'boolean' ? 'boolean' : 'string'
       if (typeof setting.default !== expected) {
         issue(`must be a ${expected}`, 'default')

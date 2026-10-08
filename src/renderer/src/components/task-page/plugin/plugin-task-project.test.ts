@@ -34,6 +34,18 @@ const repos = [
 ]
 
 describe('resolvePluginTaskProject', () => {
+  it('uses a named project id first, and reports one that is gone', async () => {
+    await expect(
+      resolvePluginTaskProject({ projectId: 'app', projectPath: '/work/active' }, repos, 'active')
+    ).resolves.toEqual({ kind: 'found', repoId: 'app' })
+    await expect(
+      resolvePluginTaskProject({ projectId: 'gone' }, repos, 'active')
+    ).resolves.toMatchObject({
+      kind: 'missing',
+      message: expect.stringContaining('no longer in Orca')
+    })
+  })
+
   it('uses the named folder, and reports a folder that is not a project', async () => {
     await expect(
       resolvePluginTaskProject({ projectPath: '/work/app/' }, repos, 'active')

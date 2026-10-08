@@ -5,6 +5,8 @@ import type {
   PluginSettingValue
 } from '../../../../shared/plugins/plugin-settings-contribution'
 import { translate } from '@/i18n/i18n'
+import { useAppStore } from '@/store'
+import { isRuntimeOwnedSshTargetId } from '../../../../shared/execution-host'
 import { Button } from '../ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/dialog'
 import { Input } from '../ui/input'
@@ -18,6 +20,54 @@ type Values = Record<string, PluginSettingValue>
 function errorText(cause: unknown): string {
   const message = cause instanceof Error ? cause.message : String(cause)
   return message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
+}
+
+// Why: Radix Select reserves '' for "no selection", so clearing needs its own value.
+const NO_PROJECT = '__no-project__'
+
+function PluginProjectSelect({
+  id,
+  title,
+  value,
+  onCommit
+}: {
+  id: string
+  title: string
+  value: PluginSettingValue | undefined
+  onCommit: (value: PluginSettingValue | null) => void
+}): React.JSX.Element {
+  const repos = useAppStore((state) => state.repos)
+  const projects = repos.filter((repo) => !isRuntimeOwnedSshTargetId(repo.connectionId))
+  const selected = typeof value === 'string' && value !== '' ? value : null
+  const missing = selected !== null && !projects.some((project) => project.id === selected)
+  return (
+    <Select
+      value={selected ?? NO_PROJECT}
+      onValueChange={(next) => onCommit(next === NO_PROJECT ? null : next)}
+    >
+      <SelectTrigger id={id} aria-label={title}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent position="popper" side="bottom" align="start" sideOffset={4}>
+        <SelectItem value={NO_PROJECT}>
+          {translate('auto.components.settings.PluginSettingsDialog.noProject', 'No project')}
+        </SelectItem>
+        {missing ? (
+          <SelectItem value={selected} disabled>
+            {translate(
+              'auto.components.settings.PluginSettingsDialog.projectMissing',
+              'Project no longer in Orca'
+            )}
+          </SelectItem>
+        ) : null}
+        {projects.map((project) => (
+          <SelectItem key={project.id} value={project.id}>
+            {project.displayName}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
 }
 
 function PluginSettingField({
@@ -47,6 +97,8 @@ function PluginSettingField({
         onChange={() => onCommit(!checked)}
         ariaLabel={setting.title}
       />
+    ) : setting.type === 'project' ? (
+      <PluginProjectSelect id={id} title={setting.title} value={value} onCommit={onCommit} />
     ) : setting.type === 'enum' ? (
       <Select
         value={typeof value === 'string' ? value : String(setting.default ?? '')}

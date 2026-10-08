@@ -43,6 +43,17 @@ export async function resolvePluginTaskProject(
   activeRepoId: string | null
 ): Promise<PluginTaskProject> {
   const eligible = getComposerEligibleRepos(repos)
+  if (recipe.projectId) {
+    return eligible.some((repo) => repo.id === recipe.projectId)
+      ? { kind: 'found', repoId: recipe.projectId }
+      : {
+          kind: 'missing',
+          message: translate(
+            'auto.components.TaskPage.pluginTaskProjectIdMissing',
+            "The task's project is no longer in Orca. Pick its project again in the plugin's settings."
+          )
+        }
+  }
   if (recipe.projectPath) {
     const repoId = findRepoIdForProjectPath(eligible, recipe.projectPath)
     return repoId

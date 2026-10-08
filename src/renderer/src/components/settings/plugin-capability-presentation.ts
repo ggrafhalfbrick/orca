@@ -42,6 +42,11 @@ export function pluginCapabilityDescription(kind: string, fallback: string): str
         'auto.components.settings.PluginConsentDialog.capability.tasksProvide',
         "Add task lists to the Tasks page; starting a task opens Create workspace with the plugin's suggested name, base and agent prompt for you to review"
       )
+    case 'projects:read':
+      return translate(
+        'auto.components.settings.PluginConsentDialog.capability.projectsRead',
+        "List your Orca projects and read their markdown files, either on disk or the latest version on the project's server (which fetches from it)"
+      )
     default:
       return fallback
   }

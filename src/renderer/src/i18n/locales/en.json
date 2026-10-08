@@ -2504,6 +2504,7 @@
         "pluginTaskEmpty": "No tasks found",
         "pluginTaskEmptyHint": "Try different search terms or filters.",
         "pluginTaskProjectMissing": "No Orca project is at {{path}}. Add it as a project, then start again.",
+        "pluginTaskProjectIdMissing": "The task's project is no longer in Orca. Pick its project again in the plugin's settings.",
         "pluginTaskOpenWorkspaceAction": "Open workspace",
         "pluginTaskStartAnotherShort": "Start another",
         "pluginTaskWorkspacesLabel": "Workspaces",
@@ -11861,7 +11862,8 @@
             "secrets": "Store and read secrets in the plugin's own encrypted vault",
             "eventsSubscribe": "Get notified when worktrees are created or removed and when agent status changes",
             "settingsOwn": "Read and change the plugin's own settings",
-            "tasksProvide": "Add task lists to the Tasks page; starting a task opens Create workspace with the plugin's suggested name, base and agent prompt for you to review"
+            "tasksProvide": "Add task lists to the Tasks page; starting a task opens Create workspace with the plugin's suggested name, base and agent prompt for you to review",
+            "projectsRead": "List your Orca projects and read their markdown files, either on disk or the latest version on the project's server (which fetches from it)"
           },
           "decisionFailed": "Could not save the permission decision. Try again."
         },
@@ -12708,7 +12710,9 @@
           "title": "{{value0}} settings",
           "description": "Each change saves on its own. The plugin uses it the next time it reads its settings.",
           "loading": "Loading…",
-          "done": "Done"
+          "done": "Done",
+          "noProject": "No project",
+          "projectMissing": "Project no longer in Orca"
         }
       },
       "right": {
