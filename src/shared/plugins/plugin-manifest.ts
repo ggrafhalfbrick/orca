@@ -21,6 +21,10 @@ import {
   PLUGIN_SETTING_LIMIT,
   pluginSettingContributionSchema
 } from './plugin-settings-contribution'
+import {
+  PLUGIN_WORKTREE_BADGE_LIMIT,
+  pluginWorktreeBadgeContributionSchema
+} from './plugin-worktree-badge'
 
 /**
  * Plugin manifest v1 (`orca-plugin.json` at the plugin root). The
@@ -124,7 +128,11 @@ export const pluginManifestSchema = z
           .array(pluginTaskSourceContributionSchema)
           .max(PLUGIN_TASK_SOURCE_LIMIT)
           .default([]),
-        settings: z.array(pluginSettingContributionSchema).max(PLUGIN_SETTING_LIMIT).default([])
+        settings: z.array(pluginSettingContributionSchema).max(PLUGIN_SETTING_LIMIT).default([]),
+        worktreeBadges: z
+          .array(pluginWorktreeBadgeContributionSchema)
+          .max(PLUGIN_WORKTREE_BADGE_LIMIT)
+          .default([])
       })
       .strict()
       .default(() => ({
@@ -136,7 +144,8 @@ export const pluginManifestSchema = z
         vmRecipes: [],
         agents: [],
         taskSources: [],
-        settings: []
+        settings: [],
+        worktreeBadges: []
       })),
     capabilities: z.array(pluginCapabilitySchema).max(32).default([])
   })

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { WorktreeOpenInSubMenu } from './WorktreeOpenInMenu'
+import { WorktreePluginBadgeMenuItems } from './WorktreePluginBadgeMenuItems'
 import { WorktreeDeveloperMenu } from './WorktreeDeveloperMenu'
 import { WorkspaceSleepMenuItems } from './WorkspaceSleepMenuItems'
 import { isEventTargetInsideCurrentTarget } from './worktree-card-dom-events'
@@ -174,6 +175,12 @@ export default function WorktreeContextMenuView({ model }: { model: WorktreeCont
           {!isMultiContext && (
             <>
               <WorktreeOpenInSubMenu
+                worktreePath={worktree.path}
+                connectionId={repo?.connectionId ?? null}
+                disabled={isDeleting}
+              />
+              <WorktreePluginBadgeMenuItems
+                worktreeId={worktree.id}
                 worktreePath={worktree.path}
                 connectionId={repo?.connectionId ?? null}
                 disabled={isDeleting}

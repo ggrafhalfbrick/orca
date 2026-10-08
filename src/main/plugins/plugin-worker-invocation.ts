@@ -4,7 +4,10 @@ import {
   type PluginTaskDetail,
   type PluginTaskListResult
 } from '../../shared/plugins/plugin-task-source'
-import { assertPluginWorkerCommand } from './plugin-command-invocation'
+import {
+  prepareWorkerCommandArgs,
+  type PluginWorktreeContextResolver
+} from './plugin-command-invocation'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
 import type { PluginWorkerHandle } from './plugin-host-process'
 
@@ -13,6 +16,8 @@ export type PluginWorkerInvocationDeps = {
   /** Null unless the plugin is installed, approved, and allowed to start work. */
   findStartablePlugin(pluginKey: string): ValidDiscoveredPlugin | null
   ensureWorker(plugin: ValidDiscoveredPlugin): Promise<PluginWorkerHandle>
+  /** Resolves the worktree a worktree-context command runs for; null when no runtime is bound. */
+  worktreeContextResolver(): PluginWorktreeContextResolver | null
 }
 
 function requireStartablePlugin(
@@ -33,12 +38,17 @@ export async function invokePluginWorkerCommand(
   args?: unknown
 ): Promise<unknown> {
   const plugin = requireStartablePlugin(deps, pluginKey)
-  assertPluginWorkerCommand(plugin, commandId)
+  const input = await prepareWorkerCommandArgs(
+    plugin,
+    commandId,
+    args,
+    deps.worktreeContextResolver()
+  )
   const handle = await deps.ensureWorker(plugin)
   if (!handle.commands.includes(commandId)) {
     throw new Error(`plugin ${pluginKey} registered no handler for ${commandId}`)
   }
-  return handle.invokeCommand(commandId, args)
+  return handle.invokeCommand(commandId, input)
 }
 
 /** Runs one task-source operation in the plugin's worker. Both the request

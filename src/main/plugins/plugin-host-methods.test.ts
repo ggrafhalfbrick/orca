@@ -135,6 +135,7 @@ function createTerminalHarness(terminalHandles: string[]): {
       branch: 'main',
       displayName: 'Repo'
     }),
+    resolvePluginWorktreeContext: vi.fn().mockResolvedValue(null),
     listTerminals: vi.fn().mockResolvedValue({
       terminals: terminalHandles.map((handle) => ({ handle, title: null }))
     }),

@@ -16,6 +16,8 @@ import {
 } from '../../shared/plugins/plugin-marketplace'
 import { mapWithConcurrency } from '../../shared/map-with-concurrency'
 import type { PluginSettingContribution } from '../../shared/plugins/plugin-settings-contribution'
+import type { PluginWorktreeBadgeEntry } from '../../shared/plugins/plugin-worktree-badge'
+import { projectPluginWorktreeBadges } from './plugin-worktree-badge-projection'
 
 const PLUGIN_LIST_PROJECTION_CONCURRENCY = 4
 
@@ -65,6 +67,7 @@ export type PluginListEntry = {
     handler: { type: 'built-in'; action: PluginCommandAliasActionId } | { type: 'worker' }
     keybindings: { key: string; when: 'global' | 'worktree' }[]
   }[]
+  worktreeBadges: PluginWorktreeBadgeEntry[]
   hasWorker: boolean
   taskSources: { id: string; title: string; icon?: string }[]
   settings: PluginSettingContribution[]
@@ -116,6 +119,7 @@ export async function buildPluginList(
           capabilities: [],
           panels: [],
           commands: [],
+          worktreeBadges: [],
           hasWorker: false,
           taskSources: [],
           settings: [],
@@ -189,6 +193,7 @@ export async function buildPluginList(
           handler: command.handler,
           keybindings: command.keybindings
         })),
+        worktreeBadges: await projectPluginWorktreeBadges(plugin),
         hasWorker: Boolean(plugin.manifest.main),
         settings: plugin.manifest.contributes.settings,
         taskSources: plugin.manifest.contributes.taskSources.map((source) => ({

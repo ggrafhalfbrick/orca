@@ -275,6 +275,8 @@ export class PluginService {
     return this.workerController.ensure(plugin)
   }
 
+  readonly worktreeContextResolver = (): PluginRuntimeDelegate | null => this.runtimeDelegate
+
   invokeCommand(pluginKey: string, commandId: string, args?: unknown): Promise<unknown> {
     return invokePluginWorkerCommand(this, pluginKey, commandId, args)
   }

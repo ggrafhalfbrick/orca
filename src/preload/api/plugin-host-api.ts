@@ -16,6 +16,7 @@ import type {
   PluginSettingContribution,
   PluginSettingValue
 } from '../../shared/plugins/plugin-settings-contribution'
+import type { PluginWorktreeBadgeEntry } from '../../shared/plugins/plugin-worktree-badge'
 
 /** Panel contribution as surfaced by the main-process plugin service. */
 export type PluginHostPanel = {
@@ -62,6 +63,8 @@ export type PluginHostListEntry = {
     handler: { type: 'built-in'; action: string } | { type: 'worker' }
     keybindings: { key: string; when: 'global' | 'worktree' }[]
   }[]
+  /** Absent from hosts that predate worktree badges. */
+  worktreeBadges?: PluginWorktreeBadgeEntry[]
   hasWorker: boolean
   /** Absent from hosts that predate plugin task sources. */
   taskSources?: { id: string; title: string; icon?: string }[]

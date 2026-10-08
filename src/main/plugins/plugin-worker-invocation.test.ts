@@ -61,7 +61,8 @@ function deps(
   return {
     findStartablePlugin: (pluginKey: string) =>
       options.enabled === false || pluginKey !== PLUGIN_KEY ? null : subject,
-    ensureWorker: vi.fn(async () => handle)
+    ensureWorker: vi.fn(async () => handle),
+    worktreeContextResolver: () => null
   }
 }
 

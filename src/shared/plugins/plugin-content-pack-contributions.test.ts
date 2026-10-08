@@ -51,7 +51,8 @@ describe('content-pack manifest contributions', () => {
       vmRecipes: [],
       agents: [],
       taskSources: [],
-      settings: []
+      settings: [],
+      worktreeBadges: []
     })
   })
 
