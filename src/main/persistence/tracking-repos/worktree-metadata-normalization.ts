@@ -117,7 +117,11 @@ function normalizeLinkedMetadata(meta: WorktreeMeta): boolean {
     meta.linkedTaskSourceContext = linkedTaskSourceContext
     changed = true
   }
-  if (meta.linkedPluginTask && !normalizeLinkedPluginTask(meta.linkedPluginTask)) {
+  if (
+    meta.linkedPluginTask !== undefined &&
+    meta.linkedPluginTask !== null &&
+    !normalizeLinkedPluginTask(meta.linkedPluginTask)
+  ) {
     meta.linkedPluginTask = null
     changed = true
   }
