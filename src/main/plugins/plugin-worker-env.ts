@@ -23,7 +23,27 @@ const WORKER_ENV_ALLOWLIST = [
   'COMSPEC',
   'PATHEXT',
   'PROCESSOR_ARCHITECTURE',
-  'NUMBER_OF_PROCESSORS'
+  'NUMBER_OF_PROCESSORS',
+  // Why: worker commands start desktop apps (e.g. from worktree badges), which need the
+  // user's folders and display session. These name locations and carry no credentials.
+  'APPDATA',
+  'LOCALAPPDATA',
+  'PROGRAMDATA',
+  'PROGRAMFILES',
+  'PROGRAMFILES(X86)',
+  'PROGRAMW6432',
+  'USERNAME',
+  'USERDOMAIN',
+  'COMPUTERNAME',
+  'DISPLAY',
+  'WAYLAND_DISPLAY',
+  'XAUTHORITY',
+  'XDG_RUNTIME_DIR',
+  'XDG_SESSION_TYPE',
+  'XDG_CURRENT_DESKTOP',
+  'XDG_CONFIG_HOME',
+  'XDG_DATA_HOME',
+  'DBUS_SESSION_BUS_ADDRESS'
 ] as const
 
 export function buildPluginWorkerEnv(
