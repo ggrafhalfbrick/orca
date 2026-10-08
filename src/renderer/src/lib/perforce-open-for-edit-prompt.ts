@@ -1,5 +1,6 @@
 import { useAppStore } from '@/store'
 import { MODAL_DISMISSED_KEY } from '@/store/slices/modal-slot-dismissal'
+import { normalizePerforceSettings } from '../../../shared/perforce/perforce-settings'
 
 let pending: { path: string; answer: (open: boolean) => void; decision: Promise<boolean> } | null =
   null
@@ -39,4 +40,13 @@ export function askToOpenForEdit(relativePath: string): Promise<boolean> {
 /** The dialog's answer to the prompt on screen. */
 export function answerOpenForEditPrompt(open: boolean): void {
   pending?.answer(open)
+}
+
+/** "Always open for edit": opens this file, and later saves open theirs without asking. */
+export function alwaysOpenForEdit(): void {
+  const { settings, updateSettings } = useAppStore.getState()
+  void updateSettings({
+    perforce: { ...normalizePerforceSettings(settings?.perforce), saveReadOnlyBehavior: 'auto' }
+  })
+  answerOpenForEditPrompt(true)
 }

@@ -65,7 +65,7 @@ export const DEFAULT_PERFORCE_SETTINGS: PerforceSettings = {
   showNewFiles: true,
   refreshIntervalSeconds: 15,
   compareAgainst: 'have',
-  saveReadOnlyBehavior: 'ask',
+  saveReadOnlyBehavior: 'auto',
   showEditedTabPrefix: true,
   newChangelistDescriptionTemplate: '',
   newChangelistMode: 'move-selected',

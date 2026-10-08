@@ -41,7 +41,7 @@ describe('normalizePerforceSettings', () => {
     expect(settings.refreshIntervalSeconds).toBe(0)
     expect(settings.groupOrder).toBe('default-first')
     expect(settings.compareAgainst).toBe('head')
-    expect(settings.saveReadOnlyBehavior).toBe('ask')
+    expect(settings.saveReadOnlyBehavior).toBe('auto')
     expect(settings.confirmSubmit).toBe(false)
   })
 
