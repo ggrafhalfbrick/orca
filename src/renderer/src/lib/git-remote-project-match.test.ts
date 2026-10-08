@@ -50,6 +50,36 @@ describe('findGitProjectForSource', () => {
     expect(findGitProjectForSource(exact, hint, 'aliased')).toEqual({ repoId: 'exact' })
   })
 
+  it('finds a fork clone from either side, below an exact remote', () => {
+    const forkOfParent = project('fork', 'github.com/me/app', {
+      upstream: { owner: 'acme', repo: 'app' }
+    })
+    const parentRemoteFirst = project('clone', 'github.com/acme/kit', {
+      gitRemoteIdentity: {
+        canonicalKey: 'github.com/acme/kit',
+        remoteName: 'upstream',
+        remoteUrl: 'https://github.com/acme/kit'
+      }
+    })
+    const forks = [forkOfParent, parentRemoteFirst]
+    expect(
+      findGitProjectForSource(forks, { projectSource: 'https://github.com/acme/app' }, null)
+    ).toEqual({ repoId: 'fork' })
+    expect(
+      findGitProjectForSource(
+        [...forks, ...repos],
+        { projectSource: 'https://github.com/acme/app' },
+        'fork'
+      )
+    ).toEqual({ repoId: 'app' })
+    expect(
+      findGitProjectForSource(forks, { projectSource: 'git@github.com:me/kit.git' }, null)
+    ).toEqual({ repoId: 'clone' })
+    expect(
+      findGitProjectForSource(forks, { projectSource: 'https://github.com/me/other' }, null)
+    ).toMatchObject({ missing: expect.any(String) })
+  })
+
   it('names the remote when no Git project has it', () => {
     expect(
       findGitProjectForSource(repos, { projectSource: 'https://github.com/acme/other' }, 'app')
