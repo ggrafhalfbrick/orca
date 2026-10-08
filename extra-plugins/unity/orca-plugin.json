@@ -1,0 +1,25 @@
+{
+  "manifestVersion": 1,
+  "id": "unity",
+  "publisher": "earlgeorg",
+  "name": "Unity",
+  "version": "0.1.0",
+  "description": "Marks worktrees that are Unity projects and opens them in the Unity Editor version the project uses, without adding them to Unity Hub.",
+  "author": { "name": "earlgeorg" },
+  "engines": { "orca": ">=1.4.214" },
+  "pluginApi": 1,
+  "main": "main.mjs",
+  "contributes": {
+    "commands": [{ "id": "open-editor", "title": "Open in Unity", "context": "worktree" }],
+    "worktreeBadges": [
+      {
+        "id": "unity-project",
+        "title": "Unity project",
+        "icon": "icons/unity.svg",
+        "when": { "pathExists": ["ProjectSettings/ProjectVersion.txt"], "host": "local" },
+        "commands": ["open-editor"]
+      }
+    ]
+  },
+  "capabilities": [{ "kind": "workspace:read" }]
+}
