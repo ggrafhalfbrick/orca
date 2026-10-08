@@ -111,6 +111,13 @@ const bundledPluginResources = {
   from: 'resources/plugins/launch',
   to: 'plugins/launch'
 }
+// Why: extra plugins install from Resources/plugins/extra at startup (see
+// plugin-extra-bundled-bootstrap.ts); their tests are authoring files, not plugin bytes.
+const extraPluginResources = {
+  from: 'extra-plugins',
+  to: 'plugins/extra',
+  filter: ['**/*', '!**/test{,/**/*}']
+}
 // Why: the main bundle, packaged CLI, SSH paths, and speech worker all execute
 // from package directories where pnpm's symlink farm is absent. Copy the exact
 // runtime dependency closure to Resources/node_modules so bare require() calls
@@ -128,6 +135,7 @@ const commonExtraResources = [
   orcadTemplateNodeModulesExtraResource,
   ...bundledRipgrepExtraResources,
   bundledPluginResources,
+  extraPluginResources,
   skillFreshnessResources,
   nativeChatVisualsResource,
   emojiShortcodeDatasetResource
@@ -229,6 +237,8 @@ module.exports = {
     // carries hostile-panel, the adversarial fixture the containment tests point at,
     // which must never reach a user's install.
     '!examples{,/**/*}',
+    // Why: extra plugins ship via extraPluginResources; the source tree has no asar consumer.
+    '!extra-plugins{,/**/*}',
     // Why: pr-evidence/ is a local e2e screenshot output (ORCA_CAPTURE_EVIDENCE);
     // it is gitignored, but exclude it defensively so a stray local capture at
     // package time never bloats app.asar.

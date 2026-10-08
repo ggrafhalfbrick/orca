@@ -1,3 +1,4 @@
+import { isExtraBundledPluginIdentity } from '../../shared/plugins/plugin-extra-bundles'
 import type { PluginInstallSource } from '../../shared/plugins/plugin-install-lockfile'
 import {
   isOfficialOrganizationGitSource,
@@ -10,9 +11,10 @@ export function pluginInstallTrustError(
   source: PluginInstallSource
 ): string | null {
   if (source.kind === 'bundled') {
-    return source.bundleId === pluginKey && isOfficialPluginIdentity(pluginKey)
+    return source.bundleId === pluginKey &&
+      (isOfficialPluginIdentity(pluginKey) || isExtraBundledPluginIdentity(pluginKey))
       ? null
-      : 'bundled plugins must use an official stablyai.orca-* identity'
+      : 'bundled plugins must use an official stablyai.orca-* or extra plugin identity'
   }
   if (!isReservedPluginIdentity(pluginKey)) {
     return null

@@ -155,8 +155,9 @@ export async function buildPluginList(
           ? candidateLockEntry
           : undefined
       const bundled = lockEntry?.source.kind === 'bundled'
+      // Why the identity check: extra bundles ship in the app but are not Orca's.
       const official =
-        bundled ||
+        (bundled && isOfficialPluginIdentity(plugin.pluginKey)) ||
         (lockEntry?.source.kind === 'marketplace' &&
           isOfficialPluginIdentity(plugin.pluginKey) &&
           isOfficialMarketplaceGitSource(lockEntry.source.marketplace.url) &&

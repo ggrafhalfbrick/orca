@@ -94,6 +94,18 @@ describe('plugin install trust', () => {
     })
   })
 
+  it.each<[string, string | null]>([
+    ['earlgeorg.markdown-vault', null],
+    [
+      'community.roadmap',
+      'bundled plugins must use an official stablyai.orca-* or extra plugin identity'
+    ]
+  ])('allows the app-bundled path for extra plugin identities only (%s)', (pluginKey, expected) => {
+    expect(pluginInstallTrustError(pluginKey, { kind: 'bundled', bundleId: pluginKey })).toBe(
+      expected
+    )
+  })
+
   it('blocks a killed plugin even when the caller bypasses marketplace UI', async () => {
     const sourcePath = await tempRoot('orca-killed-plugin-')
     const pluginsDir = await tempRoot('orca-plugin-installs-')

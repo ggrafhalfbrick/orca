@@ -7,6 +7,10 @@ import { PluginMarketplaceInstaller } from '../plugins/plugin-marketplace-instal
 import { PluginBundledBootstrapCoordinator } from '../plugins/plugin-bundled-bootstrap-coordinator'
 import { getPluginsDataDir } from '../plugins/plugin-discovery'
 import { resolveBundledPluginRoot } from '../plugins/plugin-bundled-bootstrap'
+import {
+  bootstrapLaunchAndExtraPlugins,
+  resolveExtraBundledPluginRoot
+} from '../plugins/plugin-extra-bundled-bootstrap'
 import { resolvePluginHostEntryPath } from '../plugins/plugin-host-entry-path'
 import { applyPluginConsent, applyPluginEnablement } from '../plugins/plugin-enablement'
 import { setPluginServiceForRpc } from '../runtime/rpc/methods/plugins'
@@ -67,12 +71,15 @@ export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService):
     getPluginKillListEntry: (pluginKey) => state.pluginKillListService?.find(pluginKey) ?? null,
     hostEntryPath: resolvePluginHostEntryPath(app.getAppPath(), app.isPackaged)
   })
+  const bundleLocation = {
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    appPath: app.getAppPath()
+  }
+  const extraPluginRoot = resolveExtraBundledPluginRoot(bundleLocation)
   const bundledPluginBootstrap = new PluginBundledBootstrapCoordinator({
-    root: resolveBundledPluginRoot({
-      isPackaged: app.isPackaged,
-      resourcesPath: process.resourcesPath,
-      appPath: app.getAppPath()
-    }),
+    root: resolveBundledPluginRoot(bundleLocation),
+    bootstrap: (request) => bootstrapLaunchAndExtraPlugins(request, extraPluginRoot),
     userDataPath: app.getPath('userData'),
     hostVersion: app.getVersion(),
     isEnabled: () => state.store?.getSettings().pluginSystemEnabled === true,

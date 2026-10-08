@@ -85,7 +85,7 @@ async function resolveBundlePath(root: string, path: string): Promise<string> {
   return resolvedPath
 }
 
-async function bundledInstallIsIntact(
+export async function bundledInstallIsIntact(
   pluginsDir: string,
   pluginKey: string,
   contentHash: string

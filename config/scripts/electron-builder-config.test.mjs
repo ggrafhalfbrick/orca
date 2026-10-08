@@ -36,6 +36,7 @@ describe('electron-builder config', () => {
         '!resources/skills/**',
         '!tests{,/**/*}',
         '!examples{,/**/*}',
+        '!extra-plugins{,/**/*}',
         '!pr-evidence{,/**/*}',
         '!notes{,/**/*}',
         '!{.claude,.grok,.agents,.codex}{,/**/*}',
@@ -214,13 +215,17 @@ describe('electron-builder config', () => {
       from: 'resources/plugins/launch',
       to: 'plugins/launch'
     })
+    const extraPluginResources = expect.objectContaining({
+      from: 'extra-plugins',
+      to: 'plugins/extra'
+    })
     for (const platform of ['mac', 'linux', 'win']) {
       expect(electronBuilderConfig[platform].extraResources).toContainEqual({
         from: 'resources/skills',
         to: 'skills'
       })
       expect(electronBuilderConfig[platform].extraResources).toEqual(
-        expect.arrayContaining([bundledPluginResources])
+        expect.arrayContaining([bundledPluginResources, extraPluginResources])
       )
     }
     expect(electronBuilderConfig.mac.extraResources).toEqual(
