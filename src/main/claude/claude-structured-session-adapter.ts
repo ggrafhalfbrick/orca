@@ -1,3 +1,4 @@
+import { requireLegacyAgentSessionAccountHome } from '../../shared/agent-session-account-home'
 import { dispatchClaudeCommand } from './claude-structured-command-dispatch'
 import type {
   AgentSessionAcquisition,
@@ -136,7 +137,7 @@ export class ClaudeStructuredSessionAdapter implements StructuredAgentSessionAda
   ) =>
     resolveClaudeProviderHistoryWindow({
       identity: input.identity,
-      accountHomePath: input.accountHome.path,
+      accountHomePath: requireLegacyAgentSessionAccountHome(input.accountHome).path,
       hasLiveSession:
         this.sessions.has(input.identity.sessionId) || this.exits.has(input.identity.sessionId)
     })
@@ -245,11 +246,13 @@ export class ClaudeStructuredSessionAdapter implements StructuredAgentSessionAda
       this.sessions.get(sessionId),
       this.deps.requestTimeoutMs ?? CLAUDE_DEFAULT_REQUEST_TIMEOUT_MS
     )
-  readOptions = async (input: { sessionId: string; fence: number }) => {
+  readOptions = (input: { sessionId: string; fence: number }) => {
+    // Looked up before any await: a chat with no live child throws to the caller, not later.
     const session = this.session(input.sessionId)
-    const options = await readClaudeStructuredSessionOptions(session, this.deps.requestTimeoutMs)
-    // Session-wide, so it rides beside the per-model options rather than in them.
-    return { ...options, permissionMode: claudeStructuredPermissionModeReport(session) }
+    return readClaudeStructuredSessionOptions(session, this.deps.requestTimeoutMs).then(
+      // Session-wide, so it rides beside the per-model options rather than in them.
+      (options) => ({ ...options, permissionMode: claudeStructuredPermissionModeReport(session) })
+    )
   }
   readOptionRestoreFailures = (sessionId: string): readonly string[] => [
     ...(this.sessions.get(sessionId)?.restoreSkippedOptions ?? [])

@@ -15,13 +15,12 @@ import {
   recordAgentSessionProviderHandle,
   reviseAgentSessionProviderResumePoint
 } from './agent-session-provider-handle-transition'
-import type { ClaudeManagedAccountGateSettings } from '../native-chat/claude-structured-managed-account-support'
 import type { AgentSessionRecordStore } from './agent-session-record-store'
 import { ClaudeAtRestCommandCatalog } from '../claude/claude-at-rest-commands'
 import { openClaudeStreamJsonConnection } from '../claude/claude-stream-json-connection'
-import type { ClaudeThinkingDisplaySupport } from '../claude/claude-thinking-display-support'
-import type { ClaudeAllowBypassSupport } from '../claude/claude-allow-bypass-support'
-import type { ClaudeLaunchFlagSupport } from '../claude/claude-launch-flag-support'
+import type { ClaudeCliFlagSupport } from '../claude/claude-cli-flag-support'
+import { prewarmClaudeCliFlags } from '../claude/claude-cli-flag-prewarm'
+import type { PrepareNativeChatVisuals } from '../native-chat/native-chat-visuals-delivery'
 import { claudeStructuredLaunchArgs } from '../claude/claude-structured-launch-args'
 import { claudeStructuredLaunchPermissionMode } from '../claude/claude-structured-permission-mode'
 
@@ -30,10 +29,10 @@ export type StructuredClaudeRuntimeAdapterDeps = {
   resolveWorkspacePath: (workspaceId: string) => Promise<string>
   resolveClaudeLaunchArgs: () => Promise<string[]> | string[]
   resolveClaudeCommand?: () => string
-  /** Whether a Claude CLI takes the thinking-display flag; absent never passes it. */
-  claudeThinkingDisplay?: ClaudeThinkingDisplaySupport
-  /** Whether a Claude CLI takes the allow-bypass flag; absent never passes it. */
-  claudeAllowBypass?: ClaudeAllowBypassSupport
+  /** Which version-gated flags a Claude CLI takes; absent never passes one. */
+  claudeCliFlags?: ClaudeCliFlagSupport
+  /** Each chat's visuals folder and skill; absent leaves chats without visuals. */
+  prepareVisuals?: PrepareNativeChatVisuals
   resolveClaudeLaunchEnv?: () => Promise<Record<string, string>> | Record<string, string>
   /** The env a Claude child inherits before auth stripping; absent inherits Orca's own. */
   resolveClaudeInheritedEnv?: () => Promise<Record<string, string>>
@@ -42,7 +41,8 @@ export type StructuredClaudeRuntimeAdapterDeps = {
   resolveClaudeAuthPolicy: () => Promise<ClaudeStructuredAuthPolicy> | ClaudeStructuredAuthPolicy
   /** The user's Agent Permissions setting for Claude; absent means prompting. */
   resolveClaudePermissionMode?: () => Promise<PermissionMode> | PermissionMode
-  readClaudeManagedAccountGate?: () => ClaudeManagedAccountGateSettings | null
+  /** Where the host stores chat attachments; granted to the agent as a readable directory. */
+  attachmentDirectory?: string
   openClaudeConnection?: ClaudeStructuredSessionAdapterDeps['openConnection']
   readProcessStartTime?: ClaudeStructuredSessionAdapterDeps['readProcessStartTime']
   modelCatalog?: ClaudeStructuredSessionAdapterDeps['modelCatalog']
@@ -105,6 +105,18 @@ export function createStructuredClaudeRuntimeAdapter(
   deps: StructuredClaudeRuntimeAdapterDeps
 ): ClaudeStructuredSessionAdapter {
   const { store } = deps
+  if (deps.claudeCliFlags) {
+    // Before any chat launches, so the first one rarely waits on the version check.
+    void prewarmClaudeCliFlags({
+      cliFlags: deps.claudeCliFlags,
+      store,
+      resolveCommand: deps.resolveClaudeCommand ?? resolveClaudeCommand,
+      ...(deps.resolveClaudeLaunchEnv ? { resolveEnv: deps.resolveClaudeLaunchEnv } : {}),
+      ...(deps.resolveClaudeInheritedEnv
+        ? { resolveInheritedEnv: deps.resolveClaudeInheritedEnv }
+        : {})
+    })
+  }
   return new ClaudeStructuredSessionAdapter({
     atRestCommands: new ClaudeAtRestCommandCatalog({
       resolveWorkspacePath: deps.resolveWorkspacePath
@@ -122,11 +134,9 @@ export function createStructuredClaudeRuntimeAdapter(
       ...(deps.resolveClaudePermissionMode
         ? { resolvePermissionMode: deps.resolveClaudePermissionMode }
         : {}),
-      ...(deps.readClaudeManagedAccountGate
-        ? { readManagedAccountGate: deps.readClaudeManagedAccountGate }
-        : {}),
-      ...(deps.claudeThinkingDisplay ? { thinkingDisplay: deps.claudeThinkingDisplay } : {}),
-      ...(deps.claudeAllowBypass ? { allowBypass: deps.claudeAllowBypass } : {})
+      ...(deps.attachmentDirectory ? { attachmentDirectory: deps.attachmentDirectory } : {}),
+      ...(deps.claudeCliFlags ? { cliFlags: deps.claudeCliFlags } : {}),
+      ...(deps.prepareVisuals ? { prepareVisuals: deps.prepareVisuals } : {})
     }),
     resolveLaunchPermissionMode: () => claudeLaunchPermissionModeOf(deps),
     persistHandle: async ({ sessionId, providerSessionId, leafUuid, fence }) => {
@@ -176,15 +186,10 @@ export function createStructuredClaudeRuntimeAdapter(
 /** The child's connection, watched for a CLI refusing a version-gated flag, so the start that
  *  failed on it is the last one to pass it. */
 export function openClaudeConnectionOf(
-  deps: Pick<
-    StructuredClaudeRuntimeAdapterDeps,
-    'openClaudeConnection' | 'claudeThinkingDisplay' | 'claudeAllowBypass'
-  >
+  deps: Pick<StructuredClaudeRuntimeAdapterDeps, 'openClaudeConnection' | 'claudeCliFlags'>
 ): Pick<ClaudeStructuredSessionAdapterDeps, 'openConnection'> {
-  const supports = [deps.claudeThinkingDisplay, deps.claudeAllowBypass].filter(
-    (support): support is ClaudeLaunchFlagSupport => support !== undefined
-  )
-  if (supports.length === 0) {
+  const support = deps.claudeCliFlags
+  if (!support) {
     return deps.openClaudeConnection ? { openConnection: deps.openClaudeConnection } : {}
   }
   const open = deps.openClaudeConnection ?? openClaudeStreamJsonConnection
@@ -196,12 +201,10 @@ export function openClaudeConnectionOf(
           ...handlers,
           // Every argument passes through, so one the connection adds later still reaches the session.
           onExit: (...args) => {
-            for (const support of supports) {
-              support.observeExit(
-                { command: launch.pathToClaudeCodeExecutable, cwd: launch.cwd },
-                args[0]
-              )
-            }
+            support.observeExit(
+              { command: launch.pathToClaudeCodeExecutable, cwd: launch.cwd },
+              args[0]
+            )
             handlers.onExit?.(...args)
           }
         },

@@ -57,7 +57,7 @@ Rules a report follows:
   Arguments' `--permission-mode` unless Yolo is on, and only Yolo grants bypass. A Yolo chat
   relaunched into another saved mode keeps bypass reachable through
   `--allow-dangerously-skip-permissions`, gated on CLI 2.1.143 or newer by
-  `claude-allow-bypass-support.ts`.
+  `CLAUDE_ALLOW_BYPASS_FLAG` in `claude-cli-flag-support.ts`.
 - **ACP agents** (Gemini, Grok, Cursor and the rest; not wired yet): ACP already models this.
   `session/new` and `session/load` return `modes: { currentModeId, availableModes: [{ id, name, description }] }`,
   the agent sends `current_mode_update`, and `AcpSessionRuntime.setMode` calls
