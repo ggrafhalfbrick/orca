@@ -1,0 +1,179 @@
+{
+  "manifestVersion": 1,
+  "id": "markdown-vault",
+  "publisher": "georg-graf",
+  "name": "Markdown Vault",
+  "version": "0.1.0",
+  "description": "Lists markdown notes with frontmatter from a folder of one of your Orca projects on the Tasks page, and starts a workspace for a note.",
+  "author": { "name": "Georg Graf" },
+  "engines": { "orca": ">=1.4.214" },
+  "pluginApi": 1,
+  "main": "main.mjs",
+  "contributes": {
+    "taskSources": [{ "id": "notes", "title": "Markdown Vault", "icon": "notebook-text" }],
+    "settings": [
+      {
+        "key": "project",
+        "title": "Vault project",
+        "description": "The Orca project the notes live in: a local folder, a Git or a Perforce project, on this computer or over SSH.",
+        "type": "project"
+      },
+      {
+        "key": "folder",
+        "title": "Notes folder",
+        "description": "Folder inside the project, with forward slashes. Empty lists the whole project.",
+        "type": "string",
+        "placeholder": "docs/plans"
+      },
+      {
+        "key": "source",
+        "title": "Read notes from",
+        "description": "Latest reads the newest version on the project's server (Git: the fetched upstream branch; Perforce: the depot head), so nothing needs syncing. Disk reads the files in the project folder.",
+        "type": "enum",
+        "default": "latest",
+        "options": [
+          { "value": "latest", "label": "Latest on the server" },
+          { "value": "disk", "label": "Files in the project folder" }
+        ]
+      },
+      {
+        "key": "statusFields",
+        "title": "Status fields",
+        "description": "Frontmatter fields holding a note's status, comma-separated; the first one a note sets wins. A long status shows its leading words.",
+        "type": "string",
+        "default": "state, status"
+      },
+      {
+        "key": "statusTones",
+        "title": "Status words",
+        "description": "One line per tone (open, active, blocked, review, done, closed): the status words that mean it. Done and closed notes cannot start a workspace.",
+        "type": "string",
+        "multiline": true,
+        "default": "open: open, todo, to do, ready, draft, new\nactive: active, in progress, doing, started\nblocked: blocked, waiting\nreview: review, in review, waiting review, submitted\ndone: done, complete, completed, shipped, executed, closed\nclosed: cancelled, canceled, superseded, parked, dropped"
+      },
+      {
+        "key": "titleField",
+        "title": "Title field",
+        "description": "Frontmatter field with the title; without it, the first heading, then the file name.",
+        "type": "string",
+        "default": "title"
+      },
+      {
+        "key": "priorityField",
+        "title": "Priority field",
+        "description": "Frontmatter field with the priority; P0 to P3 sort first.",
+        "type": "string",
+        "default": "priority"
+      },
+      {
+        "key": "ownerField",
+        "title": "Owner field",
+        "description": "Frontmatter field with the owner (an email or a name).",
+        "type": "string",
+        "default": "owner"
+      },
+      {
+        "key": "labelsField",
+        "title": "Labels field",
+        "description": "Frontmatter field with labels, a list or comma-separated.",
+        "type": "string",
+        "default": "tags"
+      },
+      {
+        "key": "updatedField",
+        "title": "Updated field",
+        "description": "Frontmatter field with the last-updated date (YYYY-MM-DD); newer notes sort first within a priority.",
+        "type": "string",
+        "default": "updated"
+      },
+      {
+        "key": "filterFields",
+        "title": "Extra filters",
+        "description": "Up to four more frontmatter fields to filter by, comma-separated.",
+        "type": "string",
+        "placeholder": "type, area"
+      },
+      {
+        "key": "peopleFile",
+        "title": "People file",
+        "description": "Optional markdown file in the vault project with a table of people (Email and Name columns, optional Aliases), so owners show by name.",
+        "type": "string",
+        "placeholder": "team/people.md"
+      },
+      {
+        "key": "me",
+        "title": "You",
+        "description": "How notes name you as owner (an email or a name), for the Mine filter.",
+        "type": "string"
+      },
+      {
+        "key": "workProject",
+        "title": "Work in project",
+        "description": "The project Start creates the workspace in. Empty uses the vault project.",
+        "type": "project"
+      },
+      {
+        "key": "baseField",
+        "title": "Base field",
+        "description": "Frontmatter field naming the branch or stream a new workspace starts from.",
+        "type": "string",
+        "default": "base"
+      },
+      {
+        "key": "basePrefix",
+        "title": "Base prefix",
+        "description": "Put in front of base values without a slash, e.g. //depot for bare stream names.",
+        "type": "string"
+      },
+      {
+        "key": "modelField",
+        "title": "Model field",
+        "description": "Frontmatter field with the model to launch the agent with.",
+        "type": "string",
+        "default": "model"
+      },
+      {
+        "key": "effortField",
+        "title": "Effort field",
+        "description": "Frontmatter field with the reasoning effort to launch the agent with.",
+        "type": "string",
+        "default": "effort"
+      },
+      {
+        "key": "agent",
+        "title": "Agent for model and effort",
+        "description": "The agent the model and effort fields are written for; other agents launch without them.",
+        "type": "string",
+        "default": "claude"
+      },
+      {
+        "key": "startWithoutAgentWhen",
+        "title": "Start without an agent when",
+        "description": "field=value: notes that match start a workspace with no agent message, e.g. mode=manual.",
+        "type": "string"
+      },
+      {
+        "key": "promptTemplate",
+        "title": "Agent message",
+        "description": "The draft first message for the agent. Placeholders: {{title}}, {{path}}, {{slug}}, {{status}}, {{statusText}}, {{owner}}, {{ownerEmail}}, {{priority}}, {{labels}}, {{base}}, and {{field:NAME}} for any frontmatter field.",
+        "type": "string",
+        "multiline": true,
+        "default": "Work on the note \"{{title}}\" ({{path}}).\n\nRead that note first: it is your brief."
+      },
+      {
+        "key": "linkNotes",
+        "title": "Workspace link notes",
+        "description": "Lines of key: template kept with the workspace's link to the note (up to eight), with the same placeholders.",
+        "type": "string",
+        "multiline": true,
+        "default": "note: {{path}}"
+      }
+    ]
+  },
+  "capabilities": [
+    { "kind": "tasks:provide" },
+    { "kind": "settings:own" },
+    { "kind": "projects:read" },
+    { "kind": "storage" }
+  ]
+}
