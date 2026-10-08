@@ -687,6 +687,9 @@
       }
     },
     "lib": {
+      "gitRemoteProjectMatch": {
+        "noProject": "No Git project in Orca has the remote {{remote}}. Add a clone of it as a project, then start again."
+      },
       "agent": {
         "catalog": {
           "5dff448636": "OpenClaw",
@@ -2500,6 +2503,7 @@
         "pluginTaskSourceContext": "{{value0}} · plugin",
         "pluginTaskEmpty": "No tasks found",
         "pluginTaskEmptyHint": "Try different search terms or filters.",
+        "pluginTaskProjectMissing": "No Orca project is at {{path}}. Add it as a project, then start again.",
         "pluginTaskOpenWorkspaceAction": "Open workspace",
         "pluginTaskStartAnotherShort": "Start another",
         "pluginTaskWorkspacesLabel": "Workspaces",

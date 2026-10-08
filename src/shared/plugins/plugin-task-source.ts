@@ -85,6 +85,11 @@ export const pluginTaskStartRecipeSchema = z
     baseRef: z.string().min(1).max(512).optional(),
     /** Preselects the Orca project whose folder is this path. */
     projectPath: z.string().min(1).max(4096).optional(),
+    /**
+     * Where the project's files come from, e.g. a Git remote URL. Without `projectPath`, Orca
+     * preselects a project from there; if it has none, Start says so instead of using another one.
+     */
+    projectSource: z.string().min(1).max(512).optional(),
     /** Agent session options for the launch (e.g. Claude's --model/--effort); agents that lack one ignore it. */
     sessionOptions: z
       .object({

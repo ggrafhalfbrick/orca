@@ -105,9 +105,11 @@ export function PluginTaskSourcePage({
   }, [])
   const startItem = useCallback(
     (item: PluginTaskItem) => {
-      if (openComposerForPluginTask(item, source)) {
-        setDetailOpen(false)
-      }
+      void openComposerForPluginTask(item, source).then((opened) => {
+        if (opened) {
+          setDetailOpen(false)
+        }
+      })
     },
     [source]
   )

@@ -81,7 +81,8 @@ describe('task source results', () => {
             workspaceName: 'plan',
             agentPrompt: 'Implement the plan.',
             baseRef: 'main',
-            projectPath: '/home/me/Work'
+            projectPath: '/home/me/Work',
+            projectSource: 'https://github.com/acme/docs'
           }
         },
         {

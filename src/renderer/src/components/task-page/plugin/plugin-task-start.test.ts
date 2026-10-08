@@ -2,39 +2,33 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => {
   const repos: unknown[] = []
-  return { openModal: vi.fn(), repos }
+  return { openModal: vi.fn(), toastError: vi.fn(), repos }
 })
 vi.mock('@/store', () => ({
-  useAppStore: { getState: () => ({ repos: mocks.repos, openModal: mocks.openModal }) }
+  useAppStore: {
+    getState: () => ({ repos: mocks.repos, activeRepoId: 'other', openModal: mocks.openModal })
+  }
 }))
+vi.mock('sonner', () => ({ toast: { error: mocks.toastError } }))
 
-import { findRepoIdForProjectPath, openComposerForPluginTask } from './plugin-task-start'
+import { openComposerForPluginTask } from './plugin-task-start'
 
 const repos = [
-  { id: 'remote', path: '/home/me/Work', connectionId: 'ssh-1' },
-  { id: 'local', path: '/home/me/Work/', connectionId: null }
+  { id: 'other', path: '/home/me/Other', displayName: 'other', badgeColor: '', addedAt: 0 },
+  { id: 'local', path: '/home/me/Work/', displayName: 'work', badgeColor: '', addedAt: 0 }
 ]
 
 beforeEach(() => {
   mocks.openModal.mockReset()
+  mocks.toastError.mockReset()
   mocks.repos = repos
-})
-
-describe('findRepoIdForProjectPath', () => {
-  it('matches across a trailing separator, preferring local projects', () => {
-    expect(findRepoIdForProjectPath(repos, '/home/me/Work')).toBe('local')
-  })
-
-  it('keeps POSIX paths case-sensitive', () => {
-    expect(findRepoIdForProjectPath(repos, '/home/me/work')).toBeNull()
-  })
 })
 
 const SOURCE = { pluginKey: 'orca-samples.roadmap', sourceId: 'plans', title: 'Roadmap' }
 
 describe('openComposerForPluginTask', () => {
-  it('prefills Create workspace from the start recipe and links the workspace back', () => {
-    const opened = openComposerForPluginTask(
+  it('prefills Create workspace from the start recipe and links the workspace back', async () => {
+    const opened = await openComposerForPluginTask(
       {
         id: 'plan',
         title: 'Plan title',
@@ -71,8 +65,17 @@ describe('openComposerForPluginTask', () => {
     })
   })
 
-  it('does nothing for an item without a start recipe', () => {
-    expect(openComposerForPluginTask({ id: 'manual', title: 'Manual plan' }, SOURCE)).toBe(false)
+  it('says which project is missing instead of opening on the active one', async () => {
+    const item = { id: 'plan', title: 'Plan', start: { projectPath: '/home/me/Gone' } }
+    await expect(openComposerForPluginTask(item, SOURCE)).resolves.toBe(false)
+    expect(mocks.openModal).not.toHaveBeenCalled()
+    expect(mocks.toastError).toHaveBeenCalledWith(expect.stringContaining('/home/me/Gone'))
+  })
+
+  it('does nothing for an item without a start recipe', async () => {
+    await expect(
+      openComposerForPluginTask({ id: 'manual', title: 'Manual plan' }, SOURCE)
+    ).resolves.toBe(false)
     expect(mocks.openModal).not.toHaveBeenCalled()
   })
 })
