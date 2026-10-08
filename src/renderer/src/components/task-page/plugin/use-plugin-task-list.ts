@@ -6,6 +6,7 @@ import {
   savePluginTaskSourceView
 } from '@/lib/plugin-task-source-view-memory'
 import { pluginTaskErrorMessage } from './plugin-task-error-message'
+import { reconcileFilterSelection } from './plugin-task-filter-selection'
 
 const SEARCH_DEBOUNCE_MS = 250
 
@@ -66,6 +67,8 @@ export function usePluginTaskList(source: ActivePluginTaskSource): PluginTaskLis
         lastListBySource.set(source.key, { viewKey, result: next })
         setResult(next)
         setError(null)
+        // Why: a stale remembered value would keep being sent and saved while its picker shows the default.
+        setFilters((current) => reconcileFilterSelection(current, next.filters ?? []))
       })
       .catch((failure: unknown) => {
         if (!cancelled) {
