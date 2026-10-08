@@ -1121,6 +1121,9 @@
       "ephemeralVmWorktreeCreation": {
         "sparseCheckoutUnsupported": "Provisioned-root recipes do not support sparse checkout."
       },
+      "pluginTaskWorkspaceLink": {
+        "saveFailed": "Workspace created, but its link to the plugin task could not be saved."
+      },
       "worktreeJumpNavigation": {
         "filteredNotice": "This worktree is hidden by sidebar filters. The workspace was opened, but it is not shown in Spaces."
       },
