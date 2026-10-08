@@ -6,7 +6,12 @@ import {
   PLUGIN_WORKSPACE_TERMINAL_LIMIT,
   type PluginHostMethodSpec
 } from '../../shared/plugins/plugin-host-api'
+import {
+  projectsListMarkdownParams,
+  projectsReadMarkdownParams
+} from '../../shared/plugins/plugin-host-api-projects'
 import type { PluginEventName } from '../../shared/plugins/plugin-manifest'
+import type { PluginProjectFiles } from './plugin-project-files'
 
 export type PluginWorktreeContext = {
   worktreeId: string
@@ -47,6 +52,7 @@ export type PluginHostServices = {
     set(pluginId: string, key: string, value: unknown): { ok: true } | { ok: false; error: string }
   }
   subscribeEvents(pluginId: string, events: PluginEventName[]): PluginEventName[]
+  projects: PluginProjectFiles
 }
 
 export type BoundPluginHostMethod = {
@@ -167,7 +173,16 @@ const HANDLERS = new Map<string, BoundPluginHostMethod>([
   definePluginMethod('events.subscribe', async (params, { pluginId, services }) => {
     const { events } = params as { events: PluginEventName[] }
     return { subscribed: services.subscribeEvents(pluginId, events) }
-  })
+  }),
+  definePluginMethod('projects.list', async (_params, { services }) => ({
+    projects: await services.projects.list()
+  })),
+  definePluginMethod('projects.listMarkdown', async (params, { services }) =>
+    services.projects.listMarkdown(projectsListMarkdownParams.parse(params))
+  ),
+  definePluginMethod('projects.readMarkdown', async (params, { services }) => ({
+    files: await services.projects.readMarkdown(projectsReadMarkdownParams.parse(params))
+  }))
 ])
 
 // Why: adding a facade schema without a binding must fail at module load,

@@ -265,4 +265,29 @@ describe('validateGitExecArgs', () => {
       expectBlocked(args, 'via exec is restricted')
     })
   })
+
+  describe('git ls-tree and cat-file for project file reads', () => {
+    const blob = 'a'.repeat(40)
+    it.each([
+      [['ls-tree', '-r', '-z', '--long', '--full-tree', 'origin/main']],
+      [['ls-tree', '-r', '-z', '--long', '--full-tree', blob, '--', 'docs/plans']],
+      [['cat-file', 'blob', blob]],
+      [['cat-file', 'blob', 'b'.repeat(64)]]
+    ])('allows %j', (args) => {
+      expectAllowed(args)
+    })
+
+    it.each([
+      [['ls-tree', 'HEAD']],
+      [['ls-tree', '-r', '-z', '--long', '--full-tree', '--name-only', 'HEAD']],
+      [['ls-tree', '-r', '-z', '--long', '--full-tree', 'HEAD', 'docs']],
+      [['ls-tree', '-r', '-z', '--long', '--full-tree', 'HEAD', '--', 'a', 'b']],
+      [['cat-file', '-p', 'HEAD:README.md']],
+      [['cat-file', '--textconv', `HEAD:README.md`]],
+      [['cat-file', 'blob', 'HEAD:README.md']],
+      [['cat-file', '--batch']]
+    ])('rejects %j', (args) => {
+      expectBlocked(args, 'via exec is restricted')
+    })
+  })
 })

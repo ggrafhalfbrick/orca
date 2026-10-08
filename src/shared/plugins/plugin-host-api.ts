@@ -1,6 +1,14 @@
 import { z } from 'zod'
 import { PLUGIN_EVENT_NAMES } from './plugin-manifest'
 import type { PluginCapabilityKind } from './plugin-capabilities'
+import {
+  projectsListMarkdownParams,
+  projectsListMarkdownResult,
+  projectsListParams,
+  projectsListResult,
+  projectsReadMarkdownParams,
+  projectsReadMarkdownResult
+} from './plugin-host-api-projects'
 
 /**
  * Host API v0 — the separately-versioned public facade plugins call. Every
@@ -100,7 +108,13 @@ export type PluginHostMethodSpec = {
   /** pluginApi minor the method appeared in (`1.0` for the v0 set). */
   since: string
   /** Machine-readable resource boundary enforced by the host binding. */
-  scope: 'active-worktree' | 'explicit-terminal' | 'plugin-private' | 'desktop' | 'host-events'
+  scope:
+    | 'active-worktree'
+    | 'explicit-terminal'
+    | 'plugin-private'
+    | 'desktop'
+    | 'host-events'
+    | 'user-projects'
   stability: 'experimental'
   capability: PluginCapabilityKind
   /** Mutations are audit-logged with actor `plugin:<id>`. */
@@ -249,6 +263,36 @@ export const PLUGIN_HOST_API_V0: readonly PluginHostMethodSpec[] = [
     panel: false,
     params: eventsSubscribeParams,
     result: eventsSubscribeResult
+  }),
+  spec({
+    name: 'projects.list',
+    since: '1.1',
+    scope: 'user-projects',
+    capability: 'projects:read',
+    mutation: false,
+    panel: false,
+    params: projectsListParams,
+    result: projectsListResult
+  }),
+  spec({
+    name: 'projects.listMarkdown',
+    since: '1.1',
+    scope: 'user-projects',
+    capability: 'projects:read',
+    mutation: false,
+    panel: false,
+    params: projectsListMarkdownParams,
+    result: projectsListMarkdownResult
+  }),
+  spec({
+    name: 'projects.readMarkdown',
+    since: '1.1',
+    scope: 'user-projects',
+    capability: 'projects:read',
+    mutation: false,
+    panel: false,
+    params: projectsReadMarkdownParams,
+    result: projectsReadMarkdownResult
   })
 ]
 

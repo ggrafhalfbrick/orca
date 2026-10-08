@@ -1,0 +1,53 @@
+{
+  "manifestVersion": 1,
+  "id": "markdown-vault",
+  "publisher": "earlgeorg",
+  "name": "Markdown Vault",
+  "version": "0.1.0",
+  "description": "Lists markdown notes with frontmatter from a folder of one of your Orca projects on the Tasks page, and starts a workspace for a note. The folder's markdown-vault.md note configures it for everyone.",
+  "author": { "name": "earlgeorg" },
+  "engines": { "orca": ">=1.4.214" },
+  "pluginApi": 1,
+  "main": "main.mjs",
+  "contributes": {
+    "taskSources": [{ "id": "notes", "title": "Markdown Vault", "icon": "notebook-text" }],
+    "settings": [
+      {
+        "key": "project",
+        "title": "Vault project",
+        "description": "The Orca project the notes live in: a local folder, a Git or a Perforce project, on this computer or over SSH.",
+        "type": "project"
+      },
+      {
+        "key": "folder",
+        "title": "Notes folder",
+        "description": "Folder inside the project, with forward slashes. Empty lists the whole project. Its markdown-vault.md note, if any, configures how the notes read.",
+        "type": "string",
+        "placeholder": "docs/plans"
+      },
+      {
+        "key": "source",
+        "title": "Read notes from",
+        "description": "Latest reads the newest version on the project's server (Git: the fetched upstream branch; Perforce: the depot head), so nothing needs syncing. Disk reads the files in the project folder.",
+        "type": "enum",
+        "default": "latest",
+        "options": [
+          { "value": "latest", "label": "Latest on the server" },
+          { "value": "disk", "label": "Files in the project folder" }
+        ]
+      },
+      {
+        "key": "me",
+        "title": "You",
+        "description": "How notes name you as owner (an email or a name), for the Mine filter.",
+        "type": "string"
+      }
+    ]
+  },
+  "capabilities": [
+    { "kind": "tasks:provide" },
+    { "kind": "settings:own" },
+    { "kind": "projects:read" },
+    { "kind": "storage" }
+  ]
+}

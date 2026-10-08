@@ -1,12 +1,13 @@
 import type { PluginEventName } from '../../shared/plugins/plugin-manifest'
 import { PLUGIN_WORKSPACE_TERMINAL_LIMIT } from '../../shared/plugins/plugin-host-api'
 import type { PluginHostServices } from './plugin-host-methods'
+import { createPluginProjectFiles, type PluginProjectFilesDelegate } from './plugin-project-files'
 import { PluginSecretsStore } from './plugin-secrets-store'
 import { PluginKvStore } from './plugin-storage-store'
 import type { TerminalInputKind } from '../../shared/terminal-input-kind'
 
 /** Structural subset of OrcaRuntimeService exposed to plugin facade bindings. */
-export type PluginRuntimeDelegate = {
+export type PluginRuntimeDelegate = PluginProjectFilesDelegate & {
   resolveActiveWorktreeContext(): Promise<{
     worktreeId: string
     path: string
@@ -83,6 +84,7 @@ export function bindPluginHostServices(input: {
       set: (key, itemKey, value) =>
         new PluginKvStore(pluginsDataDir, key, 'settings.json').set(itemKey, value)
     },
-    subscribeEvents
+    subscribeEvents,
+    projects: createPluginProjectFiles(delegate)
   }
 }

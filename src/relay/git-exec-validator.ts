@@ -30,8 +30,39 @@ const ALLOWED_GIT_SUBCOMMANDS = new Set([
   'commit',
   'for-each-ref',
   'check-ref-format',
-  'config'
+  'config',
+  'ls-tree',
+  'cat-file'
 ])
+
+// Why: plugins with projects:read read a project's latest markdown on an SSH host. Only these
+// exact shapes, over the worktree's own objects: no textconv/filters (which can run configured
+// commands), batch modes or other output paths.
+const LS_TREE_FLAGS = ['-r', '-z', '--long', '--full-tree']
+const OBJECT_ID_PATTERN = /^[0-9a-f]{40}(?:[0-9a-f]{24})?$/
+
+function validateLsTreeArgs(args: string[]): void {
+  const flags = args.slice(1, 1 + LS_TREE_FLAGS.length)
+  const [ref, separator, path, ...extra] = args.slice(1 + LS_TREE_FLAGS.length)
+  const shapeOk =
+    flags.every((flag, index) => flag === LS_TREE_FLAGS[index]) &&
+    flags.length === LS_TREE_FLAGS.length &&
+    Boolean(ref) &&
+    !ref.startsWith('-') &&
+    extra.length === 0 &&
+    (separator === undefined || (separator === '--' && Boolean(path)))
+  if (!shapeOk) {
+    throw new Error(
+      'git ls-tree via exec is restricted to ls-tree -r -z --long --full-tree <ref> [-- <path>]'
+    )
+  }
+}
+
+function validateCatFileArgs(args: string[]): void {
+  if (args.length !== 3 || args[1] !== 'blob' || !OBJECT_ID_PATTERN.test(args[2])) {
+    throw new Error('git cat-file via exec is restricted to cat-file blob <object id>')
+  }
+}
 const CONFIG_READ_ONLY_FLAGS = new Set(['--get', '--get-all', '--list', '--get-regexp', '-l'])
 // Why: checking presence of a read-only flag is insufficient — a request could
 // include both --list (passes the check) and --add (performs a write). Reject
@@ -225,5 +256,11 @@ export function validateGitExecArgs(args: string[]): void {
   }
   if (subcommand === 'clone') {
     validateCloneArgs(args)
+  }
+  if (subcommand === 'ls-tree') {
+    validateLsTreeArgs(args)
+  }
+  if (subcommand === 'cat-file') {
+    validateCatFileArgs(args)
   }
 }
