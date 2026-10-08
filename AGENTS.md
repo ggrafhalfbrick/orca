@@ -141,3 +141,13 @@ Source-control and review changes must consider GitLab and other supported git p
 ## GitHub CLI Usage
 
 Be mindful of the user's `gh` CLI API rate limit — batch requests where possible and avoid unnecessary calls. All code, commands, and scripts must be compatible with macOS, Linux, and Windows.
+
+## Integration Branch Only: Replace With Upstream When It Lands
+
+This section exists only on the `integration` branch, which combines work while its pull requests wait for upstream. Never carry it, or anything listed here, into a branch meant for upstream.
+
+- **Extra plugins.** `extra-plugins/` and the code that installs it at startup (`src/shared/plugins/plugin-extra-bundles.ts`, `src/main/plugins/plugin-extra-bundled-bootstrap.ts`, and the `extraPluginResources` entry in `config/electron-builder.config.cjs`) ship only with this branch; see [`extra-plugins/README.md`](./extra-plugins/README.md). A plugin feature PR carries its API changes, never these folders.
+- **Chat permission-mode picker.** Our branch `chat-permission-mode` is merged into `integration`. Upstream is shipping the same feature in [#26116](https://github.com/stablyai/orca/pull/26116) (a permission setting for new chats and a permission button in the chat composer, Claude and Codex).
+  - When it is in `main` and `main` is merged into `integration`, take upstream's implementation: resolve every permission-mode conflict in favour of `main` and drop our branch's code instead of combining the two (revert its merges into `integration` first if that is cleaner). Ours lives mainly in `src/main/claude/claude-structured-permission-mode.ts`, `CLAUDE_ALLOW_BYPASS_FLAG` in `src/main/claude/claude-cli-flag-support.ts`, `src/main/native-chat/agent-session-wire/structured-agent-permission-modes.ts`, `src/shared/agent-session-permission-mode.ts`, `src/shared/structured-agent-session-permission-mode.ts` and `docs/reference/agent-permission-modes.md`.
+  - Keep the "Provider-Neutral Interfaces" rule above; drop the "Agent Permission Modes" section and the doc's `.gitignore` entry if the doc goes, and repoint the rule's example.
+  - Upstream does not read `--permission-mode` from Claude's Arguments: pick the matching mode in upstream's new-chat permission setting and remove `--permission-mode auto` from Claude's Arguments. Then delete this entry.
