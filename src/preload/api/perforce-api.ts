@@ -19,6 +19,11 @@ export type PerforceApi = {
     operation: K,
     args: PerforceWorktreeArgs & PerforceOperationParams[K]
   ) => Promise<PerforceOperationResult<K>>
+  /** Whether a folder that is not yet a project is in a Perforce client workspace. */
+  detectFolder: (args: {
+    folderPath: string
+    connectionId?: string
+  }) => Promise<PerforceOperationResult<'detect'>>
   generateDescription: (
     args: PerforceWorktreeArgs & {
       changelist: 'default' | 'new' | number

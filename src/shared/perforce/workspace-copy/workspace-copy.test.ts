@@ -345,6 +345,20 @@ describe('removeWorkspaceCopy', () => {
     expect(keptResult.note).toContain(`p4 copy -S ${STREAM}_wt_kept`)
   })
 
+  it('deletes a child stream whose only work was a shelf the removal deletes', async () => {
+    const host = createFakeCopyHost(server, base)
+    await createWorkspaceCopy(host, ws, { name: 'shelf', stream: { kind: 'child' } })
+    server.addPending('src_wt_shelf', 'wip', 1)
+    const removed = await removeWorkspaceCopy(
+      host,
+      ws,
+      'shelf',
+      { deleteShelves: true },
+      { awaitFolderDeletion: true }
+    )
+    expect(removed.streamDeleted).toBe(true)
+  })
+
   it('refuses to delete a folder the client does not root at the expected copy path', async () => {
     const host = createFakeCopyHost(server, base)
     server.addSyncedClient('src_wt_odd', join(base, 'elsewhere'), STREAM)

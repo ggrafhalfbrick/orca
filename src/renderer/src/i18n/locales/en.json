@@ -19554,7 +19554,7 @@
       "oneFile": "file",
       "manyFiles": "{{total}} files",
       "moveToExistingChangelist": "Move to existing changelist",
-      "shelfChanges": "Shelf changes",
+      "shelveChanges": "Shelve changes",
       "unshelveAChangelist": "Unshelve a changelist…",
       "refresh": "Refresh",
       "getLatestRevisionsP4Sync": "Get latest revisions (p4 sync)",

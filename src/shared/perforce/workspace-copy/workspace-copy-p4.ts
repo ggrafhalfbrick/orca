@@ -113,7 +113,7 @@ export async function submittedChangeCount(
   stream: string,
   cwd: string
 ): Promise<number> {
-  const records = await p4Tagged(host, ['changes', '-m1', `${stream}/...`], cwd)
+  const records = await p4Tagged(host, ['changes', '-m1', '-s', 'submitted', `${stream}/...`], cwd)
   return records.filter((record) => record.change).length
 }
 

@@ -134,7 +134,7 @@ const NonGitFolderDialog = React.memo(function NonGitFolderDialog() {
     }
     let cancelled = false
     void window.api.perforce
-      .run('detect', { worktreePath: folderPath, ...(connectionId ? { connectionId } : {}) })
+      .detectFolder({ folderPath, ...(connectionId ? { connectionId } : {}) })
       .then((result) => result.isWorkspace)
       .catch(() => false)
       .then((isPerforce) => {

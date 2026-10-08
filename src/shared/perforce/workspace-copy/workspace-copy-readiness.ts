@@ -16,10 +16,13 @@ import type { BlockCloningState, WorkspaceCopyReadiness } from './workspace-copy
 
 const PROBE_BYTES = 64 * 1024 * 1024
 const PROBE_CHUNK_BYTES = 1024 * 1024
-const verifiedVolumes = new Set<string>()
+// Why keep a negative answer at all: each probe writes about 256 MB, and the composer asks on every
+// open. 'unknown' is never kept, so a skewed measurement is retried.
+const NOT_CLONING_TTL_MS = 5 * 60_000
+const probedVolumes = new Map<string, { state: 'verified' | 'not-cloning'; at: number }>()
 
 export function resetBlockCloningProbeCacheForTests(): void {
-  verifiedVolumes.clear()
+  probedVolumes.clear()
 }
 
 async function writeProbeFile(path: string): Promise<void> {
@@ -65,16 +68,17 @@ export async function probeBlockCloning(
   dir: string
 ): Promise<BlockCloningState> {
   const volume = parse(dir).root.toLowerCase()
-  if (verifiedVolumes.has(volume)) {
-    return 'verified'
+  const known = probedVolumes.get(volume)
+  if (known && (known.state === 'verified' || Date.now() - known.at < NOT_CLONING_TTL_MS)) {
+    return known.state
   }
   let state = await measureClone(host, dir)
   if (state !== 'verified') {
     // A second try rules out another writer on the drive skewing one measurement.
     state = await measureClone(host, dir)
   }
-  if (state === 'verified') {
-    verifiedVolumes.add(volume)
+  if (state !== 'unknown') {
+    probedVolumes.set(volume, { state, at: Date.now() })
   }
   return state
 }

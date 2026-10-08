@@ -93,7 +93,7 @@ export function PerforceFileContextMenu({
           disabled={targets.some((entry) => entry.changelist === 'default')}
           onSelect={onShelveChanges}
         >
-          {translate('perforce.ui.shelfChanges', 'Shelf changes')}
+          {translate('perforce.ui.shelveChanges', 'Shelve changes')}
         </ContextMenuItem>
         <ContextMenuItem onSelect={onRevert}>
           {translate('perforce.ui.revertChanges', 'Revert changes')}

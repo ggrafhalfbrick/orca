@@ -34,7 +34,9 @@ Row actions: click to diff against `#have`; **Open** runs `p4 reconcile` (add/ed
 The two unopened sections come from one `p4 reconcile -n -a -e -m -d` scan (`perforce-workspace-scan.ts`). Even a
 preview takes the client's write lock and costs a server round trip per file (about 1.5 minutes for a large Unity
 project), so scans of a folder never overlap, the next one waits three times as long as the last took, and status
-answers from the last scan in between. Orca's own opens, reverts, submits and syncs make the next status rescan. `-m`
+answers from the last scan in between. A scan that fails or times out rests the same way, so a folder too large for
+the timeout does not hold the lock scan after scan. Orca's own opens, reverts, submits and syncs make the next status
+rescan. `-m`
 skips the digest of files whose modification time matches the have list; in a workspace copy, whose have list comes
 from `p4 flush`, it rarely can. Deleting a copy stops scans inside it first.
 
@@ -42,7 +44,7 @@ Selection: Cmd/Ctrl-click toggles a row, Shift-click selects a range. Right-clic
 selection) offers **Move to existing changelist** (a list of the other pending changelists, plus Default) and
 **Move to new changelist…**, which asks for a description first and only then creates the changelist and moves the
 files. The Unshelve button in the panel header restores any changelist's shelf by number (including another user's)
-into the default or an existing changelist. The same right-click menu has **Shelf changes** (shelve the files, then
+into the default or an existing changelist. The same right-click menu has **Shelve changes** (shelve the files, then
 revert them) and **Revert changes**. Shelved files are listed as `S` rows: click diffs the shelf against the
 workspace, and right-click offers **Open shelved file** and **Unshelve file**. Right-clicking a changelist offers
 **Copy changelist number** and **Delete changelist** (drops the shelf, reverts opened files, deletes it).

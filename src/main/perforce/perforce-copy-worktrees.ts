@@ -1,4 +1,5 @@
 import { win32 } from 'node:path'
+import { getRepoSshConnectionId } from '../../shared/execution-host'
 import type { Repo } from '../../shared/repo-types'
 import type {
   WorkspaceCopyListEntry,
@@ -41,7 +42,7 @@ function recordCopyWorktree(
       displayName: name,
       createdAt,
       orcaCreatedAt: createdAt,
-      orcaCreationSource: repo.connectionId ? 'ssh' : 'desktop',
+      orcaCreationSource: getRepoSshConnectionId(repo) ? 'ssh' : 'desktop',
       lastActivityAt: createdAt
     })
   }

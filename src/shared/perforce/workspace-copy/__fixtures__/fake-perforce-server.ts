@@ -285,8 +285,19 @@ export class FakePerforceServer {
     if (at.endsWith('#have')) {
       return ok(tag({ change: 100 }))
     }
-    const stream = this.streams.get(at.replace(/\/\.\.\.$/, '').toLowerCase())
-    return ok(stream && stream.submits > 0 ? tag({ change: 200 }) : '')
+    const key = at.replace(/\/\.\.\.$/, '').toLowerCase()
+    const stream = this.streams.get(key)
+    if (stream && stream.submits > 0) {
+      return ok(tag({ change: 200 }))
+    }
+    // Like p4: without `-s submitted`, a shelf in a client of the stream is a change there too.
+    const shelf = rest.includes('submitted')
+      ? undefined
+      : [...this.clients.values()]
+          .filter((c) => c.stream.toLowerCase() === key)
+          .flatMap((c) => c.pending)
+          .find((p) => p.shelvedFiles > 0)
+    return ok(shelf ? tag({ change: shelf.change }) : '')
   }
 
   private headOf(client: FakeClient): Map<string, FileRev> {

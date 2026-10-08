@@ -41,7 +41,8 @@ workspace (`<root>.wt\<name>`, client `<client>_wt_<name>`, stream `<parent>_wt_
 agent there. **Create from** is the base, as a Git base branch: the workspace's stream by default, or
 any stream in the depot (a searchable list), or **Work directly on** the workspace's stream without a
 new stream. A line under it reports the readiness check (block cloning, free space, warnings). When the
-drive cannot hold a copy, the line says so and the workspace shares the project folder instead.
+drive cannot hold a copy, the line says so and the workspace shares the project folder instead. A create
+submitted before the check answers waits for it, so it never asks a host that cannot copy for a copy.
 Progress shows in the pending workspace row; a toast reports the disk the copy used and offers the
 Unity binding line. The sidebar card shows the copy's stream where a Git card shows its branch.
 
@@ -78,7 +79,8 @@ Settings › Perforce › Workspace Copies: minimum free space (default 10 GB), 
 1. **Check.** Windows build, the P4CONFIG binding, a stream client, `<root>.wt` not a junction, free
    space, and a **block-clone probe**: copy a 64 MB file next to the workspace with robocopy and check
    that free space did not drop by its size. Asking Windows whether a volume is a Dev Drive
-   (`fsutil devdrv query`) needs an elevated shell; the probe measures the property copies rely on.
+   (`fsutil devdrv query`) needs an elevated shell; the probe measures the property copies rely on. The
+   host remembers a volume's answer (a negative one for five minutes), since each probe writes about 256 MB.
 2. **Copy.** `robocopy /E /COPY:DAT /DCOPY:DAT /MT:32` into `<root>.wt\<name>`, keeping timestamps so
    Unity does not reimport. Each Unity project's `Temp`, `Logs`, `obj` and editor lock files stay behind.
 3. **Stream and client.** The copy's own sparsedev stream `<parent>_wt_<name>` (`stream -o -t sparsedev

@@ -9,6 +9,7 @@ import {
   runWithDesktopPerforceSettings
 } from '../../../perforce/perforce-desktop-settings'
 import type { Store } from '../../../persistence/loading-store/store'
+import { requireWorktreeCreateRoute } from '../../../worktree-create-execution-host-route'
 import {
   invalidateAuthorizedRootsCache,
   resolveRegisteredWorktreePath
@@ -29,13 +30,14 @@ export function createPerforceCopyWorkspace(
   mainWindow: BrowserWindow
 ): Promise<CreateWorktreeResult> {
   return runWithDesktopPerforceSettings(store, async () => {
-    // Why: SSH paths belong to the remote host; only local paths are checked against registered roots.
-    const sourceDir = repo.connectionId
-      ? repo.path
-      : await resolveRegisteredWorktreePath(repo.path, store)
+    // Why: route like Git's create, since a row may name its SSH owner only in `executionHostId`.
+    const route = requireWorktreeCreateRoute(repo)
+    // SSH paths belong to the remote host; only local paths are checked against registered roots.
+    const sourceDir =
+      route.kind === 'ssh' ? repo.path : await resolveRegisteredWorktreePath(repo.path, store)
     const { worktreeId, summary } = await createPerforceCopyForWorkspace({
-      backend: resolveWorkspaceCopyBackend(repo.connectionId),
-      repo,
+      backend: resolveWorkspaceCopyBackend(route.kind === 'ssh' ? route.connectionId : undefined),
+      repo: route.kind === 'ssh' ? route.repo : repo,
       sourceDir,
       workspaceName: args.name,
       stream: args.perforceCopy?.stream,

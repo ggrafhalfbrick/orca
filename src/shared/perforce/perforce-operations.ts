@@ -6,6 +6,7 @@ import {
   requireDescription,
   requireDiscardEntries,
   requireRelativePath,
+  requireRelativePathList,
   requireRelativePaths
 } from './perforce-arguments'
 import type { PerforceEntry } from './perforce-types'
@@ -60,7 +61,7 @@ export const PERFORCE_WORKSPACE_OPERATIONS = {
     b.createChangelist(
       cwd,
       requireDescription(p.description, 'Changelist description'),
-      Array.isArray(p.filePaths) && p.filePaths.length > 0 ? requireRelativePaths(p.filePaths) : []
+      requireRelativePathList(p.filePaths)
     ),
   editDescription: (b, cwd, p) =>
     b.editDescription(

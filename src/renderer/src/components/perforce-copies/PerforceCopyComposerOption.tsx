@@ -6,6 +6,7 @@ import { isCopyPlatformUnsupported } from '../../../../shared/perforce/workspace
 import type { WorkspaceCopyReadiness } from '../../../../shared/perforce/workspace-copy/workspace-copy-types'
 import { isPerforceRepo } from '../../../../shared/repo-kind'
 import {
+  checkPerforceCopyReadiness,
   perforceCopyChoiceKey,
   usePerforceCopyComposerChoiceStore
 } from './perforce-copy-composer-choice'
@@ -13,8 +14,6 @@ import { PerforceCopyRequirement } from './PerforceCopyRequirement'
 import { PerforceStreamPicker } from './PerforceStreamPicker'
 import { findRepoForHost } from '@/store/slices/repo-host-identity'
 import type { ExecutionHostId } from '../../../../shared/execution-host'
-import { runPerforceCopyOperation } from '../../runtime/runtime-perforce-client'
-import { perforceProjectTarget } from '@/lib/perforce-workspace-target'
 
 function gb(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(1)} GB`
@@ -99,12 +98,12 @@ export function PerforceCopyComposerOption({
     let cancelled = false
     setReadiness(null)
     setUnsupported(null)
-    void runPerforceCopyOperation(perforceProjectTarget(repoId, hostId), 'copyReadiness', {}).then(
-      (result) => {
-        if (cancelled) {
-          return
-        }
-        const value: WorkspaceCopyReadiness = result.ok
+    void checkPerforceCopyReadiness(repoId, hostId).then((result) => {
+      if (cancelled) {
+        return
+      }
+      setReadiness(
+        result.ok
           ? result.value
           : {
               ready: false,
@@ -116,19 +115,17 @@ export function PerforceCopyComposerOption({
               fileSystemFreeBytes: null,
               blockCloning: null
             }
-        setReadiness(value)
-        setUnsupported(
-          result.ok && isCopyPlatformUnsupported(result.value)
-            ? { windows: result.value.windowsBuild !== null }
-            : null
-        )
-        setChoice(choiceKey, { ready: value.ready })
-      }
-    )
+      )
+      setUnsupported(
+        result.ok && isCopyPlatformUnsupported(result.value)
+          ? { windows: result.value.windowsBuild !== null }
+          : null
+      )
+    })
     return () => {
       cancelled = true
     }
-  }, [isPerforce, repoId, hostId, choiceKey, setChoice])
+  }, [isPerforce, repoId, hostId])
 
   if (!isPerforce) {
     return null

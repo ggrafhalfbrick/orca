@@ -132,7 +132,7 @@ describe('NonGitFolderDialog', () => {
     vi.stubGlobal('window', {
       api: {
         repos: { addRemote: mocks.addRemote },
-        perforce: { detect: vi.fn().mockResolvedValue({ isWorkspace: false }) },
+        perforce: { detectFolder: vi.fn().mockResolvedValue({ isWorkspace: false }) },
         onboarding: { get: mocks.onboardingGet }
       }
     })

@@ -47,6 +47,14 @@ export function requireRelativePaths(value: unknown): string[] {
   return value.map(requireRelativePath)
 }
 
+/** A file list that may be empty; anything but an array of relative paths is refused. */
+export function requireRelativePathList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    throw new Error('Expected a list of files')
+  }
+  return value.map(requireRelativePath)
+}
+
 export function requireDepotPaths(value: unknown): string[] {
   if (!Array.isArray(value) || value.length === 0) {
     throw new Error('At least one shelved file is required')

@@ -5,12 +5,14 @@ import type { P4CommandResult } from './p4-command'
 // write lock and makes one server round trip per file, so a scan of a large workspace outlasts the
 // panel's refresh: overlapping scans queued on the lock forever and kept the folder open.
 
-type FinishedScan = { result: P4CommandResult; startedAt: number; finishedAt: number }
+type Attempt = { startedAt: number; finishedAt: number }
 type ScanState = {
   /** The folder as first asked for; comparison keys are not paths. */
   path: string
   running: { controller: AbortController; done: Promise<P4CommandResult> } | null
-  last: FinishedScan | null
+  last: (Attempt & { result: P4CommandResult }) | null
+  /** The newest scan, when it threw (timed out, mostly); it rests like a finished one. */
+  failed: (Attempt & { error: unknown }) | null
   /** A scan that started before this is stale: Orca changed what is opened since. */
   invalidatedAt: number
 }
@@ -27,7 +29,7 @@ function stateFor(cwd: string): ScanState {
   const key = normalizeRuntimePathForComparison(cwd)
   let state = scans.get(key)
   if (!state) {
-    state = { path: cwd, running: null, last: null, invalidatedAt: 0 }
+    state = { path: cwd, running: null, last: null, failed: null, invalidatedAt: 0 }
     scans.set(key, state)
   }
   return state
@@ -41,12 +43,21 @@ function start(state: ScanState, run: (signal: AbortSignal) => Promise<P4Command
   const controller = new AbortController()
   const startedAt = Date.now()
   const done = run(controller.signal)
-    .then((result) => {
-      if (!controller.signal.aborted) {
-        state.last = { result, startedAt, finishedAt: Date.now() }
+    .then(
+      (result) => {
+        if (!controller.signal.aborted) {
+          state.last = { result, startedAt, finishedAt: Date.now() }
+          state.failed = null
+        }
+        return result
+      },
+      (error: unknown) => {
+        if (!controller.signal.aborted) {
+          state.failed = { error, startedAt, finishedAt: Date.now() }
+        }
+        throw error
       }
-      return result
-    })
+    )
     .finally(() => {
       if (state.running?.controller === controller) {
         state.running = null
@@ -56,10 +67,15 @@ function start(state: ScanState, run: (signal: AbortSignal) => Promise<P4Command
   return done
 }
 
+function restMs(attempt: Attempt, minIntervalMs: number): number {
+  return Math.max(minIntervalMs, REST_FACTOR * (attempt.finishedAt - attempt.startedAt))
+}
+
 /**
  * The folder's scan result. Only a folder never scanned waits for `run`; otherwise the last result
  * answers at once and a new scan starts in the background when it is stale or has rested (a
- * timed-out scan rests too, or it would hold the lock for good). Never two scans at once.
+ * timed-out scan rests too, or it would hold the lock for good). Never two scans at once. A folder
+ * whose only scans failed reports the last failure until it has rested.
  */
 export async function scanWorkspace(
   cwd: string,
@@ -70,12 +86,21 @@ export async function scanWorkspace(
     return { code: null, stdout: '', stderr: HELD_SCAN_MESSAGE }
   }
   const state = stateFor(cwd)
-  const { last, running } = state
+  const { last, failed, running } = state
+  const resting = failed !== null && Date.now() - failed.finishedAt < restMs(failed, minIntervalMs)
   if (!last) {
-    return running ? running.done : start(state, run)
+    if (running) {
+      return running.done
+    }
+    if (resting) {
+      throw failed.error
+    }
+    return start(state, run)
   }
-  const rest = Math.max(minIntervalMs, REST_FACTOR * (last.finishedAt - last.startedAt))
-  const due = last.startedAt <= state.invalidatedAt || Date.now() - last.finishedAt >= rest
+  const due =
+    !resting &&
+    (last.startedAt <= state.invalidatedAt ||
+      Date.now() - last.finishedAt >= restMs(last, minIntervalMs))
   if (due && !running) {
     void start(state, run).catch(() => undefined)
   }

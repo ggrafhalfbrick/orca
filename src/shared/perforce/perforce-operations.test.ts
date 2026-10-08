@@ -51,6 +51,15 @@ describe('Perforce operation table', () => {
       filePaths: []
     })
     expect(createChangelist).toHaveBeenCalledWith('/ws', 'Fix spawn', [])
+    for (const filePaths of [null, 'a.cs', undefined]) {
+      await expect(
+        dispatchPerforceOperation(backend, 'createChangelist', '/ws', {
+          description: 'x',
+          filePaths
+        })
+      ).rejects.toThrow('Expected a list of files')
+    }
+    expect(createChangelist).toHaveBeenCalledOnce()
   })
 
   it('asks for a description only when submitting the default changelist', async () => {
