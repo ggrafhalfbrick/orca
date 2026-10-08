@@ -26,7 +26,12 @@ function createServices(storageSet: PluginHostServices['storage']['set']): Plugi
       getAll: vi.fn().mockReturnValue({}),
       set: vi.fn().mockReturnValue({ ok: true })
     },
-    subscribeEvents: vi.fn().mockReturnValue([])
+    subscribeEvents: vi.fn().mockReturnValue([]),
+    projects: {
+      list: vi.fn().mockResolvedValue([]),
+      listMarkdown: vi.fn().mockResolvedValue({ revision: null, files: [], truncated: false }),
+      readMarkdown: vi.fn().mockResolvedValue([])
+    }
   }
 }
 
@@ -134,7 +139,10 @@ function createTerminalHarness(terminalHandles: string[]): {
       terminals: terminalHandles.map((handle) => ({ handle, title: null }))
     }),
     sendTerminal: vi.fn().mockResolvedValue({ accepted: true }),
-    dispatchPluginNotification: vi.fn().mockResolvedValue({ delivered: true })
+    dispatchPluginNotification: vi.fn().mockResolvedValue({ delivered: true }),
+    listRepos: vi.fn().mockReturnValue([]),
+    listRuntimeMarkdownDocuments: vi.fn().mockResolvedValue([]),
+    readMobileFile: vi.fn()
   }
   return {
     delegate,

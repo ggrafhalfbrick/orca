@@ -23,6 +23,8 @@ export type QuickComposerStartupInput = {
   shell: AgentStartupShell | null | undefined
   isRemote: boolean
   telemetrySource: WorktreeCreationRequest['telemetrySource']
+  /** Per-launch options (e.g. a plugin task's model/effort) layered over the agent's defaults. */
+  sessionOptionOverrides?: Record<string, string>
 }
 
 export type QuickComposerStartup = {
@@ -33,7 +35,7 @@ export type QuickComposerStartup = {
 
 export function buildQuickComposerStartup(input: QuickComposerStartupInput): QuickComposerStartup {
   const { agent, draftPrompt, prompt, settings } = input
-  const sessionOptions =
+  const defaultSessionOptions =
     agent === null
       ? undefined
       : resolveInitialNativeChatSessionOptions(
@@ -52,6 +54,10 @@ export function buildQuickComposerStartup(input: QuickComposerStartupInput): Qui
             )
           }
         )
+  const sessionOptions =
+    agent !== null && input.sessionOptionOverrides
+      ? { ...defaultSessionOptions, ...input.sessionOptionOverrides }
+      : defaultSessionOptions
   const draftLaunchPlan =
     agent === null || !draftPrompt
       ? null

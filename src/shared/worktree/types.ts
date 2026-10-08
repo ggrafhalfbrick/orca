@@ -8,6 +8,33 @@ import type { EphemeralVmCheckoutMode } from '../orca-yaml-hook-types'
 import type { BuiltInWorktreeVisibilitySourceId } from '../repo-types'
 import type { WorktreeIdentity } from './identity'
 import type { WorktreeScanFailureKind } from '../worktree-scan-failure'
+import type { LinkedPluginTask } from '../plugins/plugin-task-link'
+
+export type WorkspaceAttachmentOrigin = {
+  kind: 'observed'
+  tabId: string
+  paneKey?: string
+  hostId?: ExecutionHostId
+  label?: string
+  agent?: string
+  sessionId?: string
+}
+
+export type WorkspaceAttachment = {
+  provider: 'github' | 'gitlab' | 'linear' | 'jira' | 'bitbucket' | 'azure-devops' | 'gitea'
+  type: 'issue' | 'pr' | 'mr'
+  number: number
+  identifier?: string
+  title?: string
+  url?: string
+  repoId?: string
+  linearIdentifier?: string
+  jiraIdentifier?: string
+  linearWorkspaceId?: string
+  linearOrganizationUrlKey?: string
+  taskSourceContext?: TaskSourceContext
+  origins?: WorkspaceAttachmentOrigin[]
+}
 
 export type WorkspaceLinkedItem = {
   provider: 'github' | 'gitlab' | 'linear' | 'jira'
@@ -106,6 +133,10 @@ export type Worktree = {
   linkedAzureDevOpsPR?: number | null
   linkedGiteaPR?: number | null
   linkedWorkItem?: WorkspaceLinkedItem | null
+  /** All attachments; singular fields select the active review/task for older readers. */
+  linkedItems?: WorkspaceAttachment[]
+  /** Plugin task this workspace was started from (Tasks page plugin sources). */
+  linkedPluginTask?: LinkedPluginTask | null
   linkedTaskSourceContext?: TaskSourceContext | null
   isArchived: boolean
   isUnread: boolean

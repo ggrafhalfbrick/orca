@@ -14,6 +14,7 @@ export type QuickCreationRequestInput = {
   indeterminateProgress: boolean
   taskSourceContext: TaskSourceContext | null
   linkedWorkItem: LinkedWorkItemSummary | null
+  linkedPluginTask?: WorktreeCreationRequest['linkedPluginTask']
   workspaceRunContext: WorktreeCreationRequest['workspaceRunContext']
   workspaceName: string
   nameWasGenerated: boolean
@@ -65,6 +66,7 @@ export function buildQuickCreationRequest(
     ...(input.taskSourceContext ? { taskSourceContext: input.taskSourceContext } : {}),
     linkedWorkItem: toFolderWorkspaceLinkedTask(input.linkedWorkItem),
     linkedTaskSourceContext: input.taskSourceContext,
+    ...(input.linkedPluginTask ? { linkedPluginTask: input.linkedPluginTask } : {}),
     ...(input.workspaceRunContext ? { workspaceRunContext: input.workspaceRunContext } : {}),
     name: input.workspaceName,
     ...(input.nameWasGenerated ? { nameWasGenerated: true } : {}),

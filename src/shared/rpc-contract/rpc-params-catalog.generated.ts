@@ -446,6 +446,7 @@ import {
 } from './perforce-params'
 import {
   PluginInvokeCommandParams,
+  PluginInvokeTaskSourceParams,
   PluginReadPanelEntryParams,
   PluginSetEnabledParams,
   PluginsPanelActionParams
@@ -1145,6 +1146,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'perforce.unshelveFrom': PerforceUnshelveFrom,
   'plugins.consent': pluginConsentRequestSchema,
   'plugins.invokeCommand': PluginInvokeCommandParams,
+  'plugins.invokeTaskSource': PluginInvokeTaskSourceParams,
   'plugins.list': null,
   'plugins.panelAction': PluginsPanelActionParams,
   'plugins.readPanelEntry': PluginReadPanelEntryParams,

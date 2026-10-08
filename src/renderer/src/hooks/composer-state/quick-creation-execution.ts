@@ -41,10 +41,14 @@ import { settleComposerSubmit } from '@/lib/composer-submit-cancellation'
 import { getActiveRuntimeTarget } from '@/runtime/runtime-rpc-client'
 import { runBackgroundWorktreeCreation } from '@/lib/worktree-creation-flow'
 import { translate } from '@/i18n/i18n'
-import { resolveQuickCreateLinkedWorkItemPrompt } from '@/lib/linked-work-item-context'
+import {
+  appendAgentLaunchDraft,
+  resolveQuickCreateLinkedWorkItemPrompt
+} from '@/lib/linked-work-item-context'
 import { buildQuickComposerStartup } from './quick-startup-plan'
 import { buildQuickCreationRequest } from './quick-creation-request'
 import type { PendingSmartGitHubSubmitResolution } from './source-selection-decisions'
+import type { QuickSubmitOptions } from './composer-submit-model'
 import { resolveAgentSessionLaunchRoute } from '@/lib/agent-session-launch-plan'
 import { resolvePerforceCopyComposerChoice } from '@/components/perforce-copies/perforce-copy-composer-choice'
 
@@ -87,7 +91,8 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
       workspaceNameSeed: string,
       workspaceRunContext: WorktreeCreationRequest['workspaceRunContext'],
       repoId: string,
-      selectedRepo: Repo
+      selectedRepo: Repo,
+      options?: QuickSubmitOptions
     ): Promise<void> => {
       const prepared = await prepareQuickSubmit(
         smartGitHubResolution,
@@ -123,8 +128,12 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
 
       const promptLinkedWorkItem = agent === null ? null : submitLinkedWorkItem
 
-      const { prompt: quickPrompt, draftPrompt: quickDraftPrompt } =
+      const { prompt: quickPrompt, draftPrompt: linkedDraftPrompt } =
         resolveQuickCreateLinkedWorkItemPrompt(promptLinkedWorkItem, trimmedNote)
+      const quickDraftPrompt =
+        agent === null
+          ? linkedDraftPrompt
+          : appendAgentLaunchDraft(linkedDraftPrompt, options?.agentDraft)
 
       const {
         startupPlan,
@@ -139,7 +148,8 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         platform: selectedRepoAgentLaunchPlatform,
         shell: selectedRepoStartupShell,
         isRemote: selectedRepoIsRemote,
-        telemetrySource
+        telemetrySource,
+        sessionOptionOverrides: options?.sessionOptions
       })
 
       const startupPolicySettlement = await settleComposerSubmit(
@@ -206,6 +216,7 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
           getActiveRuntimeTarget(selectedRepoSettings).kind !== 'local',
         taskSourceContext,
         linkedWorkItem: submitLinkedWorkItem,
+        linkedPluginTask: options?.linkedPluginTask,
         workspaceRunContext,
         workspaceName,
         nameWasGenerated,

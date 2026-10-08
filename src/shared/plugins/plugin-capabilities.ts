@@ -19,7 +19,9 @@ export const PLUGIN_CAPABILITY_KINDS = [
   'storage',
   'secrets',
   'events:subscribe',
-  'settings:own'
+  'settings:own',
+  'tasks:provide',
+  'projects:read'
 ] as const
 
 export type PluginCapabilityKind = (typeof PLUGIN_CAPABILITY_KINDS)[number]
@@ -40,7 +42,11 @@ export const PLUGIN_CAPABILITY_DESCRIPTIONS: Record<PluginCapabilityKind, string
   secrets: "Store and read secrets in the plugin's own encrypted vault",
   'events:subscribe':
     'Get notified when worktrees are created or removed and when agent status changes',
-  'settings:own': "Read and change the plugin's own settings"
+  'settings:own': "Read and change the plugin's own settings",
+  'tasks:provide':
+    "Add task lists to the Tasks page; starting a task opens Create workspace with the plugin's suggested name, base and agent prompt for you to review",
+  'projects:read':
+    "List your Orca projects and read their markdown files, either on disk or the latest version on the project's server (which fetches from it)"
 }
 
 /**
