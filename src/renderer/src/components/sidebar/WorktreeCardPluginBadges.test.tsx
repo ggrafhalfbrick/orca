@@ -148,10 +148,11 @@ describe('WorktreeCardPluginBadges', () => {
     })
   })
 
-  it('reports a failed command with the plugin error', async () => {
+  it('reports a failed command with the message line of the worker error', async () => {
+    // Why: workers report a failed command as its stack, which the IPC layer prefixes again.
     invokeCommand.mockRejectedValue(
       new Error(
-        "Error invoking remote method 'plugins:invokeCommand': Error: Engine 2.1 is not installed."
+        "Error invoking remote method 'plugins:invokeCommand': Error: Error: Engine 2.1 is not installed.\n    at openProject (file:///plugins/engine/main.mjs:4:9)"
       )
     )
     const user = userEvent.setup()

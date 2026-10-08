@@ -9,6 +9,12 @@ import type { ActivePluginCommand } from '@/store/plugin-panels'
 import type { ActivePluginWorktreeBadge } from '@/store/plugin-worktree-badges'
 import { PluginWorktreeBadgeIcon } from './PluginWorktreeBadgeIcon'
 
+/** Workers report a failed command as its stack; users see only the message line. */
+function pluginCommandErrorDetail(error: unknown): string {
+  const [firstLine = ''] = extractIpcErrorMessage(error, '').split('\n')
+  return firstLine.replace(/^(?:\w*Error:\s*)+/, '').trim()
+}
+
 async function runPluginWorktreeCommand(
   command: ActivePluginCommand,
   worktreeId: string
@@ -16,7 +22,7 @@ async function runPluginWorktreeCommand(
   try {
     await executePluginCommand(command, 'plugin-worktree-menu', { worktreeId })
   } catch (error) {
-    const detail = extractIpcErrorMessage(error, '')
+    const detail = pluginCommandErrorDetail(error)
     toast.error(
       translate(
         'auto.components.sidebar.WorktreePluginBadgeMenuItems.failed',
