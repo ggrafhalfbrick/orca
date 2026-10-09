@@ -9,8 +9,6 @@ import {
   resolveTuiAgentLaunchArgs,
   resolveTuiAgentLaunchEnv
 } from '../../../../shared/tui-agent-launch-defaults'
-import { resolveInitialNativeChatSessionOptions } from '@/components/native-chat/native-chat-launch-session-options'
-import { isNativeChatTranscriptLocalReadable } from '@/lib/native-chat-transcript-readability'
 import { tuiAgentToAgentKind } from '@/lib/telemetry'
 
 export type QuickComposerStartupInput = {
@@ -18,12 +16,11 @@ export type QuickComposerStartupInput = {
   prompt: string
   draftPrompt: string | null | undefined
   settings: GlobalSettings | null | undefined
-  repoConnectionId: string | null | undefined
   platform: NodeJS.Platform
   shell: AgentStartupShell | null | undefined
   isRemote: boolean
   telemetrySource: WorktreeCreationRequest['telemetrySource']
-  /** Per-launch options (e.g. a plugin task's model/effort) layered over the agent's defaults. */
+  /** Explicit options for this launch (e.g. a plugin task's model/effort); they win over agent args. */
   sessionOptionOverrides?: Record<string, string>
 }
 
@@ -35,29 +32,9 @@ export type QuickComposerStartup = {
 
 export function buildQuickComposerStartup(input: QuickComposerStartupInput): QuickComposerStartup {
   const { agent, draftPrompt, prompt, settings } = input
-  const defaultSessionOptions =
-    agent === null
-      ? undefined
-      : resolveInitialNativeChatSessionOptions(
-          {
-            experimentalNativeChat: settings?.experimentalNativeChat,
-            openAgentTabsInChatByDefault: settings?.openAgentTabsInChatByDefault,
-            nativeChatSessionOptions: settings?.nativeChatSessionOptions
-          },
-          {
-            agent,
-            ...(draftPrompt
-              ? { promptDelivery: 'draft' as const, launchDraftText: draftPrompt }
-              : {}),
-            nativeChatTranscriptIsLocalReadable: isNativeChatTranscriptLocalReadable(
-              input.repoConnectionId
-            )
-          }
-        )
-  const sessionOptions =
-    agent !== null && input.sessionOptionOverrides
-      ? { ...defaultSessionOptions, ...input.sessionOptionOverrides }
-      : defaultSessionOptions
+  const launchSessionOptions = input.sessionOptionOverrides
+    ? { sessionOptions: input.sessionOptionOverrides, sessionOptionsOverrideAgentArgs: true }
+    : {}
   const draftLaunchPlan =
     agent === null || !draftPrompt
       ? null
@@ -67,10 +44,10 @@ export function buildQuickComposerStartup(input: QuickComposerStartupInput): Qui
           cmdOverrides: settings?.agentCmdOverrides ?? {},
           agentArgs: resolveTuiAgentLaunchArgs(agent, settings?.agentDefaultArgs),
           agentEnv: resolveTuiAgentLaunchEnv(agent, settings?.agentDefaultEnv),
-          sessionOptions,
           platform: input.platform,
           shell: input.shell ?? undefined,
-          isRemote: input.isRemote
+          isRemote: input.isRemote,
+          ...launchSessionOptions
         })
   let startupPlan: AgentStartupPlan | null = null
   if (draftLaunchPlan) {
@@ -80,11 +57,11 @@ export function buildQuickComposerStartup(input: QuickComposerStartupInput): Qui
       expectedProcess: draftLaunchPlan.expectedProcess,
       followupPrompt: null,
       launchConfig: draftLaunchPlan.launchConfig,
-      ...(draftLaunchPlan.sessionOptions ? { sessionOptions: draftLaunchPlan.sessionOptions } : {}),
       ...(draftLaunchPlan.startupCommandDelivery
         ? { startupCommandDelivery: draftLaunchPlan.startupCommandDelivery }
         : {}),
-      ...(draftLaunchPlan.env ? { env: draftLaunchPlan.env } : {})
+      ...(draftLaunchPlan.env ? { env: draftLaunchPlan.env } : {}),
+      ...(draftLaunchPlan.sessionOptions ? { sessionOptions: draftLaunchPlan.sessionOptions } : {})
     }
   } else if (agent !== null) {
     startupPlan = buildAgentStartupPlan({
@@ -93,11 +70,11 @@ export function buildQuickComposerStartup(input: QuickComposerStartupInput): Qui
       cmdOverrides: settings?.agentCmdOverrides ?? {},
       agentArgs: resolveTuiAgentLaunchArgs(agent, settings?.agentDefaultArgs),
       agentEnv: resolveTuiAgentLaunchEnv(agent, settings?.agentDefaultEnv),
-      sessionOptions,
       platform: input.platform,
       shell: input.shell ?? undefined,
       isRemote: input.isRemote,
-      allowEmptyPromptLaunch: true
+      allowEmptyPromptLaunch: true,
+      ...launchSessionOptions
     })
     if (startupPlan && draftPrompt) {
       startupPlan.draftPrompt = draftPrompt
