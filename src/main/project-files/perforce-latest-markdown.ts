@@ -1,5 +1,4 @@
 import { getRepoExecutionHostId } from '../../shared/execution-host'
-import { unescapeP4Path } from '../../shared/perforce/p4-command'
 import {
   isSafeProjectRelativePath,
   type ProjectMarkdownFile,
@@ -27,9 +26,8 @@ export const perforceLatestMarkdownReader: ProjectLatestMarkdownReader = {
     const depotFiles = new Map<string, string>()
     const files: ProjectMarkdownFile[] = []
     let newestChange = 0
-    for (const file of latest.files) {
-      const rest = unescapeP4Path(file.depotFile.slice(latest.depotRoot.length + 1))
-      const path = folder ? `${folder}/${rest}` : rest
+    // Paths come from where the client view puts each file, so components under the folder count.
+    for (const { path, ...file } of latest.files) {
       if (!isSafeProjectRelativePath(path) || !isListedMarkdownPath(path)) {
         continue
       }

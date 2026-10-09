@@ -1,6 +1,6 @@
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { escapeP4FileArg, unescapeP4Path } from './p4-command'
+import { escapeP4FileArg } from './p4-command'
 import {
   requireChangelistId,
   requireChangelistTarget,
@@ -37,11 +37,6 @@ describe('latest-file arguments', () => {
     }
     const six = Array.from({ length: 6 }, () => ({ depotFile: '//depot/a.md', rev: 1 }))
     expect(() => requireDepotRevisions(six, 5)).toThrow(/Between 1 and 5/)
-  })
-
-  it('unescapes p4 paths back to file names', () => {
-    expect(unescapeP4Path('a%40b%23c%2Ad%2540')).toBe('a@b#c*d%40')
-    expect(unescapeP4Path(escapeP4FileArg('x@y#z*%'))).toBe('x@y#z*%')
   })
 })
 

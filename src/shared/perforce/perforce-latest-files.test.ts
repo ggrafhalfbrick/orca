@@ -27,48 +27,94 @@ beforeEach(() => {
 })
 
 describe('listLatestMarkdownFiles', () => {
-  it('maps the folder through the client view and lists live head revisions there', async () => {
+  const fstatRecord = (fields: Record<string, string | number>): string =>
+    Object.entries(fields)
+      .map(([key, value]) => `... ${key} ${value}\n`)
+      .join('')
+
+  it('lists live head revisions where the client view puts them, components included', async () => {
     replyTo({
-      where: { stdout: '... depotFile //depot/main/docs/...\n... clientFile //ws/docs/...\n' },
-      files: {
+      fstat: {
         stdout: [
-          '... depotFile //depot/main/docs/a.md\n... rev 3\n... change 120\n... action edit\n',
-          '... depotFile //depot/main/docs/old.md\n... rev 2\n... change 90\n... action delete\n',
-          '... depotFile //depot/main/docs/sub/b.markdown\n... rev 1\n... change 130\n... action add\n'
+          fstatRecord({
+            depotFile: '//depot/main/docs/a.md',
+            clientFile: '/ws/docs/a.md',
+            headRev: 3,
+            headChange: 120,
+            headAction: 'edit'
+          }),
+          fstatRecord({
+            depotFile: '//depot/main/docs/old.md',
+            clientFile: '/ws/docs/old.md',
+            headRev: 2,
+            headChange: 90,
+            headAction: 'delete'
+          }),
+          // Opened for add, never submitted: no head revision on the server.
+          fstatRecord({ depotFile: '//depot/main/docs/new.md', clientFile: '/ws/docs/new.md' }),
+          // A stream component maps another depot under the same folder; the view's later line wins.
+          fstatRecord({
+            depotFile: '//notes/component/b.markdown',
+            clientFile: '/ws/docs/sub/b.markdown',
+            headRev: 1,
+            headChange: 130,
+            headAction: 'add'
+          })
         ].join('\n')
       }
     })
 
     await expect(listLatestMarkdownFiles('/ws', 'docs')).resolves.toEqual({
-      depotRoot: '//depot/main/docs',
       files: [
-        { depotFile: '//depot/main/docs/a.md', rev: 3, change: 120 },
-        { depotFile: '//depot/main/docs/sub/b.markdown', rev: 1, change: 130 }
+        { path: 'docs/a.md', depotFile: '//depot/main/docs/a.md', rev: 3, change: 120 },
+        {
+          path: 'docs/sub/b.markdown',
+          depotFile: '//notes/component/b.markdown',
+          rev: 1,
+          change: 130
+        }
       ],
       truncated: false
     })
-    expect(mocks.runP4).toHaveBeenCalledWith(['-ztag', 'where', 'docs/...'], { cwd: '/ws' })
     expect(mocks.runP4).toHaveBeenCalledWith(
       [
         '-ztag',
-        'files',
-        '-e',
-        '//depot/main/docs/....md',
-        '//depot/main/docs/....mdx',
-        '//depot/main/docs/....markdown'
+        'fstat',
+        '-T',
+        'depotFile,clientFile,headRev,headChange,headAction',
+        'docs/....md',
+        'docs/....mdx',
+        'docs/....markdown'
       ],
       { cwd: '/ws' }
     )
   })
 
-  it('treats no markdown as an empty list and an unmapped folder as an error', async () => {
+  it('places files relative to a Windows workspace folder', async () => {
     replyTo({
-      where: { stdout: '... depotFile //depot/main/docs/...\n' },
-      files: { code: 1, stderr: '//depot/main/docs/....md - no such file(s).\n' }
+      fstat: {
+        stdout: fstatRecord({
+          depotFile: '//notes/vault/plan.md',
+          clientFile: 'D:\\ws\\agents\\vault\\plan.md',
+          headRev: 4,
+          headChange: 7,
+          headAction: 'edit'
+        })
+      }
+    })
+
+    await expect(listLatestMarkdownFiles('D:\\ws', 'agents/vault')).resolves.toMatchObject({
+      files: [{ path: 'agents/vault/plan.md', depotFile: '//notes/vault/plan.md' }]
+    })
+  })
+
+  it('treats no markdown as an empty list and a folder outside the view as an error', async () => {
+    replyTo({
+      fstat: { stderr: 'docs/....md - no such file(s).\ndocs/....mdx - no such file(s).\n' }
     })
     await expect(listLatestMarkdownFiles('/ws', 'docs')).resolves.toMatchObject({ files: [] })
 
-    replyTo({ where: { code: 1, stderr: 'docs/... - file(s) not in client view.\n' } })
+    replyTo({ fstat: { code: 1, stderr: 'docs/....md - file(s) not in client view.\n' } })
     await expect(listLatestMarkdownFiles('/ws', 'docs')).rejects.toThrow(/not in client view/)
   })
 })

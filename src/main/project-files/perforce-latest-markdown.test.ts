@@ -26,11 +26,16 @@ const repo: Repo = {
 
 beforeEach(() => {
   mocks.latestMarkdownFiles.mockReset().mockResolvedValue({
-    depotRoot: '//depot/main/docs',
     files: [
-      { depotFile: '//depot/main/docs/a%40v2.md', rev: 3, change: 120 },
-      { depotFile: '//depot/main/docs/.drafts/x.md', rev: 1, change: 140 },
-      { depotFile: '//depot/main/docs/sub/b.md', rev: 2, change: 130 }
+      { path: 'docs/a@v2.md', depotFile: '//depot/main/docs/a%40v2.md', rev: 3, change: 120 },
+      {
+        path: 'docs/.drafts/x.md',
+        depotFile: '//depot/main/docs/.drafts/x.md',
+        rev: 1,
+        change: 140
+      },
+      // A stream component: another depot, mapped under the same folder.
+      { path: 'docs/sub/b.md', depotFile: '//notes/component/b.md', rev: 2, change: 130 }
     ],
     truncated: false
   })

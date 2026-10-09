@@ -131,8 +131,3 @@ export function escapeP4FileArg(path: string): string {
     .replaceAll('#', '%23')
     .replaceAll('*', '%2A')
 }
-
-/** The file name a p4-reported (escaped) path stands for; `%25` last so `%2540` stays `%40`. */
-export function unescapeP4Path(path: string): string {
-  return path.replace(/%40/g, '@').replace(/%23/g, '#').replace(/%2a/gi, '*').replace(/%25/g, '%')
-}
