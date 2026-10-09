@@ -1,10 +1,12 @@
+import { relativePathInsideRoot } from '../cross-platform-path'
 import { escapeP4FileArg, runP4 } from './p4-command'
 import { parseTaggedOutput } from './p4-tagged-output'
 
 /**
- * The newest submitted markdown under a workspace folder, read straight from the server: `p4 where`
- * maps the folder through the client view, `p4 files -e` lists head revisions there, and `p4 print`
- * reads chosen revisions without syncing anything. Runs wherever the workspace lives (desktop or relay).
+ * The newest submitted markdown under a workspace folder, read straight from the server: `p4 fstat`
+ * on the folder's local path resolves each file through the client view to its depot file and head
+ * revision, and `p4 print` reads chosen revisions without syncing anything. Runs wherever the
+ * workspace lives (desktop or relay).
  */
 
 export const PERFORCE_LATEST_FILE_LIMIT = 20_000
@@ -15,14 +17,17 @@ const PRINT_ARGS_MAX_CHARS = 20_000
 const PRINT_MAX_PARALLEL = 12
 const PRINT_MIN_FILES_PER_BATCH = 8
 const MARKDOWN_EXTENSIONS = ['md', 'mdx', 'markdown']
+const FSTAT_FIELDS = 'depotFile,clientFile,headRev,headChange,headAction'
 
-export type PerforceLatestFile = { depotFile: string; rev: number; change: number }
-export type PerforceLatestFiles = {
-  /** Depot path of the folder, e.g. `//depot/main/docs`. */
-  depotRoot: string
-  files: PerforceLatestFile[]
-  truncated: boolean
+export type PerforceLatestFile = {
+  /** Where the client view puts the file, relative to the listing's `cwd`, with `/`. */
+  path: string
+  depotFile: string
+  rev: number
+  change: number
 }
+export type PerforceLatestFiles = { files: PerforceLatestFile[]; truncated: boolean }
+type PrintableFile = Pick<PerforceLatestFile, 'depotFile' | 'rev'>
 export type PerforcePrintedFile =
   | { depotFile: string; rev: number; content: string }
   | { depotFile: string; rev: number; error: string }
@@ -36,51 +41,53 @@ function firstLine(text: string): string {
   )
 }
 
-/** Head revisions of markdown under `folder` (relative to `cwd`; '' for all of it). */
+/**
+ * Head revisions of markdown under `folder` (relative to `cwd`; '' for all of it). Each file is
+ * placed where the view maps it, so a folder holding stream components or overriding view lines
+ * lists files from every depot behind it, not just the first mapping `p4 where` names.
+ */
 export async function listLatestMarkdownFiles(
   cwd: string,
   folder: string
 ): Promise<PerforceLatestFiles> {
-  const where = await runP4(['-ztag', 'where', folder ? `${escapeP4FileArg(folder)}/...` : '...'], {
-    cwd
-  })
-  const mapping = parseTaggedOutput(where.stdout).find(
-    (record) => record.depotFile && !Object.hasOwn(record, 'unmap')
-  )
-  if (!mapping) {
-    throw new Error(
-      firstLine(where.stderr) || `${folder || 'This folder'} is not in the Perforce workspace view.`
-    )
-  }
-  const depotRoot = mapping.depotFile.replace(/\/\.\.\.$/, '')
+  const prefix = folder ? `${escapeP4FileArg(folder)}/` : ''
   const listed = await runP4(
     [
       '-ztag',
-      'files',
-      '-e',
-      ...MARKDOWN_EXTENSIONS.map((extension) => `${depotRoot}/....${extension}`)
+      'fstat',
+      '-T',
+      FSTAT_FIELDS,
+      ...MARKDOWN_EXTENSIONS.map((extension) => `${prefix}....${extension}`)
     ],
     { cwd }
   )
   // Why: an extension with no files fails its own argument but not the others.
-  if (listed.code !== 0 && !listed.stdout.trim() && !/no such file/i.test(listed.stderr)) {
-    throw new Error(firstLine(listed.stderr) || 'p4 files failed')
+  const failure = firstLine(
+    listed.stderr
+      .split(/\r?\n/)
+      .filter((line) => !/no such file/i.test(line))
+      .join('\n')
+  )
+  if (!listed.stdout.trim() && failure) {
+    throw new Error(failure)
   }
   const files: PerforceLatestFile[] = []
   for (const record of parseTaggedOutput(listed.stdout)) {
-    const rev = Number(record.rev)
-    if (!record.depotFile?.startsWith(`${depotRoot}/`) || !Number.isInteger(rev) || rev < 1) {
+    const rev = Number(record.headRev)
+    // Files only opened for add have no head revision; a deleted head is no file.
+    if (!Number.isInteger(rev) || rev < 1 || /delete|purge|archive/.test(record.headAction ?? '')) {
       continue
     }
-    if (/delete|purge|archive/.test(record.action ?? '')) {
+    const path = record.clientFile ? relativePathInsideRoot(cwd, record.clientFile) : null
+    if (!record.depotFile || !path) {
       continue
     }
     if (files.length === PERFORCE_LATEST_FILE_LIMIT) {
-      return { depotRoot, files, truncated: true }
+      return { files, truncated: true }
     }
-    files.push({ depotFile: record.depotFile, rev, change: Number(record.change) || 0 })
+    files.push({ path, depotFile: record.depotFile, rev, change: Number(record.headChange) || 0 })
   }
-  return { depotRoot, files, truncated: false }
+  return { files, truncated: false }
 }
 
 const PRINT_HEADER = /^(\/\/[^\r\n#]+)#(\d+) - (\S+) change (\d+) \(([^)\r\n]*)\)$/
@@ -140,8 +147,8 @@ function findPrintHeader(
 }
 
 /** `file#rev` argument batches under the command-line limit, spread over a few parallel prints. */
-function printBatches(files: readonly PerforceLatestFile[]): PerforceLatestFile[][] {
-  const groups: PerforceLatestFile[][] = Array.from(
+function printBatches(files: readonly PrintableFile[]): PrintableFile[][] {
+  const groups: PrintableFile[][] = Array.from(
     {
       length: Math.min(
         PRINT_MAX_PARALLEL,
@@ -151,9 +158,9 @@ function printBatches(files: readonly PerforceLatestFile[]): PerforceLatestFile[
     () => []
   )
   files.forEach((file, index) => groups[index % groups.length].push(file))
-  const batches: PerforceLatestFile[][] = []
+  const batches: PrintableFile[][] = []
   for (const group of groups) {
-    let batch: PerforceLatestFile[] = []
+    let batch: PrintableFile[] = []
     let chars = 0
     for (const file of group) {
       const length = file.depotFile.length + String(file.rev).length + 2
@@ -175,12 +182,11 @@ function printBatches(files: readonly PerforceLatestFile[]): PerforceLatestFile[
 /** Reads each file at its revision; a file that does not come back carries an error. */
 export async function printDepotFiles(
   cwd: string,
-  files: readonly Pick<PerforceLatestFile, 'depotFile' | 'rev'>[]
+  files: readonly PrintableFile[]
 ): Promise<PerforcePrintedFile[]> {
-  const wanted = files.map((file) => ({ ...file, change: 0 }))
   const printed = new Map<string, { rev: number; content: string }>()
   await Promise.all(
-    printBatches(wanted).map(async (batch) => {
+    printBatches(files).map(async (batch) => {
       const result = await runP4(
         ['print', ...batch.map((file) => `${file.depotFile}#${file.rev}`)],
         {
