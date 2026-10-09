@@ -9,6 +9,11 @@ By default the plugin reads the **latest version on the project's server**, so n
 the list is current. For Git that means the upstream branch after a fetch; for Perforce it means the depot
 head. To read the files in the project folder instead, set **Read notes from** to disk.
 
+The notes folder must be inside the chosen project. In a Perforce project the plugin reads whatever the
+workspace maps into that folder, so notes kept in another depot and brought in as a stream component work
+too. If that component's folder lies outside the project folder, add an Orca project for a folder that
+contains it, and choose that one as the vault project.
+
 ## Set up
 
 1. In Orca, open **Settings > Plugins** and turn on the plugin system.

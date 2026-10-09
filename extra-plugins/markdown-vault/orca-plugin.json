@@ -3,14 +3,14 @@
   "id": "markdown-vault",
   "publisher": "earlgeorg",
   "name": "Markdown Vault",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Lists markdown notes with frontmatter from a folder of one of your Orca projects on the Tasks page, and starts a workspace for a note. The folder's markdown-vault.md note configures it for everyone.",
   "author": { "name": "earlgeorg" },
   "engines": { "orca": ">=1.4.214" },
   "pluginApi": 1,
   "main": "main.mjs",
   "contributes": {
-    "taskSources": [{ "id": "notes", "title": "Markdown Vault", "icon": "notebook-text" }],
+    "taskSources": [{ "id": "notes", "title": "Markdown Vault", "icon": "map" }],
     "settings": [
       {
         "key": "project",
@@ -21,7 +21,7 @@
       {
         "key": "folder",
         "title": "Notes folder",
-        "description": "Folder inside the project, with forward slashes. Empty lists the whole project. Its markdown-vault.md note, if any, configures how the notes read.",
+        "description": "Folder inside the project, with forward slashes. Empty lists the whole project. In a Perforce project the files come from whatever the workspace maps there, stream components included. Its markdown-vault.md note, if any, configures how the notes read.",
         "type": "string",
         "placeholder": "docs/plans"
       },
