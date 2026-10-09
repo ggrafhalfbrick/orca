@@ -55,7 +55,7 @@ validate arguments the same way.
 
 Saving a read-only workspace file from Orca's editor first runs `p4 edit` on it: automatically by default, or after an
 in-app dialog (whose **Always open for edit** switches to automatic) when Settings › Perforce says to ask. The renderer does this before every write into a Perforce workspace, whichever host owns it
-(`lib/perforce-checkout-before-write.ts`), and the editor loads a Perforce workspace's file diffs from `p4` rather than
+(`lib/perforce-checkout-before-write.ts`, which `App.tsx` registers as the write client's `setRuntimeFileWriteGuard`), and the editor loads a Perforce workspace's file diffs from `p4` rather than
 Git (`runtime/runtime-worktree-file-diff.ts`). Both find the workspace that holds the file, even one opened from
 another workspace, and detect a folder project not yet marked Perforce (a negative answer is kept five minutes).
 

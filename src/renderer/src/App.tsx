@@ -33,6 +33,11 @@ import { useOnboardingAndFeatureTips } from './app-shell/use-onboarding-and-feat
 import { usePersistedUIWriter } from './app-shell/use-persisted-ui-writer'
 import { useRuntimeGraphSync } from './app-shell/use-runtime-graph-sync'
 import { useWindowVisibilityEffects } from './app-shell/use-window-visibility-effects'
+import { setRuntimeFileWriteGuard } from './runtime/runtime-file-mutation-client'
+import { checkoutPerforceFileBeforeWrite } from './lib/perforce-checkout-before-write'
+
+// Both the desktop and the web entry load App, so every save in either one passes this guard.
+setRuntimeFileWriteGuard(checkoutPerforceFileBeforeWrite)
 
 function App(): React.JSX.Element {
   const layout = useAppChromeLayout()
