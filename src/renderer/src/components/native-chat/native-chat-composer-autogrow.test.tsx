@@ -46,7 +46,6 @@ function TestField({
   const imeEnterGesture = useImeEnterGestureOwnership()
   return (
     <NativeChatComposerField
-      dropScopeKey="pane-test"
       draftScopeKey="pane-test"
       textareaRef={createRef<HTMLTextAreaElement>()}
       draft={draft}
@@ -55,7 +54,7 @@ function TestField({
       canSend
       autocomplete={{ mode: 'none' }}
       activeSuggestion={0}
-      notice={null}
+      notices={[]}
       imageAttachments={imageAttachments}
       sendButtonDisabled={false}
       isWorking={false}

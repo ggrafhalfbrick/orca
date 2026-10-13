@@ -74,6 +74,15 @@ const PHONE: Partial<RpcContext> = {
   ]
 }
 
+const PAIRED_DESKTOP: Partial<RpcContext> = {
+  clientKind: 'runtime',
+  pairedDeviceId: 'device-2',
+  clientCapabilities: [
+    AGENT_LAUNCH_RUNTIME_CAPABILITY,
+    AGENT_LAUNCH_UNSTARTED_TAB_CLIENT_CAPABILITY
+  ]
+}
+
 const PHONE_READING_TAB_CLOSED: Partial<RpcContext> = {
   ...OLD_PHONE,
   clientCapabilities: [
@@ -258,16 +267,22 @@ describe('the instant tab', () => {
     await replayLaunch(runtime, { presentation: 'focused' }, CLI)
 
     expect(terminalOptions(runtime)).toMatchObject({ surfaceOwner: false })
+    expect(terminalOptions(runtime)).not.toHaveProperty('presentation')
   })
 
-  it('reveals the spawn as before when the window never said it showed the tab', async () => {
+  it('defers viewer policy to the host reveal when early publication failed', async () => {
     const runtime = hostWithWindow({ reply: new Error('renderer_unavailable') })
 
     const result = await replayLaunch(runtime, {}, CLI)
 
     expect(result.outcome.kind).toBe('terminal')
     expect(result.placement).toBeUndefined()
-    expect(terminalOptions(runtime)).not.toHaveProperty('surfaceOwner')
+    expect(terminalOptions(runtime)).toMatchObject({ surfaceOwner: false })
+    const viewer = terminalOptions(runtime).agentLaunchViewer
+    expect(typeof viewer).toBe('function')
+    if (typeof viewer === 'function') {
+      expect(viewer()).toBe('reveal-owner')
+    }
   })
 
   it('records the pane it showed with the launch, and lets the pane attach once the agent runs', async () => {
@@ -722,8 +737,9 @@ describe('whose view moves', () => {
       undefined,
       'focus-in-workspace'
     ],
-    ['a phone reveals the workspace on the desktop, as before', PHONE, 'focused', 'reveal-owner'],
-    ['a phone by default reveals it too', PHONE, undefined, 'reveal-owner'],
+    ['a phone asking for focus leaves the desktop where it is', PHONE, 'focused', 'none'],
+    ['a phone by default leaves it too', PHONE, undefined, 'none'],
+    ['a paired desktop leaves the host window too', PAIRED_DESKTOP, 'focused', 'none'],
     ['background moves nobody', CLI, 'background', 'none']
   ] as const)('%s', async (_name, context, presentation, viewer) => {
     const runtime = hostWithWindow()
@@ -731,6 +747,31 @@ describe('whose view moves', () => {
     await replayLaunch(runtime, presentation ? { presentation } : {}, context)
 
     expect(runtime.published[0]?.viewer).toBe(viewer)
+  })
+
+  it.each([
+    ['a phone that reads no early tab', OLD_PHONE, replayLaunch],
+    ['a phone launch with no operation id', PHONE, plainLaunch]
+  ] as const)(
+    'leaves the desktop where it is when the agent spawns with no tab shown first: %s',
+    async (_name, context, run) => {
+      const runtime = hostWithWindow()
+
+      await run(runtime, {}, context)
+
+      expect(runtime.published).toHaveLength(0)
+      expect(terminalOptions(runtime)).toMatchObject({ surfaceOwner: false })
+    }
+  )
+
+  it('still reveals a local launch that spawns with no tab shown first', async () => {
+    const runtime = hostWithWindow()
+
+    await plainLaunch(runtime, {}, CLI)
+
+    expect(runtime.published).toHaveLength(0)
+    expect(runtime.createTerminal).toHaveBeenCalledOnce()
+    expect(terminalOptions(runtime)).not.toHaveProperty('surfaceOwner')
   })
 
   it("moves the phone's own selection unless it asked for the background", async () => {
@@ -745,21 +786,30 @@ describe('whose view moves', () => {
 })
 
 describe('the view the tab opens in', () => {
-  const CHAT_VIEW = { experimentalNativeChat: true, openAgentTabsInChatByDefault: true }
+  const TERMINAL_VIEW = { experimentalNativeChat: false }
 
-  it('is derived on the host, the same for the shown tab and the spawn', async () => {
-    const runtime = hostWithWindow({ settings: CHAT_VIEW })
+  it('keeps a terminal launch in the same view for the shown tab and spawn', async () => {
+    const runtime = hostWithWindow({ settings: TERMINAL_VIEW })
 
     await replayLaunch(runtime, {}, CLI)
 
-    expect(runtime.published[0]?.viewMode).toBe('chat')
-    expect(terminalOptions(runtime)).toMatchObject({ viewMode: 'chat' })
+    expect(runtime.published[0]?.viewMode).toBe('terminal')
+    expect(terminalOptions(runtime)).toMatchObject({ viewMode: 'terminal' })
   })
 
-  it('stays the terminal for a draft the chat view cannot mirror', async () => {
-    const runtime = hostWithWindow({ settings: CHAT_VIEW })
+  it('keeps a terminal draft in terminal view regardless of mirrorability', async () => {
+    const runtime = hostWithWindow({ settings: TERMINAL_VIEW })
 
     await replayLaunch(runtime, { prompt: { text: '   ', delivery: 'draft' } }, CLI)
+
+    expect(runtime.published[0]?.viewMode).toBe('terminal')
+    expect(terminalOptions(runtime)).toMatchObject({ viewMode: 'terminal' })
+  })
+
+  it('publishes a terminal fallback in terminal view while Chat UI is on', async () => {
+    const runtime = hostWithWindow({ settings: { experimentalNativeChat: true } })
+
+    await replayLaunch(runtime, { agent: 'gemini' }, CLI)
 
     expect(runtime.published[0]?.viewMode).toBe('terminal')
     expect(terminalOptions(runtime)).toMatchObject({ viewMode: 'terminal' })
