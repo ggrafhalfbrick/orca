@@ -74,6 +74,7 @@ export function NewWorkspaceComposerAgentSection({
           agents={visibleQuickAgents}
           value={quickAgent}
           onValueChange={onQuickAgentChange}
+          allowBlankTerminal
           onOpenManageAgents={onOpenAgentSettings}
           defaultAgent={defaultTuiAgent}
           onSetDefault={handleSetDefaultAgent}

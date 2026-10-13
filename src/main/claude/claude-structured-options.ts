@@ -11,10 +11,9 @@ import {
   readClaudeSettingsFastMode
 } from './claude-structured-session-options'
 import type { ClaudeSession } from './claude-structured-session-state'
-import { claudeStructuredEnterablePermissionMode } from './claude-structured-permission-mode'
 import { decodeStructuredAgentSessionOptionValue } from '../../shared/structured-agent-session-option-codec'
 
-const OPTION_ORDER = ['model', 'effort', 'fastMode', 'permissionMode'] as const
+const OPTION_ORDER = ['model', 'effort', 'fastMode'] as const
 
 /**
  * Efforts the settings readback cannot report. `max` applies for the rest of the
@@ -23,9 +22,6 @@ const OPTION_ORDER = ['model', 'effort', 'fastMode', 'permissionMode'] as const
  * that must not be read as the child refusing a level its own catalog offers.
  */
 const UNREPORTED_EFFORTS: ReadonlySet<string> = new Set(['max'])
-
-/** Writes that can move the main thread to another model or window: `opusplan` runs plan mode on Opus. */
-const CONTEXT_WINDOW_KEYS: ReadonlySet<string> = new Set(['model', 'permissionMode'])
 
 export function restoredClaudeStructuredSessionOptions(
   options: Readonly<Record<string, string>> | undefined
@@ -39,7 +35,7 @@ export function restoredClaudeStructuredSessionOptions(
 }
 
 /** The keys `setClaudeStructuredOption` writes; a pick made at rest is checked against these. */
-const CLAUDE_STRUCTURED_OPTION_KEYS = new Set(['model', 'permissionMode', 'effort', 'fastMode'])
+const CLAUDE_STRUCTURED_OPTION_KEYS = new Set(['model', 'effort', 'fastMode'])
 
 export function isClaudeStructuredOptionKey(key: string): boolean {
   return CLAUDE_STRUCTURED_OPTION_KEYS.has(key)
@@ -72,30 +68,18 @@ export async function setClaudeStructuredOption(
     input.key === 'fastMode'
       ? decodeStructuredAgentSessionOptionValue('fastMode', input.value)
       : null
-  // The CLI refuses bypass to a child not launched with it; refused here, the pick is never saved.
-  const permissionMode =
-    input.key === 'permissionMode'
-      ? claudeStructuredEnterablePermissionMode(session, input.value)
-      : undefined
-  if (input.key === 'permissionMode' && !permissionMode) {
-    throw new AgentSessionOptionRejectedError(
-      `claude cannot switch this session to permission mode ${input.value}`
-    )
-  }
   const apply =
     input.key === 'model'
       ? () => session.connection.setModel(input.value, { timeoutMs })
-      : permissionMode
-        ? () => session.connection.setPermissionMode(permissionMode, { timeoutMs })
-        : input.key === 'effort'
-          ? () =>
-              session.connection.applyFlagSettings(
-                { effortLevel: input.value as EffortLevel },
-                { timeoutMs }
-              )
-          : input.key === 'fastMode' && typeof fastMode === 'boolean'
-            ? () => session.connection.applyFlagSettings({ fastMode }, { timeoutMs })
-            : null
+      : input.key === 'effort'
+        ? () =>
+            session.connection.applyFlagSettings(
+              { effortLevel: input.value as EffortLevel },
+              { timeoutMs }
+            )
+        : input.key === 'fastMode' && typeof fastMode === 'boolean'
+          ? () => session.connection.applyFlagSettings({ fastMode }, { timeoutMs })
+          : null
   if (!apply) {
     throw new AgentSessionOptionRejectedError(
       `claude stream-json has no session option named ${input.key}`
@@ -159,8 +143,8 @@ export async function setClaudeStructuredOption(
   const mutationSequence = ++session.optionMutationSequence
   // Read with the fence bump, so a write that lands after an earlier one's bookkeeping compares against it.
   const held = session.options.get(input.key)
-  // Only a model write can stale the model report — an effort or permission-mode
-  // write does not change what the child is running. Leaving the stamp behind
+  // Only a model write can stale the model report — an effort or Fast write does
+  // not change what the child is running. Leaving the stamp behind
   // would drop the session back to the written model and refuse, on the next
   // effort write, a level the model actually running advertises.
   if (modelWasConfirmed && input.key !== 'model') {
@@ -169,7 +153,7 @@ export async function setClaudeStructuredOption(
   try {
     await apply()
     // Ahead of the fence checks: the child applied this write even if a newer one supersedes its bookkeeping.
-    if (CONTEXT_WINDOW_KEYS.has(input.key) && input.value !== held) {
+    if (input.key === 'model' && input.value !== held) {
       session.translator?.modelMayHaveChanged()
     }
     if (input.key === 'model') {
@@ -201,10 +185,8 @@ export async function setClaudeStructuredOption(
   }
   // apply_flag_settings answers `success` for an effort it then ignores, so the
   // absence of a throw proves nothing. Ask what the child actually holds.
-  // set_permission_mode switches before it answers, so its acceptance is the adoption.
-  const adopted = permissionMode
-    ? permissionMode
-    : (input.key === 'effort' && !UNREPORTED_EFFORTS.has(input.value)) || input.key === 'fastMode'
+  const adopted =
+    (input.key === 'effort' && !UNREPORTED_EFFORTS.has(input.value)) || input.key === 'fastMode'
       ? await session.connection
           .getSettings({ timeoutMs })
           .then((settings) =>
@@ -219,9 +201,6 @@ export async function setClaudeStructuredOption(
   }
   if (input.key === 'fastMode' && typeof adopted === 'boolean') {
     session.reportedOptions.fastMode = adopted
-  }
-  if (permissionMode) {
-    session.reportedOptions.permissionMode = permissionMode
   }
   // A disagreement stops main vouching for the value, it does not veto the write:
   // the pre-flight guard already refused levels the model advertises no control for,

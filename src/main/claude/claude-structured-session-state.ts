@@ -1,12 +1,10 @@
 import type { StructuredAgentSessionLogger } from '../native-chat/agent-session-wire/structured-agent-session-logger'
 import type { AgentJournalDispatchRejection } from '../../shared/agent-session-failure-words'
 import type { SubmissionRejectionFact } from '../../shared/agent-session-failure'
-import type {
-  AgentJournalItemIdentity,
-  AgentSessionJournalIdentity
-} from '../../shared/agent-session-journal-types'
+import type { AgentJournalItemIdentity } from '../../shared/agent-session-journal-types'
 import type { StructuredAgentSessionEventSink } from '../native-chat/agent-session-wire/structured-agent-session-event-sink'
 import type {
+  StructuredAgentSessionOptionsReportedEvent,
   StructuredAgentSessionOptionsSkippedEvent,
   StructuredAgentSessionStartedEvent
 } from '../native-chat/agent-session-wire/structured-agent-session-adapter'
@@ -14,16 +12,12 @@ import type {
   ClaudeStreamJsonConnection,
   openClaudeStreamJsonConnection
 } from './claude-stream-json-connection'
-import type { PermissionMode } from '@anthropic-ai/claude-agent-sdk'
 import type { ClaudeStructuredLaunch } from './claude-structured-launch-resolution'
+import type { StructuredLaunchRequest } from '../runtime/structured-agent-launch-composition'
 import type { ClaudeJournalTranslator } from './claude-journal-translator-contract'
 import type { ClaudePendingPrompt, ClaudePromptRegistry } from './claude-structured-prompt-replies'
-import { cancelProcessAcquisition } from '../../shared/child-process/cancel-process-acquisition'
+import { cancelProcessAcquisition } from '@orca/process-host/cancel-process-acquisition'
 import { randomUUID } from 'node:crypto'
-import type {
-  AgentModelCatalogSessionAccess,
-  AgentModelCatalogStore
-} from '../native-chat/agent-model-catalog/agent-model-catalog-store'
 import type { AgentSessionFastModeState } from '../../shared/agent-session-wire'
 import type { AgentChildWorkEvidence } from '../../shared/agent-status-child-work-evidence'
 import type { ClaudeBackgroundTaskTracker } from './claude-background-task-tracker'
@@ -69,8 +63,9 @@ export type ClaudeStructuredSessionEvent =
       fence: number
     }
   | { type: 'auth-diagnostic'; sessionId: string; diagnostic: ClaudeAuthDiagnostic }
-  /** Startup facts applied; the child already took any message written to it. */
+  /** The CLI answered initialize: the host may hand the child input from here. */
   | StructuredAgentSessionStartedEvent
+  | StructuredAgentSessionOptionsReportedEvent
   | StructuredAgentSessionOptionsSkippedEvent
   | {
       type: 'ended'
@@ -101,11 +96,7 @@ export type ClaudeLateDispatchOutcome =
 export type ClaudeStructuredSessionAdapterDeps = {
   /** The `/` surface of a chat whose Claude is not running. */
   atRestCommands?: ClaudeAtRestCommandCatalog
-  resolveLaunch: (input: {
-    identity: AgentSessionJournalIdentity
-  }) => Promise<ClaudeStructuredLaunch>
-  /** The mode a launch would start in now; absent offers a chat at rest no permission switch. */
-  resolveLaunchPermissionMode?: () => Promise<PermissionMode>
+  resolveLaunch: (input: StructuredLaunchRequest) => Promise<ClaudeStructuredLaunch>
   onEvent?: (event: ClaudeStructuredSessionEvent) => void
   /** Direct settlement path for provider-proven late dispatch outcomes. */
   onDispatchSettledLate?: (input: { sessionId: string } & ClaudeLateDispatchOutcome) => void
@@ -134,8 +125,6 @@ export type ClaudeStructuredSessionAdapterDeps = {
     leafUuid: string
     fence: number
   }) => Promise<void>
-  /** Host model catalog; sessions write their listings through. */
-  modelCatalog?: AgentModelCatalogStore
 }
 
 export type ClaudeDispatchWaiter = {
@@ -175,11 +164,7 @@ export type ClaudeSession = {
   /** Once a retired waiter is evicted, legacy content-only replay matching is unsafe. */
   replayContentFallbackBlocked: boolean
   options: Map<string, string>
-  reportedOptions: { model?: string; effort?: string; fastMode?: boolean; permissionMode?: string }
-  /** The mode the child was spawned in; absent is the CLI's own default. */
-  launchedPermissionMode?: string
-  /** The child was launched able to bypass permissions; the CLI refuses to enter that mode otherwise. */
-  bypassPermissionsAvailable?: true
+  reportedOptions: { model?: string; effort?: string; fastMode?: boolean }
   /** What `get_settings` says the next request will send, after Claude's own env and settings
    *  precedence: the lowest-ranked answer, unconfirmed until a turn reports it. */
   appliedOptions?: { model?: string; effort?: string }
@@ -196,8 +181,6 @@ export type ClaudeSession = {
   launchedModel: string | null
   /** The launch left the saved Fast out, so the start applies it once the settings are read. */
   fastModeAtStart: boolean
-  /** Absent when the adapter runs without a host catalog store (tests). */
-  catalogAccess?: AgentModelCatalogSessionAccess
   /** CLI-advertised protocol capabilities from init; gates interrupt-receipt handling. */
   capabilities: readonly string[]
   backgroundTasks: ClaudeBackgroundTaskTracker
@@ -259,6 +242,8 @@ export type ClaudeAcquisitionAttempt = {
   exitProven: boolean
   finished: Promise<void>
   finish: () => void
+  /** The resolved launch's account, read by the translator to word a sign-in failure. */
+  account?: ClaudeStructuredLaunch['account']
 }
 
 export function createClaudeAcquisitionAttempt(

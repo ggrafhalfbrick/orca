@@ -2,7 +2,7 @@
 // them, so its first message can be written at once instead of waiting for initialize to answer and
 // a control request to apply each one.
 
-import type { EffortLevel, PermissionMode } from '@anthropic-ai/claude-agent-sdk'
+import type { EffortLevel } from '@anthropic-ai/claude-agent-sdk'
 import { decodeStructuredAgentSessionOptionValue } from '../../shared/structured-agent-session-option-codec'
 import type {
   ClaudeStructuredLaunch,
@@ -18,54 +18,6 @@ const EFFORT_LEVELS: ReadonlySet<string> = new Set<EffortLevel>([
   'xhigh',
   'max'
 ])
-const PERMISSION_MODES: ReadonlySet<string> = new Set<PermissionMode>([
-  'default',
-  'acceptEdits',
-  'bypassPermissions',
-  'plan',
-  'dontAsk',
-  'auto'
-])
-
-/** Whether `options` launch with the Agent Permissions bypass. */
-function claudeStructuredOptionsBypassPermissions(options: ClaudeStructuredSdkOptions): boolean {
-  return options.extraArgs?.['dangerously-skip-permissions'] !== undefined
-}
-
-/** What a child's spawn options say of its permission mode before any frame reports it. */
-export function claudeStructuredSpawnPermissionFacts(
-  options: ClaudeStructuredSdkOptions
-): Pick<ClaudeSession, 'launchedPermissionMode' | 'bypassPermissionsAvailable'> {
-  const bypassing = claudeStructuredOptionsBypassPermissions(options)
-  const available =
-    bypassing || options.extraArgs?.['allow-dangerously-skip-permissions'] !== undefined
-  return {
-    launchedPermissionMode: bypassing ? 'bypassPermissions' : (options.permissionMode ?? 'default'),
-    ...(available ? { bypassPermissionsAvailable: true } : {})
-  }
-}
-
-/** `options` launched in `mode` instead of the mode they carry; never more than they allow. */
-function claudeStructuredOptionsWithPermissionMode(
-  options: ClaudeStructuredSdkOptions,
-  mode: PermissionMode,
-  keepsBypassAvailable: boolean
-): ClaudeStructuredSdkOptions {
-  if (mode === 'bypassPermissions') {
-    return options
-  }
-  const { 'dangerously-skip-permissions': bypass, ...extraArgs } = options.extraArgs ?? {}
-  // The allow flag keeps a granted bypass one pick away; a CLI that predates it loses bypass here.
-  return {
-    ...options,
-    permissionMode: mode,
-    extraArgs:
-      bypass !== undefined && keepsBypassAvailable
-        ? { ...extraArgs, 'allow-dangerously-skip-permissions': null }
-        : extraArgs
-  }
-}
-
 /** The saved value stands in for the agent Arguments' own flag for it: the chat's pick wins, and
  *  the CLI is never handed the flag twice. */
 function withoutConfiguredFlag(
@@ -81,10 +33,6 @@ function withoutConfiguredFlag(
 
 function isEffortLevel(value: string): value is EffortLevel {
   return EFFORT_LEVELS.has(value)
-}
-
-export function isClaudePermissionMode(value: string): value is PermissionMode {
-  return PERMISSION_MODES.has(value)
 }
 
 export type ClaudeStructuredSpawnOptions = {
@@ -103,7 +51,7 @@ export type ClaudeStructuredSpawnOptions = {
  * the SDK's types, not the installed binary's: one that binary rejects fails its start.
  */
 export function claudeStructuredSpawnOptions(input: {
-  launch: Pick<ClaudeStructuredLaunch, 'options' | 'resumesTranscript' | 'keepsBypassAvailable'>
+  launch: Pick<ClaudeStructuredLaunch, 'options' | 'resumesTranscript'>
   saved: Readonly<Record<string, string>> | undefined
 }): ClaudeStructuredSpawnOptions {
   const saved = restoredClaudeStructuredSessionOptions(input.saved)
@@ -145,24 +93,6 @@ export function claudeStructuredSpawnOptions(input: {
       }
     }
   }
-  const permissionMode = saved.get('permissionMode')
-  if (permissionMode !== undefined) {
-    // Bypass is the Agent Permissions setting's to grant; a saved pick never widens it.
-    if (
-      isClaudePermissionMode(permissionMode) &&
-      (permissionMode !== 'bypassPermissions' ||
-        claudeStructuredOptionsBypassPermissions(input.launch.options))
-    ) {
-      options.set('permissionMode', permissionMode)
-      sdkOptions = claudeStructuredOptionsWithPermissionMode(
-        sdkOptions,
-        permissionMode,
-        input.launch.keepsBypassAvailable === true
-      )
-    } else {
-      skipped.push('permissionMode')
-    }
-  }
   return { sdkOptions, options, skipped, fastModeAtStart }
 }
 
@@ -182,10 +112,5 @@ export function adoptClaudeStructuredSpawnOptions(
   const model = spawn.options.get('model')
   if (model !== undefined) {
     session.translator?.modelWritten(model)
-  }
-  // The journal's window was measured under a mode this child did not take (`opusplan`'s plan
-  // mode runs Opus); a launch never leaves a model out.
-  if (spawn.skipped.includes('permissionMode')) {
-    session.translator?.modelMayHaveChanged()
   }
 }

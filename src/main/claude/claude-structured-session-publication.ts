@@ -7,8 +7,6 @@ import { ClaudeBackgroundTaskTracker } from './claude-background-task-tracker'
 import { ClaudeChildWorkDecoder } from './claude-child-work-decoder'
 import { ClaudeSlashCommandCatalog } from './claude-slash-command-catalog'
 import { createClaudeSessionStartup } from './claude-structured-session-startup-state'
-import type { ClaudeStructuredSdkOptions } from './claude-structured-launch-resolution'
-import { claudeStructuredSpawnPermissionFacts } from './claude-structured-spawn-options'
 
 /** The session as published at spawn: nothing the CLI reports at init is assumed yet. */
 export function createClaudeSessionPublication(input: {
@@ -29,8 +27,6 @@ export function createClaudeSessionPublication(input: {
   linkId?: string
   observedAt: number
   options?: ReadonlyMap<string, string>
-  /** What the child was spawned with, saved options applied: bypass is only reachable if it was. */
-  launchOptions: ClaudeStructuredSdkOptions
 }): { acquisition: AgentSessionAcquisition; session: ClaudeSession } {
   return {
     acquisition: {
@@ -70,7 +66,6 @@ export function createClaudeSessionPublication(input: {
       restoreSkippedOptions: new Set(),
       launchedModel: null,
       fastModeAtStart: false,
-      ...claudeStructuredSpawnPermissionFacts(input.launchOptions),
       translator: input.translator,
       events: input.events,
       ...(input.unbindReadingControl ? { unbindReadingControl: input.unbindReadingControl } : {}),

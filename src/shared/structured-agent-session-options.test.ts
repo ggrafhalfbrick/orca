@@ -1,17 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import type { AgentSessionOptionsResult } from './agent-session-wire'
-import { AGENT_SESSION_PERMISSION_MODE_KEY } from './agent-session-permission-mode'
+import { OMP_SESSION_OPTION_CATALOG } from './agent-session-option-catalog-omp'
 import { CODEX_SESSION_OPTION_CATALOG } from './agent-session-option-catalog-claude-codex'
 import { buildNativeChatSessionOptionSnapshot } from './native-chat-session-option-snapshot'
 import { createNativeChatSessionOptionRecord } from './native-chat-session-option-state'
 import {
+  applyStructuredAgentSessionModelCatalog,
   applyStructuredAgentSessionOptions,
-  canSetStructuredAgentSessionOption,
-  commitStructuredAgentSessionOptionValues,
   createStructuredAgentSessionOptionState,
-  structuredAgentSessionOptionSnapshot,
-  structuredAgentSessionOptionView
+  settleStructuredAgentSessionBuiltinCatalog,
+  structuredAgentSessionOptionSnapshot
 } from './structured-agent-session-options'
+import { structuredAgentSessionOptionView } from './structured-agent-session-option-view'
 
 function viewModel(...args: Parameters<typeof structuredAgentSessionOptionView>) {
   const model = structuredAgentSessionOptionSnapshot(
@@ -21,6 +20,29 @@ function viewModel(...args: Parameters<typeof structuredAgentSessionOptionView>)
 }
 
 describe('structured agent session options', () => {
+  it('keeps a missing model out of the picker and adopts a later report', () => {
+    const state = applyStructuredAgentSessionOptions(
+      createStructuredAgentSessionOptionState('omp'),
+      OMP_SESSION_OPTION_CATALOG,
+      { models: [], current: { effort: 'off', confirmed: ['effort'] } }
+    )
+    expect(state.catalog?.models).toEqual([])
+    expect(structuredAgentSessionOptionSnapshot(state)).toEqual([])
+    expect(state.record.model).toBeUndefined()
+
+    const reported = applyStructuredAgentSessionOptions(state, OMP_SESSION_OPTION_CATALOG, {
+      models: [{ id: 'reported-model', label: 'Reported Model', isDefault: true, efforts: [] }],
+      current: { model: 'reported-model', confirmed: ['model'] }
+    })
+    expect(structuredAgentSessionOptionSnapshot(reported)[0]).toMatchObject({
+      valueSource: 'reported',
+      kind: {
+        currentValue: 'reported-model',
+        choices: [{ value: 'reported-model', label: 'Reported Model' }]
+      }
+    })
+  })
+
   it('projects native Codex selects while bridge Codex keeps its agent picker', () => {
     const state = applyStructuredAgentSessionOptions(
       createStructuredAgentSessionOptionState('codex'),
@@ -166,6 +188,48 @@ describe('structured agent session options', () => {
     expect(absent.record.valuesByModel['account-model']?.fastMode).toBeUndefined()
   })
 
+  it('offers one speed choice in place of the Fast toggle where the model lists speeds', () => {
+    const state = applyStructuredAgentSessionOptions(
+      createStructuredAgentSessionOptionState('codex'),
+      CODEX_SESSION_OPTION_CATALOG,
+      {
+        models: [
+          {
+            id: 'gpt-6.1-sol',
+            label: 'GPT-6.1 Sol',
+            isDefault: true,
+            efforts: [],
+            supportsFastMode: true,
+            serviceTiers: [
+              { value: 'priority', label: 'Fast' },
+              { value: 'ultrafast', label: 'Ultrafast' }
+            ]
+          }
+        ],
+        fastModeSupport: { supported: true },
+        current: { model: 'gpt-6.1-sol', serviceTier: 'ultrafast', confirmed: ['serviceTier'] }
+      }
+    )
+    const snapshot = structuredAgentSessionOptionSnapshot(state)
+    expect(snapshot.map(({ id }) => id)).toEqual(['model', 'serviceTier'])
+    expect(snapshot).toContainEqual(
+      expect.objectContaining({
+        id: 'serviceTier',
+        kind: {
+          type: 'select',
+          currentValue: 'ultrafast',
+          choices: [
+            { value: 'default', label: 'Standard' },
+            { value: 'priority', label: 'Fast' },
+            { value: 'ultrafast', label: 'Ultrafast' }
+          ]
+        },
+        valueSource: 'reported',
+        settable: true
+      })
+    )
+  })
+
   it('renders Fast off but marked unreported when support is known and no value is', () => {
     const state = applyStructuredAgentSessionOptions(
       createStructuredAgentSessionOptionState('codex'),
@@ -199,11 +263,28 @@ describe('structured agent session options', () => {
   })
 
   it('shows the launch seed until the record names a model, and held picks over both', () => {
-    const seeded = createStructuredAgentSessionOptionState('codex', CODEX_SESSION_OPTION_CATALOG)
+    const cold = createStructuredAgentSessionOptionState('codex', CODEX_SESSION_OPTION_CATALOG)
+    const seeded = applyStructuredAgentSessionModelCatalog(
+      cold,
+      CODEX_SESSION_OPTION_CATALOG,
+      {
+        origin: 'probe',
+        models: [{ id: 'gpt-5.5', label: 'GPT-5.5', isDefault: true, efforts: [] }],
+        fetchedAt: 1
+      },
+      { newLaunch: true }
+    )
     const seed = { model: 'gpt-5.5' }
     expect(viewModel(seeded, seed, {})).toBe('gpt-5.5')
-    // A model outside the static list still gets a labelled row.
-    expect(viewModel(seeded, { model: 'gpt-next' }, {})).toBe('gpt-next')
+    // A saved pick the host's list does not name shows the quiet placeholder, never its raw id.
+    expect(
+      structuredAgentSessionOptionSnapshot(
+        structuredAgentSessionOptionView(seeded, { model: 'gpt-next' }, {})
+      )
+    ).toEqual([expect.objectContaining({ id: 'model', settable: false, valueSource: 'unknown' })])
+    // Before the host answers, and on the built-in list, no saved pick is named.
+    expect(viewModel(cold, seed, {})).toBeUndefined()
+    expect(viewModel(settleStructuredAgentSessionBuiltinCatalog(cold), seed, {})).toBeUndefined()
     // Derived only: the record itself never takes the seed.
     expect(seeded.record.model).toBeUndefined()
     const live = applyStructuredAgentSessionOptions(seeded, CODEX_SESSION_OPTION_CATALOG, {
@@ -213,89 +294,5 @@ describe('structured agent session options', () => {
     expect(viewModel(live, seed, {})).toBe('gpt-5.6-luna')
     expect(viewModel(live, seed, { model: 'gpt-5.5' })).toBe('gpt-5.5')
     expect(live.record.model?.value).toBe('gpt-5.6-luna')
-  })
-})
-
-describe('structured agent session permission mode', () => {
-  // Deliberately not Claude's vocabulary: the client knows no provider's modes.
-  const SANDBOX_MODES = [
-    { id: 'read-only', label: 'Read only', description: 'Look, never touch' },
-    { id: 'workspace', label: 'Workspace', description: 'Edit inside the workspace' },
-    { id: 'full', label: 'Full access' }
-  ]
-  const reported = (
-    permissionMode?: AgentSessionOptionsResult['permissionMode']
-  ): AgentSessionOptionsResult => ({
-    models: [{ id: 'model-a', label: 'Model A', isDefault: true, efforts: [] }],
-    ...(permissionMode ? { permissionMode } : {}),
-    current: { model: 'model-a' }
-  })
-  const apply = (result: AgentSessionOptionsResult) =>
-    applyStructuredAgentSessionOptions(
-      createStructuredAgentSessionOptionState('codex'),
-      CODEX_SESSION_OPTION_CATALOG,
-      result
-    )
-  const permissionDescriptor = (state: ReturnType<typeof apply>) =>
-    structuredAgentSessionOptionSnapshot(state).find(
-      (descriptor) => descriptor.id === AGENT_SESSION_PERMISSION_MODE_KEY
-    )
-
-  it("renders any provider's modes in its own words", () => {
-    const state = apply(reported({ current: 'workspace', modes: SANDBOX_MODES, confirmed: true }))
-
-    expect(permissionDescriptor(state)).toMatchObject({
-      category: 'mode',
-      settable: true,
-      valueSource: 'reported',
-      kind: {
-        type: 'select',
-        currentValue: 'workspace',
-        choices: [
-          { value: 'read-only', label: 'Read only', description: 'Look, never touch' },
-          { value: 'workspace', label: 'Workspace', description: 'Edit inside the workspace' },
-          { value: 'full', label: 'Full access' }
-        ]
-      }
-    })
-    expect(
-      canSetStructuredAgentSessionOption(state, AGENT_SESSION_PERMISSION_MODE_KEY, 'full')
-    ).toBe(true)
-    expect(
-      canSetStructuredAgentSessionOption(state, AGENT_SESSION_PERMISSION_MODE_KEY, 'bypass')
-    ).toBe(false)
-  })
-
-  it('drops a mode a newer host describes in a shape this client cannot render', () => {
-    const malformed: unknown[] = [{ id: 'nameless' }, 'full', null, ...SANDBOX_MODES]
-    const state = apply(
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: models a host whose report this client's types do not describe.
-      reported({ current: 'full', modes: malformed as typeof SANDBOX_MODES, confirmed: false })
-    )
-    const descriptor = permissionDescriptor(state)
-
-    expect(
-      descriptor?.kind.type === 'select' && descriptor.kind.choices.map((choice) => choice.value)
-    ).toEqual(['read-only', 'workspace', 'full'])
-  })
-
-  it('offers nothing from a host or provider that reports no modes', () => {
-    expect(permissionDescriptor(apply(reported()))).toBeUndefined()
-    expect(
-      permissionDescriptor(apply(reported({ current: 'x', modes: [], confirmed: false })))
-    ).toBeUndefined()
-  })
-
-  it('shows a committed pick before the next read confirms it', () => {
-    const state = apply(reported({ current: 'read-only', modes: SANDBOX_MODES, confirmed: false }))
-
-    const committed = commitStructuredAgentSessionOptionValues(state, {
-      [AGENT_SESSION_PERMISSION_MODE_KEY]: 'workspace'
-    })
-
-    expect(permissionDescriptor(committed)).toMatchObject({
-      valueSource: 'dispatched',
-      kind: { currentValue: 'workspace' }
-    })
   })
 })

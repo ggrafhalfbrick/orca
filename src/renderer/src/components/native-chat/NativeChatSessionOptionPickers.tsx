@@ -1,6 +1,5 @@
 import { memo, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { SwitchIndicator } from '@/components/ui/switch'
 import {
@@ -27,17 +26,14 @@ import {
   nativeChatModelPillLabel,
   nativeChatOptionsPillLabel,
   nativeChatOptionsPillTitle,
-  nativeChatPermissionModePillLabel,
   nativeChatSessionChoiceLabel,
   nativeChatSessionOptionDisabledReason,
   nativeChatSessionOptionLabel
 } from './native-chat-session-option-labels'
 import type { NativeChatOptionPickerRequest } from './native-chat-composer-types'
-import { AGENT_SESSION_PERMISSION_MODE_KEY } from '../../../../shared/agent-session-permission-mode'
-import { agentSessionThrownFailure } from '../../../../shared/agent-session-write-failure'
-import { RuntimeRpcCallError } from '@/runtime/runtime-rpc-result'
-import { agentSessionWriteFailureText } from './agent-session-write-notice-text'
+import { runSessionOptionSurfaceCall } from './native-chat-session-option-surface-call'
 import { NativeChatModelCombobox } from './NativeChatModelCombobox'
+import { useNativeChatPickerFocusReturn } from './native-chat-picker-focus-return'
 import { NativeChatSessionOptionChoiceBody } from './NativeChatSessionOptionChoiceBody'
 
 export type NativeChatSessionOptionPickersProps = {
@@ -45,6 +41,8 @@ export type NativeChatSessionOptionPickersProps = {
   snapshot: SessionOptionDescriptor[]
   isWorking: boolean
   pickerRequest?: NativeChatOptionPickerRequest | null
+  /** Where focus lands after a pick; see `useNativeChatPickerFocusReturn`. */
+  focusComposer?: () => void
 }
 
 function PickerTooltipContent(props: {
@@ -119,19 +117,27 @@ function DescriptorMenuRows(props: {
   pending: boolean
   setValue: (value: SessionOptionValue) => void
   invokeAction: () => void
+  /** Called by the rows whose choice closes the menu. */
+  notePick: () => void
 }): React.JSX.Element {
-  const { descriptor, pending, setValue, invokeAction } = props
+  const { descriptor, pending, setValue, invokeAction, notePick } = props
   // Why: flip-only without a baseline is an action — never claim On/Off.
   if (descriptor.action?.type === 'toggle-command') {
     return (
-      <DropdownMenuItem disabled={!descriptor.settable || pending} onSelect={() => invokeAction()}>
+      <DropdownMenuItem
+        disabled={!descriptor.settable || pending}
+        onSelect={() => {
+          notePick()
+          invokeAction()
+        }}
+      >
         {translate('components.native-chat.composer.toggleOption', 'Toggle {{value0}}', {
           value0: nativeChatSessionOptionLabel(descriptor).toLowerCase()
         })}
       </DropdownMenuItem>
     )
   }
-  // Why: agent-picker opens the TUI; it is not a set of radio choices.
+  // Why: agent-picker opens the TUI; it is not a set of radio choices, and that picker owns focus.
   if (descriptor.action?.type === 'agent-picker') {
     return (
       <DropdownMenuItem disabled={!descriptor.settable || pending} onSelect={() => invokeAction()}>
@@ -169,7 +175,10 @@ function DescriptorMenuRows(props: {
     <DropdownMenuRadioGroup
       aria-label={nativeChatSessionOptionLabel(descriptor)}
       value={descriptor.kind.currentValue}
-      onValueChange={(value) => setValue(value)}
+      onValueChange={(value) => {
+        notePick()
+        setValue(value)
+      }}
     >
       {descriptor.kind.choices.map((choice) => (
         <DropdownMenuRadioItem
@@ -187,73 +196,45 @@ function DescriptorMenuRows(props: {
   )
 }
 
-/** A host's error is words for its log, so it gets the table's; a local surface's error is
- *  already written for the person. */
-function optionUpdateFailureDescription(error: unknown): string {
-  if (error instanceof RuntimeRpcCallError) {
-    return agentSessionWriteFailureText(agentSessionThrownFailure(error, error.code), 'option')
-  }
-  return error instanceof Error ? error.message : String(error)
-}
-
-function runSurfaceCall(
-  pendingKey: string,
-  setPendingId: (id: string | null) => void,
-  call: () => Promise<unknown>
-): void {
-  setPendingId(pendingKey)
-  void call()
-    .catch((error) => {
-      toast.error(
-        translate('components.native-chat.composer.optionUpdateFailed', 'Could not update option'),
-        { description: optionUpdateFailureDescription(error) }
-      )
-    })
-    .finally(() => setPendingId(null))
-}
-
 function NativeChatSessionOptionPickersInner({
   surface,
   snapshot,
   isWorking,
-  pickerRequest
+  pickerRequest,
+  focusComposer
 }: NativeChatSessionOptionPickersProps): React.JSX.Element | null {
   const [pendingId, setPendingId] = useState<string | null>(null)
+  const modelMenuFocus = useNativeChatPickerFocusReturn(focusComposer)
+  const optionsMenuFocus = useNativeChatPickerFocusReturn(focusComposer)
   const model = snapshot.find((descriptor) => descriptor.category === 'model')
-  // Its own pill: which mode tools run under should be readable at a glance.
-  const permission = snapshot.find(
-    (descriptor) => descriptor.id === AGENT_SESSION_PERMISSION_MODE_KEY
-  )
-  const options = sortNativeChatSessionOptions(snapshot).filter(
-    (descriptor) => descriptor !== permission
-  )
+  const options = sortNativeChatSessionOptions(snapshot)
   if (!surface || !model) {
     return null
   }
-  // Still listed by the host: the pill shows its value and does not open, even on request.
-  const modelChoicesPending = model.choicesPending === true
   const requestedModelSequence = pickerRequest?.id === model.id ? pickerRequest.sequence : null
   const requestedOptionsSequence = options.some((descriptor) => descriptor.id === pickerRequest?.id)
     ? (pickerRequest?.sequence ?? null)
     : null
-  const requestedPermissionSequence =
-    permission && pickerRequest?.id === permission.id ? pickerRequest.sequence : null
 
   const setOption = (descriptor: SessionOptionDescriptor, value: SessionOptionValue): void => {
-    runSurfaceCall(descriptor.id, setPendingId, () => surface.setOption(descriptor.id, value))
+    runSessionOptionSurfaceCall(descriptor.id, setPendingId, () =>
+      surface.setOption(descriptor.id, value)
+    )
   }
   const invokeAction = (descriptor: SessionOptionDescriptor): void => {
-    runSurfaceCall(descriptor.id, setPendingId, () => surface.invokeAction(descriptor.id))
+    runSessionOptionSurfaceCall(descriptor.id, setPendingId, () =>
+      surface.invokeAction(descriptor.id)
+    )
   }
 
   const modelReason = nativeChatSessionOptionDisabledReason(model.disabledReason)
   const modelPickerKey = `model:${requestedModelSequence ?? 'idle'}`
-  // Read only when a request remounts the picker: one made while pending is spent shut.
-  const modelPickerDefaultOpen = requestedModelSequence !== null && !modelChoicesPending
+  // Read only when a request remounts the picker.
+  const modelPickerDefaultOpen = requestedModelSequence !== null
   const modelTrigger = {
     label: nativeChatModelPillLabel(model),
     tooltipLabel: translate('components.native-chat.composer.model', 'Model'),
-    disabled: isWorking || pendingId !== null || modelChoicesPending,
+    disabled: isWorking || pendingId !== null,
     disabledReason: modelReason,
     dispatched: sessionOptionDispatchUnconfirmed(model)
   }
@@ -262,7 +243,6 @@ function NativeChatSessionOptionPickersInner({
     options.length > 0 && options.every((descriptor) => !descriptor.settable)
       ? nativeChatSessionOptionDisabledReason(options[0]?.disabledReason)
       : null
-  const permissionReason = nativeChatSessionOptionDisabledReason(permission?.disabledReason)
 
   return (
     <div className="flex min-w-0 items-center gap-0.5 text-chat-foreground-faint">
@@ -275,6 +255,7 @@ function NativeChatSessionOptionPickersInner({
           readOnly={!model.settable || pendingId !== null}
           readOnlyReason={modelReason}
           onSelect={(value) => setOption(model, value)}
+          focusComposer={focusComposer}
           renderTrigger={(onKeyDown) => (
             <PickerTrigger Trigger={PopoverTrigger} {...modelTrigger} onKeyDown={onKeyDown} />
           )}
@@ -282,7 +263,13 @@ function NativeChatSessionOptionPickersInner({
       ) : (
         <DropdownMenu key={modelPickerKey} defaultOpen={modelPickerDefaultOpen}>
           <PickerTrigger Trigger={DropdownMenuTrigger} {...modelTrigger} />
-          <DropdownMenuContent align="start" side="top" collisionPadding={8} className="w-64">
+          <DropdownMenuContent
+            align="start"
+            side="top"
+            collisionPadding={8}
+            className="w-64"
+            onCloseAutoFocus={modelMenuFocus.onCloseAutoFocus}
+          >
             {modelReason && !model.settable ? (
               <DropdownMenuLabel className="font-normal">{modelReason}</DropdownMenuLabel>
             ) : null}
@@ -291,6 +278,7 @@ function NativeChatSessionOptionPickersInner({
               pending={pendingId !== null}
               setValue={(value) => setOption(model, value)}
               invokeAction={() => invokeAction(model)}
+              notePick={modelMenuFocus.notePick}
             />
           </DropdownMenuContent>
         </DropdownMenu>
@@ -308,7 +296,13 @@ function NativeChatSessionOptionPickersInner({
             disabledReason={optionsReason}
             dispatched={options.some(sessionOptionDispatchUnconfirmed)}
           />
-          <DropdownMenuContent align="start" side="top" collisionPadding={8} className="w-60">
+          <DropdownMenuContent
+            align="start"
+            side="top"
+            collisionPadding={8}
+            className="w-60"
+            onCloseAutoFocus={optionsMenuFocus.onCloseAutoFocus}
+          >
             {options.map((descriptor, index) => {
               const reason = nativeChatSessionOptionDisabledReason(descriptor.disabledReason)
               return (
@@ -327,37 +321,11 @@ function NativeChatSessionOptionPickersInner({
                     pending={pendingId !== null}
                     setValue={(value) => setOption(descriptor, value)}
                     invokeAction={() => invokeAction(descriptor)}
+                    notePick={optionsMenuFocus.notePick}
                   />
                 </div>
               )
             })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : null}
-      {permission ? (
-        <DropdownMenu
-          key={`permission:${requestedPermissionSequence ?? 'idle'}`}
-          defaultOpen={requestedPermissionSequence !== null}
-        >
-          <PickerTrigger
-            Trigger={DropdownMenuTrigger}
-            label={nativeChatPermissionModePillLabel(permission)}
-            tooltipLabel={nativeChatSessionOptionLabel(permission)}
-            // Not held for a running turn: switching to accept edits mid-turn is the point.
-            disabled={pendingId !== null}
-            disabledReason={permissionReason}
-            dispatched={sessionOptionDispatchUnconfirmed(permission)}
-          />
-          <DropdownMenuContent align="start" side="top" collisionPadding={8} className="w-72">
-            {permissionReason && !permission.settable ? (
-              <DropdownMenuLabel>{permissionReason}</DropdownMenuLabel>
-            ) : null}
-            <DescriptorMenuRows
-              descriptor={permission}
-              pending={pendingId !== null}
-              setValue={(value) => setOption(permission, value)}
-              invokeAction={() => invokeAction(permission)}
-            />
           </DropdownMenuContent>
         </DropdownMenu>
       ) : null}
