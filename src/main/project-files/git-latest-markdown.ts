@@ -14,7 +14,7 @@ import {
   ExecutionHostNotDispatchableError,
   resolveGitRouteForHost
 } from '../providers/execution-host-provider-dispatch'
-import { SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE } from '../providers/ssh-git-dispatch'
+import { SshHostNotServedError } from '../providers/ssh-host-not-served-error'
 import {
   isInProjectFolder,
   isListedMarkdownPath,
@@ -30,21 +30,14 @@ type GitAccess = {
   run(args: string[], signal?: AbortSignal): Promise<string>
 }
 
-/** Git for the project's own host: this machine (WSL included) or its SSH relay. */
+/** Git for the project's own host: this machine (WSL included). An SSH host is served by orcad, which reads it there. */
 function gitAccessFor(repo: Repo): GitAccess {
   const route = resolveGitRouteForHost(getRepoExecutionHostId(repo))
   if (route.kind === 'runtime') {
     throw new ExecutionHostNotDispatchableError(route.hostId)
   }
   if (route.kind === 'ssh') {
-    const provider = route.provider
-    if (!provider) {
-      throw new Error(SSH_GIT_PROVIDER_UNAVAILABLE_MESSAGE)
-    }
-    return {
-      fetch: () => provider.fetchRemote(repo.path),
-      run: async (args, signal) => (await provider.exec(args, repo.path, { signal })).stdout
-    }
+    throw new SshHostNotServedError(route.connectionId)
   }
   return {
     fetch: (signal) => gitFetch(repo.path, undefined, { signal }),

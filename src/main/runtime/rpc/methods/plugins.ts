@@ -69,6 +69,7 @@ function bindRpcPanelOwner(service: PluginService, context: RpcContext): string 
 export const PLUGIN_METHODS = [
   defineMethod({
     name: 'plugins.list',
+    permission: 'workspace',
     params: null,
     handler: async () => listForRpc()
   }),
@@ -76,6 +77,7 @@ export const PLUGIN_METHODS = [
     // Why: headless serve has no consent dialog — an explicit consent call is
     // the only way a pending plugin becomes active on a server.
     name: 'plugins.consent',
+    permission: 'host-admin',
     params: pluginConsentRequestSchema,
     handler: async (params) => {
       const service = requirePluginService()
@@ -89,6 +91,7 @@ export const PLUGIN_METHODS = [
   }),
   defineMethod({
     name: 'plugins.setEnabled',
+    permission: 'host-admin',
     params: PluginSetEnabledParams,
     handler: async (params) => {
       const service = requirePluginService()
@@ -105,6 +108,7 @@ export const PLUGIN_METHODS = [
     // capability enforcement must live behind this method too, not only in
     // the desktop IPC handler.
     name: 'plugins.panelAction',
+    permission: 'host-admin',
     // Why: raw admission must run before strict schema parsing so malformed
     // and oversized traffic cannot bypass the panel budget.
     params: PluginsPanelActionParams,
@@ -118,6 +122,7 @@ export const PLUGIN_METHODS = [
   }),
   defineMethod({
     name: 'plugins.readPanelEntry',
+    permission: 'workspace',
     params: PluginReadPanelEntryParams,
     handler: async (params, context): Promise<PluginPanelEntry | null> => {
       const service = requirePluginService()
@@ -133,6 +138,7 @@ export const PLUGIN_METHODS = [
   }),
   defineMethod({
     name: 'plugins.invokeCommand',
+    permission: 'host-admin',
     params: PluginInvokeCommandParams,
     handler: async (params) => {
       const service = requirePluginService()
@@ -142,6 +148,8 @@ export const PLUGIN_METHODS = [
   }),
   defineMethod({
     name: 'plugins.invokeTaskSource',
+    // Why: lists and reads a task source's items, like plugins.readPanelEntry; it runs no commands.
+    permission: 'workspace',
     params: PluginInvokeTaskSourceParams,
     handler: async (params) => {
       const service = requirePluginService()

@@ -2,7 +2,6 @@ import type { TuiAgent } from '../../../../shared/tui-agent'
 import type { LinkedPluginTask } from '../../../../shared/plugins/plugin-task-link'
 import type { GitPushTarget } from '../../../../shared/worktree/types'
 import type { SetupDecision } from '../../../../shared/worktree/create-types'
-import type { Repo } from '../../../../shared/repo-types'
 import type { WorkspaceIntentName } from '../../../../shared/workspace-name'
 import type { LinkedWorkItemSummary } from '@/lib/new-workspace'
 import type { WorktreeCreationRequest } from '@/lib/pending-worktree-creation'
@@ -58,7 +57,6 @@ export type ComposerSubmitModel = {
     workspaceNameSeed: string,
     workspaceRunContext: WorktreeCreationRequest['workspaceRunContext'],
     repoId: string,
-    selectedRepo: Repo,
     options?: QuickSubmitOptions
   ) => Promise<void>
   prepareQuickSubmit: (
