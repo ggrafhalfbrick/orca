@@ -22,13 +22,14 @@ function permissionOptions(
   }
 }
 
-function callbacksFor() {
+function callbacksFor(deps: { bypassToolApprovals?: boolean } = {}) {
   const prompts = new ClaudePromptRegistry()
   const emit = vi.fn()
   const { canUseTool, onUserDialog } = buildClaudePermissionCallbacks({
     sessionId: 'session-1',
     prompts,
-    emit
+    emit,
+    ...deps
   })
   return { prompts, emit, canUseTool, onUserDialog }
 }
@@ -116,6 +117,61 @@ describe('Claude permission callbacks', () => {
     expect(prompt?.subject?.kind).toBe('plan')
     prompt?.settle({ behavior: 'deny', message: 'done', toolUseID: 'tool-plan' })
     await expect(answered).resolves.toMatchObject({ behavior: 'deny' })
+  })
+
+  it('full access allows a tool request without asking, registering, or emitting', async () => {
+    const control = callbacksFor({ bypassToolApprovals: true })
+    const register = vi.spyOn(control.prompts, 'register')
+    const answered = control.canUseTool(
+      'Bash',
+      { command: 'rm -rf build' },
+      permissionOptions('perm-bypass', 'tool-bypass', new AbortController().signal)
+    )
+
+    await expect(answered).resolves.toEqual({
+      behavior: 'allow',
+      updatedInput: { command: 'rm -rf build' },
+      toolUseID: 'tool-bypass'
+    })
+    expect(register).not.toHaveBeenCalled()
+    expect(control.emit).not.toHaveBeenCalled()
+  })
+
+  it('full access still asks a question', async () => {
+    const control = callbacksFor({ bypassToolApprovals: true })
+    const answered = control.canUseTool(
+      'AskUserQuestion',
+      { questions: [{ question: 'Which database?', options: [{ label: 'Postgres' }] }] },
+      permissionOptions('perm-ask', 'tool-ask', new AbortController().signal)
+    )
+
+    expect(control.emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'prompt',
+        prompt: expect.objectContaining({ promptKey: 'perm-ask', kind: 'question' })
+      })
+    )
+    control.prompts.find('perm-ask')?.prompt.settle(null)
+    await expect(answered).resolves.toBeNull()
+  })
+
+  it('full access still surfaces a plan proposal', async () => {
+    const control = callbacksFor({ bypassToolApprovals: true })
+    const answered = control.canUseTool(
+      'ExitPlanMode',
+      { plan: '# Release\n\n- Run tests' },
+      permissionOptions('perm-plan-bypass', 'tool-plan-bypass', new AbortController().signal)
+    )
+
+    expect(control.emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'prompt',
+        prompt: expect.objectContaining({ promptKey: 'perm-plan-bypass' })
+      })
+    )
+    expect(control.prompts.find('perm-plan-bypass')?.prompt.subject?.kind).toBe('plan')
+    control.prompts.find('perm-plan-bypass')?.prompt.settle(null)
+    await expect(answered).resolves.toBeNull()
   })
 
   it('denies a malformed permission request without registering a prompt', async () => {

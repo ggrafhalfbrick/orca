@@ -20,7 +20,7 @@ Before writing new logic at any scale — a function, component, IPC channel, st
 
 ## Provider-Neutral Interfaces
 
-When a feature involves agents, CLIs, git hosts or any other pluggable backend, put the contract in shared code and each provider's specifics in its own adapter. Shared and UI code hold none of a provider's vocabulary — no provider ids, labels or `if (agent === …)` branches — and render what the provider reports. Shipping one provider first is fine; hard-coding it into the shared layer is not. Leave a short reference doc on adding the next provider, as [`docs/reference/agent-permission-modes.md`](./docs/reference/agent-permission-modes.md) does.
+When a feature involves agents, CLIs, git hosts or any other pluggable backend, put the contract in shared code and each provider's specifics in its own adapter. Shared and UI code hold none of a provider's vocabulary — no provider ids, labels or `if (agent === …)` branches — and render what the provider reports. Shipping one provider first is fine; hard-coding it into the shared layer is not. Leave a short reference doc on adding the next provider.
 
 ## Concise/Brief Non-obvious Comments ONLY
 
@@ -105,10 +105,6 @@ All changes must consider folder workspaces as well as git worktrees. Don't assu
 
 The execution host owns agent status in one store, the hook server's, and every reader (sidebar, `worktree ps`, mobile, dashboard) subscribes to it. New producers write into that store, and readers keep only presentation policy.
 
-## Agent Permission Modes
-
-The structured chat's Permissions pill renders whatever modes an agent's adapter reports, in the agent's own words; clients hold no provider vocabulary. To give another agent the pill, follow [`docs/reference/agent-permission-modes.md`](./docs/reference/agent-permission-modes.md) — the work is all in that agent's adapter.
-
 ## Agent Terminal Screens
 
 A rule that reads what an agent CLI paints on a terminal — readiness, blocked prompts, idle — must be written against a captured transcript, not a remembered screen. Use `config/scripts/capture-agent-pty-transcript.mjs` to keep escapes and wrapping intact and scrub account identifiers before they reach git.
@@ -148,7 +144,5 @@ Be mindful of the user's `gh` CLI API rate limit — batch requests where possib
 This section exists only on the `integration` branch, which combines work while its pull requests wait for upstream. Never carry it, or anything listed here, into a branch meant for upstream.
 
 - **Extra plugins.** `extra-plugins/` and the code that installs it at startup (`src/shared/plugins/plugin-extra-bundles.ts`, `src/main/plugins/plugin-extra-bundled-bootstrap.ts`, and the `extraPluginResources` entry in `config/electron-builder.config.cjs`) ship only with this branch; see [`extra-plugins/README.md`](./extra-plugins/README.md). A plugin feature PR carries its API changes, never these folders.
-- **Chat permission-mode picker.** Our branch `chat-permission-mode` is merged into `integration`. Upstream is shipping the same feature in [#26116](https://github.com/stablyai/orca/pull/26116) (a permission setting for new chats and a permission button in the chat composer, Claude and Codex).
-  - When it is in `main` and `main` is merged into `integration`, take upstream's implementation: resolve every permission-mode conflict in favour of `main` and drop our branch's code instead of combining the two (revert its merges into `integration` first if that is cleaner). Ours lives mainly in `src/main/claude/claude-structured-permission-mode.ts`, `CLAUDE_ALLOW_BYPASS_FLAG` in `src/main/claude/claude-cli-flag-support.ts`, `src/main/native-chat/agent-session-wire/structured-agent-permission-modes.ts`, `src/shared/agent-session-permission-mode.ts`, `src/shared/structured-agent-session-permission-mode.ts` and `docs/reference/agent-permission-modes.md`.
-  - Keep the "Provider-Neutral Interfaces" rule above; drop the "Agent Permission Modes" section and the doc's `.gitignore` entry if the doc goes, and repoint the rule's example.
-  - Upstream does not read `--permission-mode` from Claude's Arguments: pick the matching mode in upstream's new-chat permission setting and remove `--permission-mode auto` from Claude's Arguments. Then delete this entry.
+- **Chat permission-mode picker.** Upstream's implementation ([#26116](https://github.com/stablyai/orca/pull/26116)) is now in `integration`, and our branch's parallel permission-mode code has been dropped in its favour (the System B files, the top-level `AgentSessionOptionsResult.permissionMode` report field, `CLAUDE_ALLOW_BYPASS_FLAG`, the "Agent Permission Modes" section, its reference doc and `.gitignore` entry are all gone). One manual step remains, then delete this entry:
+  - Upstream does not read `--permission-mode` from Claude's Arguments. In your settings, pick the matching mode in upstream's new-chat permission setting and remove `--permission-mode auto` from Claude's Arguments.

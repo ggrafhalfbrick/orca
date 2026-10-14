@@ -5,11 +5,26 @@ import {
   claudePermissionPresentation,
   claudePermissionSubject
 } from './claude-permission-presentation'
+import { claudePromptQuestions } from './claude-prompt-registry'
 
 export type ClaudePermissionCallbackDeps = {
   sessionId: string
   prompts: ClaudePromptRegistry
   emit: (event: ClaudeStructuredSessionEvent) => void
+  /** Full access: a tool-permission ask runs without prompting. A genuine question or a plan
+   *  proposal still reaches the user — the CLI's bypass flag never suppresses those either. */
+  bypassToolApprovals?: boolean
+}
+
+function allowResult(
+  input: Record<string, unknown>,
+  toolUseId: string | undefined
+): PermissionResult {
+  return {
+    behavior: 'allow',
+    updatedInput: input,
+    ...(toolUseId ? { toolUseID: toolUseId } : {})
+  }
 }
 
 function denySafeResult(toolUseId: string | undefined): PermissionResult {
@@ -43,6 +58,12 @@ export function buildClaudePermissionCallbacks(deps: ClaudePermissionCallbackDep
       }
       // Classify first so later permission-mode policy cannot swallow a plan proposal.
       const subject = claudePermissionSubject(toolName, input)
+      const isQuestion = toolName === 'AskUserQuestion' && claudePromptQuestions(input).length > 0
+      // Full access skips the ask for tool permissions, but never for a question or a plan proposal.
+      if (deps.bypassToolApprovals && !isQuestion && subject?.kind !== 'plan') {
+        settle(allowResult(input, options.toolUseID))
+        return
+      }
       const prompt = deps.prompts.register({
         ...claudePermissionPresentation(options),
         ...(subject ? { subject } : {}),

@@ -38,6 +38,7 @@ import { readClaudeTranscriptEntryUuid } from './claude-transcript-entry-uuid'
 import { persistClaudeTurnResumePoint } from './claude-structured-resume-point'
 import { withAgentSessionCreatePhase } from '../observability/agent-session-instrumentation'
 import { resolveClaudeAcquisitionLaunch } from './claude-structured-acquisition-launch'
+import { claudePermissionModeBypassesToolAsks } from './claude-structured-launch-resolution'
 import {
   bindClaudeConnectionJournalControls,
   createClaudeSessionJournalTranslator
@@ -144,7 +145,12 @@ export async function acquireClaudeSession({
   }
   const emit = (event: Parameters<typeof callbacks.emit>[2]): void =>
     callbacks.deliver(attempt, sessionId, () => callbacks.emit(liveSession, input.events, event))
-  const { canUseTool, onUserDialog } = buildClaudePermissionCallbacks({ sessionId, prompts, emit })
+  const { canUseTool, onUserDialog } = buildClaudePermissionCallbacks({
+    sessionId,
+    prompts,
+    emit,
+    bypassToolApprovals: claudePermissionModeBypassesToolAsks(input.permissionMode)
+  })
 
   try {
     const launch = await resolveClaudeAcquisitionLaunch({
