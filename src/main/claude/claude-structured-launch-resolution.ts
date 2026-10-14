@@ -44,7 +44,6 @@ export type ClaudeStructuredSdkOptions = Pick<
   | 'model'
   | 'effort'
   | 'permissionMode'
-  | 'allowDangerouslySkipPermissions'
   | 'settings'
   | 'sessionId'
   | 'resume'
@@ -74,11 +73,21 @@ const CLAUDE_PERMISSION_MODES = {
   auto: 'auto'
 } as const satisfies Record<Exclude<AgentChatPermissionMode, 'full-access'>, PermissionMode>
 
+/** Full access: Orca's own permission callback is always attached (the SDK pairs it with
+ *  `--permission-prompt-tool stdio`), so `--dangerously-skip-permissions` alone does not stop the
+ *  CLI routing each tool back to that callback. The callback honours the bypass instead — this is
+ *  the one place that names the mode that turns it on. */
+export function claudePermissionModeBypassesToolAsks(
+  mode: AgentChatPermissionMode | undefined
+): boolean {
+  return mode === 'full-access'
+}
+
 /** Full access is the owned CLI flag: the SDK's typed bypass emits a flag older binaries reject. */
 export function claudeStructuredPermissionOptions(
   mode: AgentChatPermissionMode
 ): Pick<ClaudeStructuredSdkOptions, 'permissionMode' | 'extraArgs'> {
-  return mode === 'full-access'
+  return claudePermissionModeBypassesToolAsks(mode)
     ? { extraArgs: { 'dangerously-skip-permissions': null } }
     : { permissionMode: CLAUDE_PERMISSION_MODES[mode] }
 }

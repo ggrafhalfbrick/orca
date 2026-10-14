@@ -285,7 +285,6 @@ describe('claude structured launch resolution', () => {
       'dangerously-skip-permissions': null
     })
     expect(launch.options.permissionMode).toBeUndefined()
-    expect(launch.options.allowDangerouslySkipPermissions).toBeUndefined()
   })
 
   it.each([

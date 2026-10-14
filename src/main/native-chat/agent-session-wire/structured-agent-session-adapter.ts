@@ -28,8 +28,7 @@ import type { AgentSessionProviderHandleLink } from '../../../shared/agent-sessi
 import type {
   AgentSessionAccountHome,
   AgentSessionExecutionLocation,
-  AgentSessionProcessIdentity,
-  AgentSessionRecord
+  AgentSessionProcessIdentity
 } from '../../../shared/agent-session-record'
 import type { StructuredAgentSessionAtRestCommands } from './structured-agent-session-at-rest-commands'
 import type {
@@ -425,11 +424,6 @@ export type StructuredAgentSessionAdapter = StructuredAgentSessionAdapterStop & 
     | undefined
   /** Option keys skipped after a provider rejected their persisted restore value. */
   readOptionRestoreFailures?(sessionId: string): readonly string[]
-  /** The permission mode a chat at rest would start in, and could switch to; absent where the
-   *  agent offers no switch. */
-  readRestingPermissionMode?(
-    record: AgentSessionRecord
-  ): Promise<AgentSessionOptionsResult['permissionMode']>
 
   /** Provider history for restart reconciliation, bounded to what the provider
    *  recorded after the journal's last committed item. Only the adapter can say
