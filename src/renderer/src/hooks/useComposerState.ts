@@ -3,9 +3,11 @@ import '@/lib/new-workspace'
 import type { LinkedWorkItemSummary } from '@/lib/new-workspace'
 import type { GitHubWorkItem } from '../../../shared/github/work-item-types'
 import type { TuiAgent } from '../../../shared/tui-agent'
+import type { QuickSubmitOptions } from './composer-state/quick-creation-request'
 import type { TaskSourceContext } from '../../../shared/task-source-context'
 import type { WorkspaceSource as WorkspaceCreateTelemetrySource } from '../../../shared/workspace-source'
 import type { WorkspaceStatus } from '../../../shared/worktree/types'
+import type { WorkspaceCreationTargetHint } from '@/lib/project-host-workspace-target'
 import { buildComposerCardProps } from './composer-state/composer-card-props'
 import {
   canResolveFolderSmartGitHubSubmit,
@@ -23,7 +25,6 @@ import { useComposerExternalSync } from './composer-state/composer-external-sync
 import { useComposerSourceState } from './composer-state/composer-source-state'
 import { useComposerSubmitOrchestration } from './composer-state/composer-submit-orchestration'
 import { assembleComposerModel } from './composer-state/assemble-composer-model'
-import type { QuickSubmitOptions } from './composer-state/composer-submit-model'
 import type {
   ComposerCardActionProps,
   ComposerCardSourceProps
@@ -50,6 +51,7 @@ export type UseComposerStateOptions = {
   initialLinkedWorkItem?: LinkedWorkItemSummary | null
   initialGitHubWorkItem?: GitHubWorkItem | null
   initialTaskSourceContext?: TaskSourceContext | null
+  initialWorkspaceTarget?: WorkspaceCreationTargetHint | null
   initialWorkspaceStatus?: WorkspaceStatus
   initialBaseBranch?: string
   persistDraft: boolean
