@@ -148,6 +148,7 @@ export const PLUGIN_METHODS = [
   }),
   defineMethod({
     name: 'plugins.invokeTaskSource',
+    // Why: lists and reads a task source's items, like plugins.readPanelEntry; it runs no commands.
     permission: 'workspace',
     params: PluginInvokeTaskSourceParams,
     handler: async (params) => {
