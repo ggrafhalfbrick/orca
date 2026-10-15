@@ -20,6 +20,8 @@ type NewWorkspaceComposerAgentSectionProps = Pick<
   | 'onToggleAdvanced'
 > & {
   advancedLocked?: boolean
+  /** False when the card leaves out the Advanced panel the toggle opens. */
+  showAdvancedToggle?: boolean
   /** Rendered between the agent picker and Advanced, e.g. a prefilled agent prompt. */
   agentDraftSection?: React.ReactNode
   visibleQuickAgents: React.ComponentProps<typeof AgentCombobox>['agents']
@@ -39,6 +41,7 @@ export function NewWorkspaceComposerAgentSection({
   onCreate,
   advancedOpen,
   advancedLocked = false,
+  showAdvancedToggle = true,
   agentDraftSection,
   onToggleAdvanced,
   visibleQuickAgents,
@@ -98,22 +101,24 @@ export function NewWorkspaceComposerAgentSection({
 
       {agentDraftSection}
 
-      <div className="!mb-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onToggleAdvanced}
-          disabled={advancedLocked}
-          aria-expanded={advancedOpen}
-          className="-ml-2 text-xs focus-visible:ring-inset"
-        >
-          {translate('auto.components.NewWorkspaceComposerCard.f0470c7383', 'Advanced')}
-          <ChevronDown
-            className={cn('size-4 transition-transform', advancedOpen && 'rotate-180')}
-          />
-        </Button>
-      </div>
+      {showAdvancedToggle ? (
+        <div className="!mb-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onToggleAdvanced}
+            disabled={advancedLocked}
+            aria-expanded={advancedOpen}
+            className="-ml-2 text-xs focus-visible:ring-inset"
+          >
+            {translate('auto.components.NewWorkspaceComposerCard.f0470c7383', 'Advanced')}
+            <ChevronDown
+              className={cn('size-4 transition-transform', advancedOpen && 'rotate-180')}
+            />
+          </Button>
+        </div>
+      ) : null}
     </>
   )
 }

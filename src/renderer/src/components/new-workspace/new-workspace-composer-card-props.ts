@@ -49,6 +49,8 @@ export type NewWorkspaceComposerCardProps = {
   onQuickSetupOnlySelect?: () => void
   /** Rendered under the agent prompt, e.g. a choice of where the agent runs. */
   existingWorkspaceField?: React.ReactNode
+  /** The agent starts in a workspace that already exists, so the fields that shape a new one are left out. */
+  startsInExistingWorkspace?: boolean
   eligibleRepos: readonly RepoOption[]
   selectedRepo?: RepoOption | null
   repoId: string
