@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import type { WorktreeCreationRequest } from '@/lib/pending-worktree-creation'
+import type { QuickSubmitOptions } from './quick-creation-request'
 import { findPendingLinkedWorkItemCreationId } from '@/lib/pending-worktree-creation'
 import { useAppStore } from '@/store'
 import { getWorkspaceSeedName } from '@/lib/new-workspace'
@@ -12,7 +13,6 @@ import {
 import { toast } from 'sonner'
 
 import type { ComposerModel } from './composer-model'
-import type { QuickSubmitOptions } from './composer-submit-model'
 
 type QuickSubmitActionInput = Pick<
   ComposerModel,

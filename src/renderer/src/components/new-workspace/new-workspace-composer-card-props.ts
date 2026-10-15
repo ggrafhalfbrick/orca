@@ -44,7 +44,11 @@ export type NewWorkspaceComposerCardProps = {
   agentDraftUnavailableReason?: string | null
   /** Shown under the agent prompt when the opener pinned session options. */
   agentSessionNote?: string | null
+  /** Cleared picker: skip the agent and the extra shell when setup runs. */
+  quickSetupOnly?: boolean
+  onQuickSetupOnlySelect?: () => void
   eligibleRepos: readonly RepoOption[]
+  selectedRepo?: RepoOption | null
   repoId: string
   projectOptions?: NewWorkspaceProjectOption[]
   selectedProjectId?: string | null

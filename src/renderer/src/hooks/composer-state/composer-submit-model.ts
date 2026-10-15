@@ -1,5 +1,5 @@
 import type { TuiAgent } from '../../../../shared/tui-agent'
-import type { LinkedPluginTask } from '../../../../shared/plugins/plugin-task-link'
+import type { QuickSubmitOptions } from './quick-creation-request'
 import type { GitPushTarget } from '../../../../shared/worktree/types'
 import type { SetupDecision } from '../../../../shared/worktree/create-types'
 import type { WorkspaceIntentName } from '../../../../shared/workspace-name'
@@ -10,15 +10,6 @@ import type { PendingSmartGitHubSubmitResolution } from './source-selection-deci
 type SmartCreateNames = {
   workspaceName: string
   displayName: string | undefined
-}
-
-export type QuickSubmitOptions = {
-  /** Draft typed into the agent after launch (not sent for folder-group targets). */
-  agentDraft?: string
-  /** Session options (e.g. model, effort) layered over the agent's defaults for this launch. */
-  sessionOptions?: Record<string, string>
-  /** Plugin task the new workspace links back to. */
-  linkedPluginTask?: LinkedPluginTask
 }
 
 export type QuickSubmitSource = {
