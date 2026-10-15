@@ -9,6 +9,8 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import NewWorkspaceComposerCard from '@/components/NewWorkspaceComposerCard'
+import { NewWorkspaceComposerExistingWorkspaceField } from '@/components/new-workspace/NewWorkspaceComposerExistingWorkspaceField'
+import { startTaskInExistingWorkspace } from '@/lib/plugin-task-existing-workspace-start'
 import AgentSettingsDialog from '@/components/agent/AgentSettingsDialog'
 import type { AddRepoDialogHostedController } from '@/components/sidebar/use-add-repo-hosted-controller'
 import { useComposerState } from '@/hooks/useComposerState'
@@ -212,20 +214,17 @@ function QuickTabBody({
     setQuickSelectionCleared(true)
   }, [])
   const [agentDraft, setAgentDraft] = useState<string | null>(modalData.initialAgentDraft ?? null)
+  // Why keyed by project: picking another project must fall back to creating a workspace.
+  const [existingWorkspace, setExistingWorkspace] = useState<{
+    repoId: string
+    worktreeId: string
+  } | null>(null)
 
   const { initialAgentSessionOptions, linkedPluginTask } = modalData
   const launchSessionOptions = useMemo(
     () => sessionOptionsForAgent(initialAgentSessionOptions, quickAgent),
     [initialAgentSessionOptions, quickAgent]
   )
-  const handleCreate = useCallback(async (): Promise<void> => {
-    await submitQuick(quickAgent, {
-      setupOnly: quickSetupOnly,
-      ...(agentDraft?.trim() ? { agentDraft } : {}),
-      ...(launchSessionOptions ? { sessionOptions: launchSessionOptions } : {}),
-      ...(linkedPluginTask ? { linkedPluginTask } : {})
-    })
-  }, [agentDraft, launchSessionOptions, linkedPluginTask, quickAgent, quickSetupOnly, submitQuick])
   // Why: Add Project layers over the composer as a nested dialog instead of
   // replacing it in the activeModal slot — closing the composer mid-flow (and
   // losing the typed name/prompt) was the old, abrupt behavior. Once opened it
@@ -269,11 +268,19 @@ function QuickTabBody({
     (option) => option.id === cardProps.selectedProjectId
   )
   const isFolderWorkspaceTarget = selectedProjectOption?.kind === 'project-group'
-  const primaryActionLabel = isFolderWorkspaceTarget
-    ? getFolderWorkspacePrimaryActionLabel()
-    : cardProps.selectedRepoIsGit
-      ? translate('auto.components.NewWorkspaceComposerModal.createWorktree', 'Create worktree')
-      : translate('auto.components.NewWorkspaceComposerModal.createWorkspace', 'Create workspace')
+  const offersExistingWorkspace =
+    modalData.initialAgentDraft !== undefined && !isFolderWorkspaceTarget
+  const existingWorktreeId =
+    offersExistingWorkspace && quickAgent !== null && existingWorkspace?.repoId === cardProps.repoId
+      ? existingWorkspace.worktreeId
+      : null
+  const primaryActionLabel = existingWorktreeId
+    ? translate('auto.components.NewWorkspaceComposerCard.startInWorkspace', 'Start in workspace')
+    : isFolderWorkspaceTarget
+      ? getFolderWorkspacePrimaryActionLabel()
+      : cardProps.selectedRepoIsGit
+        ? translate('auto.components.NewWorkspaceComposerModal.createWorktree', 'Create worktree')
+        : translate('auto.components.NewWorkspaceComposerModal.createWorkspace', 'Create workspace')
   const agentDraftUnavailableReason = isFolderWorkspaceTarget
     ? translate(
         'auto.components.NewWorkspaceComposerModal.agentDraftFolderGroup',
@@ -285,6 +292,37 @@ function QuickTabBody({
           'Pick an agent to send this prompt.'
         )
       : null
+
+  const handleCreate = useCallback(async (): Promise<void> => {
+    if (existingWorktreeId) {
+      const started = startTaskInExistingWorkspace({
+        agent: quickAgent,
+        worktreeId: existingWorktreeId,
+        prompt: agentDraft ?? '',
+        ...(linkedPluginTask ? { link: linkedPluginTask } : {}),
+        ...(launchSessionOptions ? { sessionOptions: launchSessionOptions } : {})
+      })
+      if (started) {
+        onClose()
+      }
+      return
+    }
+    await submitQuick(quickAgent, {
+      setupOnly: quickSetupOnly,
+      ...(agentDraft?.trim() ? { agentDraft } : {}),
+      ...(launchSessionOptions ? { sessionOptions: launchSessionOptions } : {}),
+      ...(linkedPluginTask ? { linkedPluginTask } : {})
+    })
+  }, [
+    agentDraft,
+    existingWorktreeId,
+    launchSessionOptions,
+    linkedPluginTask,
+    onClose,
+    quickAgent,
+    quickSetupOnly,
+    submitQuick
+  ])
 
   // Cmd/Ctrl+Enter submits. Escape belongs to the dialog's dismissable layer:
   // the page-style "blur the focused field first" rule assumes the user chose
@@ -356,6 +394,20 @@ function QuickTabBody({
         agentSessionNote={describePluginTaskSessionOptions(initialAgentSessionOptions, quickAgent)}
         quickSetupOnly={quickSetupOnly}
         onQuickSetupOnlySelect={handleQuickSetupOnlySelect}
+        existingWorkspaceField={
+          offersExistingWorkspace ? (
+            <NewWorkspaceComposerExistingWorkspaceField
+              repoId={cardProps.repoId}
+              executionHostId={cardProps.selectedRepoExecutionHostId}
+              projectId={cardProps.selectedRepoProjectId}
+              value={existingWorktreeId}
+              onChange={(worktreeId) =>
+                setExistingWorkspace(worktreeId ? { repoId: cardProps.repoId, worktreeId } : null)
+              }
+              unavailableReason={agentDraftUnavailableReason}
+            />
+          ) : undefined
+        }
         {...cardProps}
         primaryActionLabel={primaryActionLabel}
         onOpenAgentSettings={() => setAgentSettingsOpen(true)}

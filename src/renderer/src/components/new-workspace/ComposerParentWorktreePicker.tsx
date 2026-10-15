@@ -8,12 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
-import {
-  getIndexedAllWorktrees,
-  getIndexedWorktreeById,
-  getIndexedWorktreeMap
-} from '@/store/worktree-repo-index'
-import { compareWorktreeDisplayName } from '@/lib/worktree-display-name-order'
+import { getIndexedWorktreeById, getIndexedWorktreeMap } from '@/store/worktree-repo-index'
+import { getComposerWorktreeCandidates } from '@/lib/composer-worktree-candidates'
 import { branchDisplayName } from '@/components/sidebar/WorktreeCardHelpers'
 import { getCyclicProjectedWorktreeLineageIds } from '@/components/sidebar/worktree-lineage-projection'
 import {
@@ -30,10 +26,6 @@ import {
   getLineageChildWorktree
 } from '@/components/right-sidebar/folder-workspace-attached-worktrees'
 import { COMBOBOX_POPOVER_SURFACE } from './type-ahead-combobox-styles'
-import {
-  sharesWorktreeLineageBoundary,
-  type WorktreeLineageBoundary
-} from '../../../../shared/resolved-worktree-lineage'
 import { folderWorkspaceKey } from '../../../../shared/workspace-scope'
 import type { WorkspaceLineage, WorktreeLineage } from '../../../../shared/worktree/lineage-types'
 import type { Worktree } from '../../../../shared/worktree/types'
@@ -220,14 +212,6 @@ function ParentWorktreeCandidateList({
   const [highlightedIndex, setHighlightedIndex] = useState(0)
 
   const candidates = useMemo(() => {
-    // Why `?? undefined`: an unresolved host or project is "not known yet", not "no host", and
-    // the boundary check reads undefined on either side as a wildcard. A candidate in this repo
-    // with no recorded hostId inherits that repo's host, so it is on the child's host too.
-    const childBoundary: WorktreeLineageBoundary = {
-      repoId,
-      hostId: executionHostId ?? undefined,
-      projectId: projectId ?? undefined
-    }
     const worktreeMap = getIndexedWorktreeMap(worktreesByRepo)
     const cyclicLineageIds = getCyclicProjectedWorktreeLineageIds(worktreeLineageById, worktreeMap)
     const folderSubtreeIds = activeFolderWorkspaceId
@@ -238,16 +222,13 @@ function ParentWorktreeCandidateList({
           worktreeMap
         )
       : null
-    return getIndexedAllWorktrees(worktreesByRepo)
-      .filter(
-        (candidate) =>
-          candidate.repoId === repoId &&
-          !candidate.isArchived &&
-          sharesWorktreeLineageBoundary(childBoundary, candidate) &&
-          !cyclicLineageIds.has(candidate.id) &&
-          (folderSubtreeIds === null || folderSubtreeIds.has(candidate.id))
-      )
-      .sort(compareWorktreeDisplayName)
+    return getComposerWorktreeCandidates(
+      worktreesByRepo,
+      { repoId, executionHostId, projectId },
+      (candidate) =>
+        !cyclicLineageIds.has(candidate.id) &&
+        (folderSubtreeIds === null || folderSubtreeIds.has(candidate.id))
+    )
   }, [
     activeFolderWorkspaceId,
     executionHostId,

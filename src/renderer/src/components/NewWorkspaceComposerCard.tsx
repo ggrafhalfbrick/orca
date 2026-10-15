@@ -347,12 +347,15 @@ export default function NewWorkspaceComposerCard(
           handleSetDefaultAgent={handleSetDefaultAgent}
           agentDraftSection={
             props.agentDraft != null && props.onAgentDraftChange ? (
-              <NewWorkspaceComposerAgentDraftSection
-                value={props.agentDraft}
-                onChange={props.onAgentDraftChange}
-                unavailableReason={props.agentDraftUnavailableReason ?? null}
-                sessionNote={props.agentSessionNote}
-              />
+              <>
+                <NewWorkspaceComposerAgentDraftSection
+                  value={props.agentDraft}
+                  onChange={props.onAgentDraftChange}
+                  unavailableReason={props.agentDraftUnavailableReason ?? null}
+                  sessionNote={props.agentSessionNote}
+                />
+                {props.existingWorkspaceField}
+              </>
             ) : null
           }
         />
