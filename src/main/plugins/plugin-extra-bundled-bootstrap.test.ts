@@ -124,6 +124,6 @@ describe('extra bundled plugin bootstrap', () => {
     })
 
     expect(result.errors).toEqual([])
-    expect(result.installed.sort()).toEqual(['earlgeorg.markdown-vault', 'earlgeorg.unity'])
+    expect(result.installed.sort()).toEqual(['earlgeorg.unity'])
   })
 })

@@ -95,7 +95,7 @@ describe('plugin install trust', () => {
   })
 
   it.each<[string, string | null]>([
-    ['earlgeorg.markdown-vault', null],
+    ['earlgeorg.unity', null],
     [
       'community.roadmap',
       'bundled plugins must use an official stablyai.orca-* or extra plugin identity'

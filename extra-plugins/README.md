@@ -10,7 +10,6 @@ once for approval of its permissions, like any other plugin.
 
 | Plugin | What it does |
 | --- | --- |
-| [markdown-vault](markdown-vault/README.md) | Markdown notes from a folder of any project on the Tasks page, with Start |
 | [unity](unity/README.md) | Marks Unity projects and opens them in the right Unity Editor |
 
 To add a plugin, put its folder here with publisher `earlgeorg` in `orca-plugin.json`. The publisher list is
