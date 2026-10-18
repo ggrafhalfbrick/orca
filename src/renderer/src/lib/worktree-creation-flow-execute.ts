@@ -28,24 +28,10 @@ import { mountCreatedWorktreeStartupTabsInBackground } from '@/lib/worktree-crea
 import { ensureWebRuntimeWorktreeTerminalAfterWake } from '@/lib/web-runtime-worktree-terminal-after-wake'
 import { announcePerforceCopy } from '@/components/perforce-copies/perforce-copy-announcement'
 import { persistCreatedWorkspacePluginTaskLink } from '@/lib/plugin-task-workspace-link'
-
-// Why: activePendingCreationId can outlive the terminal route when the user
-// switches app views; only the terminal route renders the creation panel.
-function isPendingCreationSurfaceVisible(creationId: string): boolean {
-  const state = useAppStore.getState()
-  return state.activeView === 'terminal' && state.activePendingCreationId === creationId
-}
-
-// Why: the created row is listed before completion, so a user may already have opened it.
-function isCreatedWorkspaceInView(creationId: string, worktreeId: string): boolean {
-  const state = useAppStore.getState()
-  return (
-    isPendingCreationSurfaceVisible(creationId) ||
-    (state.activeView === 'terminal' &&
-      state.activePendingCreationId === null &&
-      state.activeWorktreeId === worktreeId)
-  )
-}
+import {
+  isCreatedWorkspaceInView,
+  isPendingCreationSurfaceVisible
+} from '@/lib/worktree-creation-view-state'
 
 export async function executeWorktreeCreation(
   creationId: string,
@@ -175,10 +161,7 @@ export async function executeWorktreeCreation(
   // workspace) is handed it; anyone who moved on (another workspace or an app
   // view) keeps their place and gets a toast instead (#9944).
   const shouldActivateOnCompletion = isCreatedWorkspaceInView(creationId, worktree.id)
-  const setupIsOnlySurface =
-    preparedRequest.setupOnly === true &&
-    result.setup !== undefined &&
-    (useAppStore.getState().settings?.setupScriptLaunchMode ?? 'new-tab') === 'new-tab'
+  const setupIsOnlySurface = preparedRequest.setupOnly === true && result.setup !== undefined
   const defaultTabs = setupIsOnlySurface ? undefined : result.defaultTabs
 
   // Why: the worktree exists past this point and nothing awaits this caller, so
