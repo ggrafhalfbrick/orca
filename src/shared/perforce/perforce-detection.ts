@@ -35,8 +35,7 @@ function toInfo(record: P4Record): PerforceWorkspaceInfo {
     client: record.clientName ?? '',
     user: record.userName ?? '',
     port: record.serverAddress ?? '',
-    root: record.clientRoot ?? '',
-    ...(record.clientStream ? { stream: record.clientStream } : {})
+    root: record.clientRoot ?? ''
   }
 }
 

@@ -4,7 +4,6 @@ import { getComposerEligibleRepos } from '@/lib/new-workspace-composer-repo'
 import type { ProjectSourceMatcher } from '@/lib/project-source-match'
 import type { PluginTaskStartRecipe } from '../../../../../shared/plugins/plugin-task-source'
 import type { Repo } from '../../../../../shared/repo-types'
-import { findPerforceProjectForHint } from '../../perforce-copies/perforce-stream-project'
 
 function normalizeProjectPath(value: string): string {
   return value.replace(/\\/g, '/').replace(/\/+$/, '')
@@ -29,10 +28,7 @@ export function findRepoIdForProjectPath(
 }
 
 /** One matcher per source-control kind; each recognises only its own `projectSource` form. */
-const PROJECT_SOURCE_MATCHERS: readonly ProjectSourceMatcher[] = [
-  findGitProjectForSource,
-  findPerforceProjectForHint
-]
+const PROJECT_SOURCE_MATCHERS: readonly ProjectSourceMatcher[] = [findGitProjectForSource]
 
 export type PluginTaskProject =
   | { kind: 'found'; repoId: string }
@@ -47,17 +43,6 @@ export async function resolvePluginTaskProject(
   activeRepoId: string | null
 ): Promise<PluginTaskProject> {
   const eligible = getComposerEligibleRepos(repos)
-  if (recipe.projectId) {
-    return eligible.some((repo) => repo.id === recipe.projectId)
-      ? { kind: 'found', repoId: recipe.projectId }
-      : {
-          kind: 'missing',
-          message: translate(
-            'auto.components.TaskPage.pluginTaskProjectIdMissing',
-            "The task's project is no longer in Orca. Pick its project again in the plugin's settings."
-          )
-        }
-  }
   if (recipe.projectPath) {
     const repoId = findRepoIdForProjectPath(eligible, recipe.projectPath)
     return repoId

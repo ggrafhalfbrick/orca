@@ -74,13 +74,10 @@ function ReadinessLine({ readiness }: { readiness: WorkspaceCopyReadiness | null
  */
 export function PerforceCopyComposerOption({
   repoId,
-  hostId,
-  initialParentStream
+  hostId
 }: {
   repoId: string
   hostId: ExecutionHostId | null
-  /** Depot stream the opener asked to branch from (e.g. a task's base stream). */
-  initialParentStream?: string
 }) {
   const isPerforce = useAppStore((s) => {
     const repo = findRepoForHost(s.repos, repoId, { hostId, settings: s.settings })
@@ -92,12 +89,6 @@ export function PerforceCopyComposerOption({
   const [readiness, setReadiness] = useState<WorkspaceCopyReadiness | null>(null)
   // Only an answer from the host says it cannot make copies; a failed check is shown as an error.
   const [unsupported, setUnsupported] = useState<{ windows: boolean } | null>(null)
-
-  useEffect(() => {
-    if (isPerforce && initialParentStream?.startsWith('//')) {
-      setChoice(choiceKey, { stream: { kind: 'child', parent: initialParentStream } })
-    }
-  }, [initialParentStream, isPerforce, choiceKey, setChoice])
 
   useEffect(() => {
     if (!isPerforce) {

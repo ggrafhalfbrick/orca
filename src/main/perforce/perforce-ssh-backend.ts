@@ -41,9 +41,7 @@ function deferredRemotePerforceBackend(): PerforceBackend {
     checkoutIfReadOnly: unavailable,
     isReadOnlyFile: unavailable,
     diffText: unavailable,
-    info: unavailable,
-    latestMarkdownFiles: unavailable,
-    printDepotFiles: unavailable
+    info: unavailable
   }
 }
 

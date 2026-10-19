@@ -1,37 +1,35 @@
 import type { PluginEventName } from '../../shared/plugins/plugin-manifest'
 import { PLUGIN_WORKSPACE_TERMINAL_LIMIT } from '../../shared/plugins/plugin-host-api'
 import type { PluginHostServices } from './plugin-host-methods'
-import { createPluginProjectFiles, type PluginProjectFilesDelegate } from './plugin-project-files'
 import { PluginSecretsStore } from './plugin-secrets-store'
 import { PluginKvStore } from './plugin-storage-store'
 import type { TerminalInputKind } from '../../shared/terminal-input-kind'
 import type { PluginWorktreeContextResolver } from './plugin-command-invocation'
 
 /** Structural subset of OrcaRuntimeService exposed to plugin facade bindings. */
-export type PluginRuntimeDelegate = PluginProjectFilesDelegate &
-  PluginWorktreeContextResolver & {
-    resolveActiveWorktreeContext(): Promise<{
-      worktreeId: string
-      path: string
-      branch: string
-      displayName: string
-    } | null>
-    listTerminals(
-      worktreeSelector?: string,
-      limit?: number,
-      opts?: { includeVisualLayouts?: boolean }
-    ): Promise<{ terminals: { handle: string; title: string | null }[] }>
-    sendTerminal(
-      handle: string,
-      action: { text?: string; enter?: boolean },
-      options: { inputKind: TerminalInputKind }
-    ): Promise<{ accepted: boolean }>
-    dispatchPluginNotification(input: {
-      pluginId: string
-      title: string
-      body?: string
-    }): Promise<{ delivered: boolean }>
-  }
+export type PluginRuntimeDelegate = PluginWorktreeContextResolver & {
+  resolveActiveWorktreeContext(): Promise<{
+    worktreeId: string
+    path: string
+    branch: string
+    displayName: string
+  } | null>
+  listTerminals(
+    worktreeSelector?: string,
+    limit?: number,
+    opts?: { includeVisualLayouts?: boolean }
+  ): Promise<{ terminals: { handle: string; title: string | null }[] }>
+  sendTerminal(
+    handle: string,
+    action: { text?: string; enter?: boolean },
+    options: { inputKind: TerminalInputKind }
+  ): Promise<{ accepted: boolean }>
+  dispatchPluginNotification(input: {
+    pluginId: string
+    title: string
+    body?: string
+  }): Promise<{ delivered: boolean }>
+}
 
 export function bindPluginHostServices(input: {
   delegate: PluginRuntimeDelegate
@@ -86,7 +84,6 @@ export function bindPluginHostServices(input: {
       set: (key, itemKey, value) =>
         new PluginKvStore(pluginsDataDir, key, 'settings.json').set(itemKey, value)
     },
-    subscribeEvents,
-    projects: createPluginProjectFiles(delegate)
+    subscribeEvents
   }
 }
