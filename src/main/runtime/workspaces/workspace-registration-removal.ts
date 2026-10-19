@@ -15,6 +15,7 @@ import {
 import { getRuntimeFolderWorkspaceRootId } from '../runtime-folder-workspace'
 import { killAllProcessesForWorktree } from '../worktree-teardown'
 import { teardownFolderWorkspacePtys } from '../folder-workspace-pty-teardown'
+import { teardownStops } from '../owned-session-teardown-policy'
 
 type WorkspaceRegistrationRemovalRuntime = WorktreeTeardownRuntime &
   Pick<
@@ -66,7 +67,7 @@ export async function removeOrphanOrFolderWorktree({
         onPtyStopped: runtime.onPtyStopped ?? undefined,
         // A structured session is on no PTY surface, so the sweeps above leave it attached to a
         // workspace this removal is about to forget. Closed best-effort, exactly like those PTYs.
-        closeStructuredSessions: true,
+        closeStructuredSessions: teardownStops('worktree-removal', 'structured-chat'),
         ...(externalOrphanHost
           ? { includeProviderInventory: false, includeLocalRegistry: false }
           : {})
