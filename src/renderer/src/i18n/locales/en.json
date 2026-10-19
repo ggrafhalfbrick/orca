@@ -1270,6 +1270,12 @@
         "preparingWorkspace": "Preparing workspace…",
         "creatingWorktree": "Creating worktree…",
         "fetchingBaseBranch": "Fetching base branch…"
+      },
+      "pluginTaskExistingWorkspaceStart": {
+        "noAgent": "Pick an agent to start this task in a workspace.",
+        "missingWorkspace": "That workspace is no longer available.",
+        "revealFailed": "Unable to open that workspace.",
+        "launchFailed": "Could not build the agent launch command."
       }
     },
     "hooks": {
@@ -2001,7 +2007,12 @@
         "agentSessionModelEffort": "Starts with model {{model}}, effort {{effort}}.",
         "agentSessionModel": "Starts with model {{model}}.",
         "agentSessionEffort": "Starts with effort {{effort}}.",
-        "agentSessionOtherAgent": "The task's model and effort are for {{agent}}, so this agent starts with its own."
+        "agentSessionOtherAgent": "The task's model and effort are for {{agent}}, so this agent starts with its own.",
+        "runInLabel": "Run in",
+        "runInNewWorkspace": "New workspace",
+        "runInNewWorkspaceHelp": "Creates a workspace and starts the agent there.",
+        "runInExistingWorkspaceHelp": "Opens an agent tab in this workspace instead of creating one.",
+        "startInWorkspace": "Start in workspace"
       },
       "NewWorkspaceComposerModal": {
         "createWorktree": "Create worktree",
