@@ -95,8 +95,8 @@ function makeCommands(repo: Repo, meta: Record<string, Partial<WorktreeMeta>> = 
       meta[id] = { ...meta[id], ...patch }
       return meta[id]
     },
-    updateRepo: vi.fn((_id: string, _updates: Partial<Repo>, hostId?: string) => {
-      events.push(`update-repo:${hostId}`)
+    updateRepo: vi.fn((target: Pick<Repo, 'executionHostId'>, _updates: Partial<Repo>) => {
+      events.push(`update-repo:${target.executionHostId}`)
       return null
     })
   }

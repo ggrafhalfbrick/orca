@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useAppStore } from '@/store'
-import { getRuntimeEnvironmentIdForWorktree } from '@/lib/worktree-runtime-owner'
+import { runtimeEnvironmentIdWithLegacyFallbackUnlessTwin } from '@/lib/worktree-runtime-owner'
 import { runtimeTargetForRepoOwner } from '@/lib/repo-runtime-owner'
 import { findRepoForHost } from '@/store/slices/repo-host-identity'
 import type { ExecutionHostId } from '../../../shared/execution-host'
@@ -50,7 +50,7 @@ export function perforceTargetForWorktree(
     worktreeId,
     worktreePath,
     connectionId,
-    getRuntimeEnvironmentIdForWorktree(state, worktreeId),
+    runtimeEnvironmentIdWithLegacyFallbackUnlessTwin(state, worktreeId),
     {
       perforce: state.settings?.perforce,
       agentCmdOverrides: state.settings?.agentCmdOverrides,
@@ -65,7 +65,9 @@ export function usePerforceWorkspaceTarget(
   worktreePath: string | null | undefined,
   connectionId: string | null | undefined
 ): PerforceWorkspaceTarget | null {
-  const environmentId = useAppStore((s) => getRuntimeEnvironmentIdForWorktree(s, worktreeId))
+  const environmentId = useAppStore((s) =>
+    runtimeEnvironmentIdWithLegacyFallbackUnlessTwin(s, worktreeId)
+  )
   const perforce = useAppStore((s) => s.settings?.perforce)
   const agentCmdOverrides = useAppStore((s) => s.settings?.agentCmdOverrides)
   const defaultTuiAgent = useAppStore((s) => s.settings?.defaultTuiAgent)
@@ -168,7 +170,7 @@ function workspaceOfFile(
       worktreeId: worktree.id,
       worktreePath: worktree.path,
       connectionId: repo.connectionId,
-      environmentId: getRuntimeEnvironmentIdForWorktree(state, worktree.id),
+      environmentId: runtimeEnvironmentIdWithLegacyFallbackUnlessTwin(state, worktree.id),
       repo
     }
   }
