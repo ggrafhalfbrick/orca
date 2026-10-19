@@ -160,7 +160,7 @@ export class RuntimePerforceCopyCommands {
     if (!detected.isWorkspace) {
       return false
     }
-    this.host.getStore().updateRepo(repo.id, { vcs: 'perforce' }, hostId)
+    this.host.getStore().updateRepo(repo, { vcs: 'perforce' })
     this.host.reposChanged()
     return true
   }

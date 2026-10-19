@@ -21,7 +21,9 @@ vi.mock('@/store', () => ({
     })
   }
 }))
-vi.mock('@/lib/worktree-runtime-owner', () => ({ getRuntimeEnvironmentIdForWorktree: () => null }))
+vi.mock('@/lib/worktree-runtime-owner', () => ({
+  runtimeEnvironmentIdWithLegacyFallbackUnlessTwin: () => null
+}))
 vi.mock('./perforce-workspace-detection', () => ({ isPerforceWorkspaceForFiles: detect }))
 
 function repo(id: string, patch: Partial<Repo>): Repo {
