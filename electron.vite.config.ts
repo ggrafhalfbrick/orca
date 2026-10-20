@@ -54,6 +54,10 @@ const ORCA_DIAGNOSTICS_TOKEN_URL_LITERAL =
   typeof orcaDiagnosticsTokenUrl === 'string' && orcaDiagnosticsTokenUrl.length > 0
     ? JSON.stringify(orcaDiagnosticsTokenUrl)
     : 'null'
+// Integration-only (AGENTS.md): the fork's release workflow names the repo its installs update from.
+const ORCA_UPDATE_RELEASE_REPO_LITERAL = JSON.stringify(
+  process.env.ORCA_UPDATE_RELEASE_REPO || null
+)
 
 const darkBuildSwitches: {
   darkBuildDefines: () => Record<string, string>
@@ -267,6 +271,7 @@ export const electronViteConfig: UserConfig = {
       ORCA_BUILD_IDENTITY: ORCA_BUILD_IDENTITY_LITERAL,
       ORCA_POSTHOG_WRITE_KEY: ORCA_POSTHOG_WRITE_KEY_LITERAL,
       ORCA_DIAGNOSTICS_TOKEN_URL: ORCA_DIAGNOSTICS_TOKEN_URL_LITERAL,
+      ORCA_UPDATE_RELEASE_REPO: ORCA_UPDATE_RELEASE_REPO_LITERAL,
       ORCA_BUILD_COMMIT: ORCA_BUILD_COMMIT_LITERAL,
       ...DARK_BUILD_DEFINES
     },

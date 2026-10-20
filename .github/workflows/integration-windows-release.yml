@@ -1,0 +1,262 @@
+name: Integration Windows Release
+
+# Integration-only (AGENTS.md): builds the Windows installer from `integration` and publishes it as a
+# release of this repository. Its installs take in-app updates from this repository's releases only;
+# an official stablyai/orca release would replace the build and drop integration's features.
+#
+#   gh workflow run integration-windows-release.yml --ref integration
+#
+# Unsigned, like upstream's Windows dev builds: SmartScreen warns on the first manual install, and
+# updates from one of these builds to the next work in-app.
+
+on:
+  workflow_dispatch:
+    inputs:
+      orcad_template:
+        description: Ship the server that SSH and WSL workspaces deploy (adds ~15 min of test lanes)
+        type: boolean
+        default: true
+      notes:
+        description: Optional release notes, shown above the install instructions
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # Queue rather than race: each run resolves its version from the tags the previous one created.
+  group: integration-windows-release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Refuse anything but integration
+        if: github.ref != 'refs/heads/integration'
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          echo "::error::Releases are cut from integration only; this run was dispatched on $REF."
+          exit 1
+
+      - name: Checkout the version inputs
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            /package.json
+            /config/scripts/dev-channel-base-version.mjs
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      # Upstream's dev-channel rule: the patch above every shipped stablyai/orca tag, since package.json
+      # lags its release-branch cuts. This repository's own tags keep the series from moving backwards.
+      - name: Resolve the release version
+        id: version
+        env:
+          REPO_URL: https://github.com/${{ github.repository }}.git
+        run: |
+          set -euo pipefail
+          published="$(
+            {
+              git ls-remote --tags --refs https://github.com/stablyai/orca.git 'v*'
+              git ls-remote --tags --refs "$REPO_URL" 'v*'
+            } | sed 's#.*refs/tags/##'
+          )"
+          base="$(ORCA_PUBLISHED_VERSIONS="$published" node --input-type=module -e "
+            import { readFileSync } from 'node:fs'
+            import { readPublishedVersionsFromEnv, resolveDevChannelBaseVersion } from './config/scripts/dev-channel-base-version.mjs'
+            const { version } = JSON.parse(readFileSync('package.json', 'utf8'))
+            console.log(resolveDevChannelBaseVersion(version, readPublishedVersionsFromEnv()))
+          ")"
+          version="$base-integration.$(date -u +%Y%m%d%H%M%S)"
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+          echo "Releasing $version" >>"$GITHUB_STEP_SUMMARY"
+
+  # SSH and WSL workspaces deploy Orca's server from this template; only the per-platform node-server lanes build it.
+  orcad-template:
+    needs: version
+    if: inputs.orcad_template
+    permissions:
+      contents: read
+    uses: ./.github/workflows/node-server-tests.yml
+    with:
+      ref: ${{ github.sha }}
+      build_template: true
+
+  build-win:
+    needs: [version, orcad-template]
+    # Why not the implicit success(): a release cut without the template skips that job on purpose.
+    if: >-
+      !cancelled() && needs.version.result == 'success' &&
+      (needs.orcad-template.result == 'success' ||
+        (needs.orcad-template.result == 'skipped' && !inputs.orcad_template))
+    # Same pin as upstream's Windows builds: node-gyp cannot detect windows-latest's VS 18.
+    runs-on: windows-2022
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+      VERSION: ${{ needs.version.outputs.version }}
+      TAG: v${{ needs.version.outputs.version }}
+      # Bakes this repository in as the update source and leaves the unsigned installer without a publisherName.
+      ORCA_UPDATE_RELEASE_REPO: ${{ github.repository }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      # pnpm must be on PATH before setup-node so setup-node can locate the store.
+      - name: Setup pnpm
+        uses: pnpm/setup@v2
+        with:
+          install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            mobile/pnpm-lock.yaml
+
+      - name: Cache electron-builder downloads
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: electron-builder-win-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            electron-builder-win-
+
+      # Why retried: electron's postinstall downloads its binary from GitHub release assets, which 504 now and then.
+      - name: Install dependencies
+        uses: nick-fields/retry@v4
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm install --frozen-lockfile
+
+      # electron-builder's beforePack requires out/mobile-web, which builds from mobile/node_modules.
+      - uses: ./.github/actions/install-mobile-dependencies
+
+      - name: Ensure the Rust toolchain for the Windows CLI launcher
+        shell: pwsh
+        run: |
+          if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+            rustup toolchain install stable --profile minimal
+            rustup default stable
+          }
+          cargo --version
+
+      # Before the build, so the bundles and the packaged CLI carry the release version too.
+      - name: Stamp the release version
+        shell: bash
+        run: |
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = process.env.VERSION; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n')"
+
+      # Telemetry stays off: ORCA_BUILD_IDENTITY is unset, as on upstream's dev builds.
+      - name: Build app
+        shell: bash
+        run: pnpm build:release
+
+      # After the app build so nothing that cleans out/ can drop it; electron-builder ships it.
+      - name: Download the orcad deployment template
+        if: inputs.orcad_template
+        uses: actions/download-artifact@v8
+        with:
+          name: orcad-template
+          path: out/orcad-template
+
+      - name: Package the installer
+        shell: pwsh
+        env:
+          # beforePack and afterPack fail the package when the template is absent.
+          ORCA_REQUIRE_ORCAD_TEMPLATE: ${{ inputs.orcad_template && '1' || '' }}
+        run: |
+          node config/scripts/ensure-native-runtime.mjs --runtime=electron
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm exec electron-builder --config config/electron-builder.config.cjs --win --publish never
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # Each of these would break updates without failing the build: a manifest for another version, a
+      # publisherName that makes installs reject the next unsigned build, or an update feed on stablyai/orca.
+      - name: Verify the update identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in dist/orca-windows-setup.exe dist/orca-windows-setup.exe.blockmap dist/latest.yml \
+            dist/win-unpacked/resources/app-update.yml; do
+            if [[ ! -f "$file" ]]; then
+              echo "::error::electron-builder did not produce $file."
+              exit 1
+            fi
+          done
+          if ! tr -d '\r' <dist/latest.yml | grep -qxF "version: $VERSION"; then
+            echo "::error::dist/latest.yml does not describe $VERSION."
+            cat dist/latest.yml
+            exit 1
+          fi
+          if grep -q '^publisherName:' dist/win-unpacked/resources/app-update.yml; then
+            echo "::error::app-update.yml names a publisher, so installs would reject the next unsigned build."
+            exit 1
+          fi
+          if ! grep -rqF "$ORCA_UPDATE_RELEASE_REPO" out/main; then
+            echo "::error::The main bundle does not name $ORCA_UPDATE_RELEASE_REPO, so installs would update from stablyai/orca."
+            exit 1
+          fi
+
+      - name: Publish the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          # Via env, not inline `${{ }}`: free text must not be expanded into the script (zizmor: template-injection).
+          NOTES: ${{ inputs.notes }}
+          SHIPS_TEMPLATE: ${{ inputs.orcad_template }}
+        run: |
+          set -euo pipefail
+          previous="$(gh release view --repo "$REPO" --json tagName --jq .tagName 2>/dev/null || true)"
+          notes_file="$RUNNER_TEMP/release-notes.md"
+          {
+            if [[ -n "$NOTES" ]]; then
+              printf '%s\n\n' "$NOTES"
+            fi
+            printf 'Windows build of `integration` at [`%s`](https://github.com/%s/commit/%s).' \
+              "${GITHUB_SHA:0:12}" "$REPO" "$GITHUB_SHA"
+            if [[ -n "$previous" ]]; then
+              printf ' [Changes since %s](https://github.com/%s/compare/%s...%s).' \
+                "$previous" "$REPO" "$previous" "$GITHUB_SHA"
+            fi
+            printf '\n\n'
+            printf '%s\n\n' '**Install:** download `orca-windows-setup.exe` below and run it. The installer is unsigned, so Windows SmartScreen warns about an unknown publisher the first time; choose **More info**, then **Run anyway**.'
+            printf '%s\n' '**Updates:** Orca offers each later release of this repository as an in-app update. It does not offer official Orca releases, which would replace this build and drop its integration-only features.'
+            if [[ "$SHIPS_TEMPLATE" != true ]]; then
+              printf '\n%s\n' '**No SSH or WSL workspaces:** this build was cut without the Orca server template, so it cannot set up Orca on SSH hosts or in WSL.'
+            fi
+          } >"$notes_file"
+          gh release create "$TAG" \
+            dist/orca-windows-setup.exe dist/orca-windows-setup.exe.blockmap dist/latest.yml \
+            --repo "$REPO" \
+            --target "$GITHUB_SHA" \
+            --title "Orca $VERSION" \
+            --notes-file "$notes_file" \
+            --latest
+          assets="$(gh release view "$TAG" --repo "$REPO" --json assets --jq '.assets[].name')"
+          for required in orca-windows-setup.exe orca-windows-setup.exe.blockmap latest.yml; do
+            if ! grep -qxF "$required" <<<"$assets"; then
+              echo "::error::$TAG is missing $required, so Windows could not install or update to it."
+              exit 1
+            fi
+          done
+          echo "Published [$TAG](https://github.com/$REPO/releases/tag/$TAG)" >>"$GITHUB_STEP_SUMMARY"

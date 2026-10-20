@@ -53,6 +53,14 @@ describe('electron-builder dev-channel identity', () => {
     expect(config.win.verifyUpdateCodeSignature).toBe(false)
   })
 
+  // Integration-only (AGENTS.md): fork releases are unsigned, so each must accept the next one.
+  it('drops the publisherName on a fork release build', () => {
+    const config = loadConfigWithEnv({ ORCA_UPDATE_RELEASE_REPO: 'example/orca' })
+
+    expect(config.win.signtoolOptions?.publisherName).toBeUndefined()
+    expect(config.win.verifyUpdateCodeSignature).toBe(false)
+  })
+
   it.each([
     ['hourly', { ORCA_WIN_HOURLY: '1' }, 'orca-hourly'],
     ['daily', { ORCA_WIN_DAILY: '1' }, 'orca-daily'],
