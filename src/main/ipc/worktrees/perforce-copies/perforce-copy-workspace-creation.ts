@@ -9,6 +9,7 @@ import {
   runWithDesktopPerforceSettings
 } from '../../../perforce/perforce-desktop-settings'
 import type { Store } from '../../../persistence/loading-store/store'
+import { hostWorktreeTargetForRepo } from '../../../persistence/host-qualified-worktree-meta'
 import { requireWorktreeCreateRoute } from '../../../worktree-create-execution-host-route'
 import {
   invalidateAuthorizedRootsCache,
@@ -45,7 +46,7 @@ export function createPerforceCopyWorkspace(
       onProgress: (detail) =>
         emitCreateWorktreeProgress(mainWindow, 'creating', args.creationId, undefined, detail)
     })
-    const meta = store.setWorktreeMeta(worktreeId, {
+    const meta = store.setWorktreeMeta(hostWorktreeTargetForRepo(worktreeId, repo), {
       instanceId: randomUUID(),
       ...folderWorkspaceCreateMeta(args, repo, store, Date.now()),
       perforceStream: summary.stream
