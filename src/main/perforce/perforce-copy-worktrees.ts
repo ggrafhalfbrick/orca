@@ -12,6 +12,7 @@ import {
   isPerforceCopyWorktreeIdForRepo
 } from '../../shared/worktree/perforce-copy-worktree'
 import type { Store } from '../persistence'
+import { hostWorktreeTargetForRepo } from '../persistence/host-qualified-worktree-meta'
 
 export type CopyWorktreeStore = Pick<
   Store,
@@ -38,7 +39,7 @@ function recordCopyWorktree(
 ): void {
   const worktreeId = getPerforceCopyWorktreeId(repo, worktreePath)
   if (!store.getWorktreeMeta(worktreeId)) {
-    store.setWorktreeMeta(worktreeId, {
+    store.setWorktreeMeta(hostWorktreeTargetForRepo(worktreeId, repo), {
       displayName: name,
       createdAt,
       orcaCreatedAt: createdAt,
@@ -80,7 +81,9 @@ export function syncCopyWorktrees(
       changed = true
     }
     if (copy.stream && existing?.perforceStream !== copy.stream) {
-      store.setWorktreeMeta(worktreeId, { perforceStream: copy.stream })
+      store.setWorktreeMeta(hostWorktreeTargetForRepo(worktreeId, repo), {
+        perforceStream: copy.stream
+      })
       changed = true
     }
   }
