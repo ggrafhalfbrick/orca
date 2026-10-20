@@ -2,6 +2,7 @@ import { win32 } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { Repo } from '../../shared/repo-types'
 import type { WorkspaceCopyListResult } from '../../shared/perforce/workspace-copy/workspace-copy-types'
+import type { HostWorktreeTarget } from '../../shared/worktree/host-qualified-identity'
 import type { WorktreeMeta } from '../../shared/worktree/meta-types'
 import {
   copyWorktreePath,
@@ -21,7 +22,7 @@ function memoryStore(initial: Record<string, Partial<WorktreeMeta>> = {}) {
   const store = {
     getWorktreeMeta: (id: string) => meta[id],
     getAllWorktreeMeta: () => meta,
-    setWorktreeMeta: (id: string, patch: Partial<WorktreeMeta>) => {
+    setWorktreeMeta: ({ id }: HostWorktreeTarget, patch: Partial<WorktreeMeta>) => {
       meta[id] = { ...meta[id], ...patch }
       return meta[id]
     }
