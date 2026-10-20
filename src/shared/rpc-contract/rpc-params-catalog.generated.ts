@@ -289,7 +289,7 @@ import {
   UpdatePrState,
   UpdatePrTitle
 } from './github-pull-request-update-params'
-import { RepoSelector, SlugRepo } from './github-repo-target-params'
+import { RepoSelector, RepoShow, SlugRepo } from './github-repo-target-params'
 import {
   IssuesList,
   RateLimit,
@@ -405,6 +405,7 @@ import {
 } from './notifications-params'
 import {
   OrcadMigrationCatalogParams,
+  OrcadMigrationCatalogReferenceParams,
   OrcadMigrationCommitCatalogParams
 } from './orcad-migration-params'
 import {
@@ -624,6 +625,10 @@ import {
 } from './terminal-viewport-schemas-params'
 import { UpdaterCheckParams } from './updater-params'
 import {
+  UsageCredentialApiKeyParams,
+  UsageCredentialSessionCookieParams
+} from './usage-credentials-params'
+import {
   LayoutApplyParams,
   LayoutSubscribeParams,
   LayoutUnsubscribeParams
@@ -687,6 +692,11 @@ export const RPC_PARAMS_BY_METHOD = {
   'accounts.finishClaudeSignIn': FinishClaudeSignInParams,
   'accounts.list': ListAccountsParams,
   'accounts.listData': null,
+  'accounts.minimaxClearApiKey': null,
+  'accounts.minimaxClearSessionCookie': null,
+  'accounts.minimaxCredentialsStatus': null,
+  'accounts.minimaxSaveApiKey': UsageCredentialApiKeyParams,
+  'accounts.minimaxSaveSessionCookie': UsageCredentialSessionCookieParams,
   'accounts.removeClaude': RemoveAccountParams,
   'accounts.removeCodex': RemoveAccountParams,
   'accounts.removeData': RemoveDataAccountParams,
@@ -697,6 +707,9 @@ export const RPC_PARAMS_BY_METHOD = {
   'accounts.setHostLaunchEnv': HostAccountLaunchEnvParams,
   'accounts.subscribe': null,
   'accounts.unsubscribe': AccountsUnsubscribeParams,
+  'accounts.zcodePlanClearApiKey': null,
+  'accounts.zcodePlanCredentialsStatus': null,
+  'accounts.zcodePlanSaveApiKey': UsageCredentialApiKeyParams,
   'agent.launch': AgentLaunch,
   'agent.launchReplay': AgentLaunchReplay,
   'agentHooks.prepareCodexForWslPane': PrepareCodexForWslPaneParams,
@@ -1160,6 +1173,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'notifications.unregisterPush': null,
   'notifications.unsubscribe': NotificationUnsubscribeParams,
   'orcad.migration.abortCatalog': OrcadMigrationCatalogParams,
+  'orcad.migration.abortCatalogByReference': OrcadMigrationCatalogReferenceParams,
   'orcad.migration.catalogState': OrcadMigrationCatalogParams,
   'orcad.migration.commitCatalog': OrcadMigrationCommitCatalogParams,
   'orcad.migration.stageBlobChunk': OrcadMigrationBlobChunkRequestSchema,
@@ -1292,7 +1306,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'repo.searchRefs': RepoSearchRefs,
   'repo.setBaseRef': RepoSetBaseRef,
   'repo.setupScriptImports': RepoSelector,
-  'repo.show': RepoSelector,
+  'repo.show': RepoShow,
   'repo.sparsePresets': RepoSelector,
   'repo.update': RepoUpdate,
   'runtime.automaticWork.resume': null,

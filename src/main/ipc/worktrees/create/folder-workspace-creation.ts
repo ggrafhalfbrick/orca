@@ -7,6 +7,7 @@ import type { Store } from '../../../persistence/loading-store/store'
 import type { CreateWorktreeArgsWithSystemProvenance } from '../ipc-context-schemas'
 import { getFolderWorkspaceInstanceId, mergeFolderWorkspace } from '../folder-workspace-model'
 import { resolveWorktreeCreateDisplayNameRequest } from '../../worktree-display-name'
+import { hostWorktreeTargetForRepo } from '../../../persistence/host-qualified-worktree-meta'
 
 /** Metadata a new folder-project workspace gets, shared by folder workspaces and Perforce copies. */
 export function folderWorkspaceCreateMeta(
@@ -71,7 +72,7 @@ export function createFolderWorkspace(
 ): CreateWorktreeResult {
   const instanceId = randomUUID()
   const worktreeId = getFolderWorkspaceInstanceId(repo, instanceId)
-  const meta = store.setWorktreeMeta(worktreeId, {
+  const meta = store.setWorktreeMeta(hostWorktreeTargetForRepo(worktreeId, repo), {
     instanceId,
     ...folderWorkspaceCreateMeta(args, repo, store, Date.now())
   })
