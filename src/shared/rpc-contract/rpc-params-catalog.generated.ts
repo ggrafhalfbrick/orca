@@ -43,6 +43,10 @@ import {
   BeginClaudeSignInParams,
   ConsumeCodexResetCreditParams,
   FinishClaudeSignInParams,
+  HostAccountSignInCodeParams,
+  HostAccountSignInFlowParams,
+  HostAccountSignInStartParams,
+  HostAccountSignInWaitParams,
   ListAccountsParams,
   RemoveAccountParams,
   RemoveDataAccountParams,
@@ -522,6 +526,7 @@ import {
   DictationHandle,
   DictationSetup,
   DictationStart,
+  OpenAiSpeechKeySet,
   SpeechModelAction
 } from './speech-params'
 import {
@@ -545,6 +550,7 @@ import {
   HandoffStatusParams,
   HistoryParams,
   HoldParams,
+  ItemParams,
   ModelCatalogParams,
   OptionsParams,
   QueuedMessageActionParams,
@@ -609,8 +615,10 @@ import {
   UsageCredentialApiKeyParams,
   UsageCredentialSessionCookieParams
 } from './usage-credentials-params'
+import { LayoutReopenHeldPanesParams } from './workspace-layout-held-panes-params'
 import {
   LayoutApplyParams,
+  LayoutReportViewParams,
   LayoutSubscribeParams,
   LayoutUnsubscribeParams
 } from './workspace-layout-params'
@@ -671,6 +679,10 @@ export const RPC_PARAMS_BY_METHOD = {
   'accounts.cancelClaudeSignIn': FinishClaudeSignInParams,
   'accounts.consumeCodexResetCredit': ConsumeCodexResetCreditParams,
   'accounts.finishClaudeSignIn': FinishClaudeSignInParams,
+  'accounts.hostSignInCancel': HostAccountSignInFlowParams,
+  'accounts.hostSignInStart': HostAccountSignInStartParams,
+  'accounts.hostSignInSubmitCode': HostAccountSignInCodeParams,
+  'accounts.hostSignInWait': HostAccountSignInWaitParams,
   'accounts.list': ListAccountsParams,
   'accounts.listData': null,
   'accounts.minimaxClearApiKey': null,
@@ -709,6 +721,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'agentSession.handoffStatus': HandoffStatusParams,
   'agentSession.history': HistoryParams,
   'agentSession.hold': HoldParams,
+  'agentSession.item': ItemParams,
   'agentSession.modelCatalog': ModelCatalogParams,
   'agentSession.options': OptionsParams,
   'agentSession.queuedMessageDelete': QueuedMessageActionParams,
@@ -717,6 +730,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'agentSession.queuedMessageUpdate': QueuedMessageUpdateParams,
   'agentSession.queuedMessagesResume': QueuedMessagesResumeParams,
   'agentSession.readVisual': ReadVisualParams,
+  'agentSession.regenerateName': OptionsParams,
   'agentSession.release': HoldParams,
   'agentSession.respondToApproval': RespondParams,
   'agentSession.respondToQuestion': RespondToQuestionParams,
@@ -1079,6 +1093,8 @@ export const RPC_PARAMS_BY_METHOD = {
   'jira.updateIssue': IssueUpdate,
   'layout.apply': LayoutApplyParams,
   'layout.getRemoteSnapshots': null,
+  'layout.reopenHeldPanes': LayoutReopenHeldPanesParams,
+  'layout.reportView': LayoutReportViewParams,
   'layout.subscribe': LayoutSubscribeParams,
   'layout.unsubscribe': LayoutUnsubscribeParams,
   'linear.addIssueComment': IssueCommentOfLinearParams,
@@ -1317,6 +1333,9 @@ export const RPC_PARAMS_BY_METHOD = {
   'speech.models.delete': SpeechModelAction,
   'speech.models.download': SpeechModelAction,
   'speech.models.list': null,
+  'speech.openAiKey.clear': null,
+  'speech.openAiKey.set': OpenAiSpeechKeySet,
+  'speech.openAiKey.status': null,
   'ssh.addTarget': SshTargetAdd,
   'ssh.browseDir': SshBrowseDir,
   'ssh.connect': SshConnect,

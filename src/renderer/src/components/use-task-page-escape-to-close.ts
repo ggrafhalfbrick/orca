@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { addAppKeyListener, removeAppKeyListener } from '@/lib/app-keyboard-router'
 
 /** Esc closes the Tasks page unless a modal, menu, or focused field should own it. */
 export function useTaskPageEscapeToClose(blocked: boolean, closeTaskPage: () => void): void {
@@ -39,12 +40,7 @@ export function useTaskPageEscapeToClose(blocked: boolean, closeTaskPage: () => 
       event.preventDefault()
       closeTaskPage()
     }
-    window.addEventListener('keydown', onKeyDown, {
-      capture: true
-    })
-    return () =>
-      window.removeEventListener('keydown', onKeyDown, {
-        capture: true
-      })
+    addAppKeyListener('keydown', onKeyDown)
+    return () => removeAppKeyListener('keydown', onKeyDown)
   }, [blocked, closeTaskPage])
 }
