@@ -91,9 +91,10 @@ export type LaunchAgentInNewTabArgs = LaunchAgentInNewTabRequest & {
   onStructuredHostDeclined?: () => StructuredLaunchTerminal
 }
 
-/** `host-published`: the surface opens once its host answers, a structured chat's included. */
+/** `host-published`: the surface opens once its host answers; `local-chat` opened before it did. */
 export type AgentLaunchSurface =
   | { kind: 'local-terminal'; tabId: string }
+  | { kind: 'local-chat'; tabId: string }
   | { kind: 'host-published' }
 
 export type LaunchAgentInNewTabResult = {
@@ -102,6 +103,7 @@ export type LaunchAgentInNewTabResult = {
   pasteDraftAfterLaunch: boolean
   promptDeliveryResult?: Promise<{ delivered: boolean; failureNotified: boolean }>
   /** Structured route only: what the launch did once it settled. The call stays synchronous. */
+  terminalCompletion?: StructuredLaunchTerminal['completion']
   structuredSettlement?: Promise<StructuredAgentLaunchSettlement>
 } | null
 
@@ -147,7 +149,6 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
     return null
   }
   const { resolvedLaunchPlatform, isRemote, queuedShell } = executionContext
-  const cmdOverrides = store.settings?.agentCmdOverrides ?? {}
   const effectiveAgentArgs =
     agentArgs !== undefined
       ? agentArgs
@@ -156,13 +157,12 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
   const trimmedPrompt = prompt?.trim() ?? ''
   const hasPrompt = trimmedPrompt.length > 0
   const isFollowupPath = TUI_AGENT_CONFIG[agent].promptInjectionMode === 'stdin-after-start'
-  const workspaceKind = workspaceKindForWorktreeId(worktreeId)
   // Why: a followup-path agent gets its prompt pasted unsubmitted after start, so route it as a draft.
   const routePromptDelivery =
     hasPrompt && isFollowupPath && promptDelivery === 'auto-submit' ? 'draft' : promptDelivery
   const startupPlanBase = {
     agent,
-    cmdOverrides,
+    cmdOverrides: store.settings?.agentCmdOverrides ?? {},
     platform: resolvedLaunchPlatform,
     shell: queuedShell,
     isRemote,
@@ -189,7 +189,7 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
     agent,
     requestedSurface: args.requestedSurface,
     selectedExecutionHostId: args.selectedExecutionHostId,
-    workspace: { kind: workspaceKind, worktreeId },
+    workspace: { kind: workspaceKindForWorktreeId(worktreeId), worktreeId },
     prompt: trimmedPrompt,
     promptDelivery: routePromptDelivery,
     tuiCustomization: { cwd: initialCwd },
@@ -209,10 +209,11 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
       ...(beforeSurfaceOpen ? { beforeSurfaceOpen } : {}),
       ...(args.onStructuredHostDeclined ? { onHostDeclined: args.onStructuredHostDeclined } : {}),
       // The host's "no" opens this same launch as a terminal, with the caller's arguments.
-      openTerminal: (terminalPlan) =>
+      openTerminal: (terminalPlan, terminalActivate) =>
         launchAgentInNewTabInternal({
           ...args,
           beforeSurfaceOpen: undefined,
+          ...(terminalActivate === false ? { prompt: undefined, activate: false } : {}),
           requestId: undefined,
           agentSessionLaunchPlan: terminalPlan
         })
@@ -245,10 +246,12 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
       // Why: omission means terminal locally, but would let a paired host apply
       // its own default; send the client's resolved terminal choice explicitly.
       viewMode: 'terminal',
+      ...(activate === false ? { activate } : {}),
       onPromptDelivered
     })
     return {
       surface: { kind: 'host-published' },
+      terminalCompletion: webHostDelivery,
       startupPlan,
       pasteDraftAfterLaunch: pasteDraftAfterLaunch !== null,
       ...(pasteDraftAfterLaunch !== null && promptDelivery === 'submit-after-ready'
@@ -345,8 +348,10 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
   }
 
   // Why: without setActiveTabType('terminal') an activated launch can stay hidden behind an editor.
-  // Scoped to the launch's worktree so a floating or background launch leaves the main window's tab alone.
-  store.setActiveTabType('terminal', worktreeId)
+  // Scoped to the launch's worktree so a floating launch leaves the main window's tab alone.
+  if (activate !== false) {
+    store.setActiveTabType('terminal', worktreeId)
+  }
 
   // Why: persist tab-bar order so reconcileTabOrder doesn't fall back to terminals-first and jump the new tab to index 0.
   persistAgentLaunchTabOrder(worktreeId, tab.id)
@@ -359,6 +364,4 @@ function launchAgentInNewTabInternal(args: LaunchAgentInNewTabArgs): LaunchAgent
   }
 }
 
-export function launchAgentInNewTab(args: LaunchAgentInNewTabArgs): LaunchAgentInNewTabResult {
-  return launchAgentInNewTabInternal(args)
-}
+export { launchAgentInNewTabInternal as launchAgentInNewTab }

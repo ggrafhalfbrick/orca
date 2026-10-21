@@ -1,7 +1,7 @@
-import { OrcaRuntimeWithGetTerminalInteractiveWait } from './terminal/wait/terminal-interactive-wait'
+import { OrcaRuntimeWithRestoredHandlePaneStart } from './terminal/surface/restored-handle-pane-start'
 
-// Why its own layer: terminal-interactive-wait.ts is at its line cap and this is plugin-only.
-export abstract class OrcaRuntimeWithPluginWorktreeContext extends OrcaRuntimeWithGetTerminalInteractiveWait {
+// Why its own layer: the terminal runtime layers are at their line caps and this is plugin-only.
+export abstract class OrcaRuntimeWithPluginWorktreeContext extends OrcaRuntimeWithRestoredHandlePaneStart {
   /** Context of a worktree the user ran a plugin worktree command on. */
   async resolvePluginWorktreeContext(worktreeId: string): Promise<{
     path: string
