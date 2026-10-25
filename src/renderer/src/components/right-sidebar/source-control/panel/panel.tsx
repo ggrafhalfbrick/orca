@@ -6,7 +6,6 @@ import { perforceWorkspaceKey } from '../../../../runtime/runtime-perforce-clien
 import { SourceControlPanelReady } from './panel-ready'
 import { useSourceControlPanelModel } from './use-panel-model'
 
-/** Resolves the panel model and guards the two states that have no source control to show. */
 export function SourceControlPanel() {
   const model = useSourceControlPanelModel()
   const { activeRepo, activeWorktree, activeConnectionId, isFolder, worktreePath } = model

@@ -1,3 +1,4 @@
+import { registerWorktreeSleepHandlers } from './worktrees/sleep/register-worktree-sleep-handlers'
 import { ipcMain, type BrowserWindow } from 'electron'
 import type { Store } from '../persistence/loading-store/store'
 import type { OrcaRuntimeService, RuntimeWorktreeLifecycleEvent } from '../runtime/orca-runtime'
@@ -8,7 +9,6 @@ import { registerReviewBaseHandlers } from './worktrees/create/register-review-b
 import { registerWorktreeHookCheckHandler } from './hooks/register-worktree-hook-check-handler'
 import { registerWorktreeHookFileHandlers } from './hooks/register-worktree-hook-file-handlers'
 import { registerWorktreeHookInspectionHandler } from './hooks/register-worktree-hook-inspection-handler'
-import { registerWorktreeHookRunnerHandler } from './hooks/register-worktree-hook-runner-handler'
 import { registerDetectedWorktreeHandlers } from './worktrees/listing/register-detected-worktree-handlers'
 import { registerHostCatalogHandlers } from './worktrees/listing/register-host-catalog-handlers'
 import { registerWorktreeCatalogHandlers } from './worktrees/listing/register-worktree-catalog-handlers'
@@ -25,13 +25,10 @@ import { registerPerforceCopyHandlers } from './worktrees/perforce-copies/regist
 
 registerDetectedWorktreeScanInvalidation()
 
-// Why not module scope like the invalidation above: this needs `mainWindow`/`store`, which only
-// exist once a window is attached, and must track the current ones across re-registration.
+// Registration supplies the current window/store; dispose the previous listener before replacing them.
 let disposeSparseCheckoutCacheInvalidation: (() => void) | undefined
 
 const WORKTREE_HANDLER_CHANNELS = [
-  'worktrees:listAll',
-  'worktrees:list',
   'worktrees:listRetiredNames',
   'worktrees:listDetected',
   'worktrees:listKnownForExecutionHost',
@@ -43,6 +40,9 @@ const WORKTREE_HANDLER_CHANNELS = [
   'worktrees:resolvePrBase',
   'worktrees:resolveMrBase',
   'worktrees:remove',
+  'worktrees:sleep',
+  'worktrees:sleepReopened',
+  'worktrees:resumeSleptPane',
   'worktrees:previewNestedRemoval',
   'worktrees:forgetLocal',
   'worktrees:forceDeletePreservedBranch',
@@ -53,7 +53,6 @@ const WORKTREE_HANDLER_CHANNELS = [
   'worktrees:getBranchRenameFailureOutput',
   'hooks:check',
   'hooks:inspectSetupScriptImports',
-  'hooks:createIssueCommandRunner',
   'hooks:readIssueCommand',
   'hooks:writeIssueCommand',
   'perforce:runCopy'
@@ -74,7 +73,6 @@ export function registerWorktreeHandlers(
     worktreeRemovalsInFlight: createWorktreeRemovalRegistry()
   }
 
-  // Remove all stale registrations before installing any replacement handler.
   for (const channel of WORKTREE_HANDLER_CHANNELS) {
     ipcMain.removeHandler(channel)
   }
@@ -92,10 +90,10 @@ export function registerWorktreeHandlers(
   registerWorktreeCreateHandlers(context)
   registerReviewBaseHandlers(context)
   registerWorktreeRemovalHandlers(context)
+  registerWorktreeSleepHandlers(context)
   registerWorktreeForgetHandlers(context)
   registerWorktreeMetadataHandlers(context)
   registerWorktreeHookCheckHandler(context)
-  registerWorktreeHookRunnerHandler(context)
   registerWorktreeHookInspectionHandler(context)
   registerWorktreeHookFileHandlers(context)
   registerPerforceCopyHandlers(context)
