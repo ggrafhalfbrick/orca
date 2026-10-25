@@ -5,6 +5,7 @@ import type { LinkedWorkItemSummary } from '@/lib/new-workspace'
 import type { TaskSourceContext } from '../../../../shared/task-source-context'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 import type { LinkedPluginTask } from '../../../../shared/plugins/plugin-task-link'
+import type { AgentLaunchChoice } from '@/lib/agent-menu-selection'
 import type { GitPushTarget } from '../../../../shared/worktree/types'
 import type { SetupDecision } from '../../../../shared/worktree/create-types'
 import { toFolderWorkspaceLinkedTask } from '@/components/sidebar/folder-workspace-composer-helpers'
@@ -60,6 +61,7 @@ export type QuickCreationRequestInput = {
 
 export type QuickSubmitOptions = {
   setupOnly?: boolean
+  launchChoice?: AgentLaunchChoice
   /** Draft typed into the agent after launch (not sent for folder-group targets). */
   agentDraft?: string
   /** Session options (e.g. model, effort) layered over the agent's defaults for this launch. */

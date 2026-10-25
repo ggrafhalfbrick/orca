@@ -1,7 +1,6 @@
 import { useAppStore } from '@/store'
 
-// Why: activePendingCreationId can outlive the terminal route when the user
-// switches app views; only the terminal route renders the creation panel.
+// The pending pointer can survive app-view changes; only terminal view actually displays creation UI.
 export function isPendingCreationSurfaceVisible(creationId: string): boolean {
   const state = useAppStore.getState()
   return state.activeView === 'terminal' && state.activePendingCreationId === creationId

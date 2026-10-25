@@ -1,7 +1,4 @@
-// Every on-disk field is written from exactly one model or side-data field, and on-disk fields
-// that are copies of one fact are written from the same one. The tables
-// (workspace-layout-disk-fields.ts) are typed over the disk record types and every model and
-// side-data field; this test checks each claim by mutating every source and saving.
+// Verify each disk-field source by mutation/save, including duplicate fields that must share one source. Types cover all model/side-data and disk fields.
 
 import { describe, expect, it } from 'vitest'
 import { LOCAL_EXECUTION_HOST_ID } from '../execution-host'
@@ -11,6 +8,7 @@ import {
   type LayoutSource,
   type UnwrittenLayoutSource
 } from './workspace-layout-disk-fields'
+import { EDITOR_FILE_KEY_FIELDS } from './workspace-layout-editor-tab-file'
 import { loadWorkspaceLayout } from './workspace-layout-load'
 import { diskRecords, stableJson } from './workspace-layout-load-report'
 import type { LoadedWorkspaceLayout } from './workspace-layout-load-types'
@@ -51,13 +49,13 @@ const COPIES = [
   ['terminalEntry.groupId', 'entry.groupId', 'group.id']
 ]
 
-/** Ids other records reference; mutating one would break the references, not test a source. */
+/** Do not mutate identity fields: broken references would test integrity rather than fact ownership. */
 const IDENTITY_SOURCES = new Set<LayoutSource>([
   'tab.id',
   'tab.entityId',
   'tab.kind',
   'group.id',
-  'file.filePath',
+  ...EDITOR_FILE_KEY_FIELDS.map((field) => `file.${field}` as const),
   'browserTab.id',
   'leaf.$key'
 ])
@@ -106,7 +104,6 @@ function richLoaded(): LoadedWorkspaceLayout {
   return populate(loaded)
 }
 
-/** Sets `source` on the first holder `pick` accepts. */
 function fill(
   loaded: LoadedWorkspaceLayout,
   source: LayoutSource,
@@ -125,9 +122,10 @@ function populate(loaded: LoadedWorkspaceLayout): LoadedWorkspaceLayout {
   fill(loaded, 'tab.terminal.forceHostRuntime', true)
   fill(loaded, 'file.externalSshTargetId', 'box')
   fill(loaded, 'file.runtimeEnvironmentId', 'env')
+  fill(loaded, 'file.mirroredFromRuntimeSession', true)
   fill(loaded, 'file.readOnly', true)
   fill(loaded, 'file.liveTail', true)
-  // A focused and an expanded pane that is not the first, so a fallback is visible.
+  // Use nonfirst focus/expanded panes so fallback mistakes become visible.
   fill(loaded, 'viewPane.activeLeafId', leaf(2), (holder) => holder.activeLeafId === leaf(1))
   fill(loaded, 'viewPane.expandedLeafId', leaf(2), (holder) => holder.activeLeafId === leaf(2))
   fill(loaded, 'scrollback.buffer', 'buffer')
@@ -262,7 +260,6 @@ function mutated(value: unknown): unknown {
   if (typeof value === 'boolean') {
     return !value
   }
-  // A nullable field's other state.
   if (value === null) {
     return 'set'
   }

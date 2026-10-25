@@ -1,3 +1,4 @@
+import type * as ReactModule from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { OpenFile } from '../../store/slices/editor'
 
@@ -26,7 +27,7 @@ vi.mock('../right-sidebar/perforce/use-perforce-edited-tab', () => ({
 }))
 
 vi.mock('react', async () => {
-  const actual = await vi.importActual<typeof import('react')>('react') // eslint-disable-line @typescript-eslint/consistent-type-imports -- vi.importActual requires inline import()
+  const actual = await vi.importActual<typeof ReactModule>('react')
   return {
     ...actual,
     useEffect: () => {},
@@ -414,9 +415,7 @@ describe('EditorFileTab rename menu', () => {
     const firstRender = expandNode((await renderEditorFileTab(file, onActivate)).element)
     const renameItem = findMenuItemByText(firstRender, 'Rename')
 
-    // Why: New Markdown tabs are real on-disk files even while marked
-    // isUntitled; the tab menu must let users rename the screenshot-style
-    // "untitled-N.md" files directly.
+    // Untitled Markdown tabs already exist on disk and must remain renameable.
     expect(renameItem.props.disabled).toBe(false)
     selectRenameFromMenu(firstRender)
 

@@ -35,16 +35,7 @@ function denySafeResult(toolUseId: string | undefined): PermissionResult {
   }
 }
 
-/**
- * Build the SDK permission callbacks from the session-local prompt registry.
- *
- * A decodable `can_use_tool` becomes a durable prompt whose `settle` resolves this callback;
- * a malformed one is denied without registering. The SDK's abort signal fires on
- * `control_cancel_request` (a cancelled turn), which forgets the prompt and settles it with
- * `null` — never authorizing a tool. A late answer after abort finds no prompt and is refused
- * by `answerClaudePrompt`. `onUserDialog` is deny-safe; the CLI only emits dialog kinds Orca
- * declares in `supportedDialogKinds`, which is empty.
- */
+/** Malformed requests are denied; provider cancellation forgets the callback without replying. */
 export function buildClaudePermissionCallbacks(deps: ClaudePermissionCallbackDeps): {
   canUseTool: CanUseTool
   onUserDialog: OnUserDialog
@@ -56,7 +47,6 @@ export function buildClaudePermissionCallbacks(deps: ClaudePermissionCallbackDep
         options.signal.removeEventListener('abort', cancel)
         resolve(response)
       }
-      // Classify first so later permission-mode policy cannot swallow a plan proposal.
       const subject = claudePermissionSubject(toolName, input)
       const isQuestion = toolName === 'AskUserQuestion' && claudePromptQuestions(input).length > 0
       // Full access skips the ask for tool permissions, but never for a question or a plan proposal.
@@ -86,14 +76,12 @@ export function buildClaudePermissionCallbacks(deps: ClaudePermissionCallbackDep
             sessionId: deps.sessionId,
             promptKey: prompt.promptKey
           })
-          // Null is the SDK's "no response written" sentinel: a cancelled request must not
-          // be answered, only forgotten.
+          // Null tells the SDK to write no response to the cancelled request.
           settle(null)
         }
       }
       if (options.signal.aborted) {
-        // No abort event can still fire, so registering a listener would park the callback
-        // forever behind a prompt nothing will answer.
+        // Abort events are not replayed for listeners added after cancellation.
         cancel()
         return
       }

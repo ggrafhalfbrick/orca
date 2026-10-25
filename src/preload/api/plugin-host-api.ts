@@ -18,7 +18,6 @@ import type {
 } from '../../shared/plugins/plugin-settings-contribution'
 import type { PluginWorktreeBadgeEntry } from '../../shared/plugins/plugin-worktree-badge'
 
-/** Panel contribution as surfaced by the main-process plugin service. */
 export type PluginHostPanel = {
   id: string
   title: string
@@ -27,9 +26,7 @@ export type PluginHostPanel = {
   tabKey: `plugin:${string}`
 }
 
-/** `pending` = awaiting (re-)consent; `idle` = enabled, worker not running
- *  (lazy); `restarting` = waiting for supervised backoff; `errored` = crashed past the restart budget or failed to start;
- *  `invalid` = unreadable manifest. */
+/** pending awaits consent; idle defers worker startup; errored exhausted retries or failed startup. */
 export type PluginHostStatus =
   | 'running'
   | 'restarting'
@@ -39,8 +36,7 @@ export type PluginHostStatus =
   | 'errored'
   | 'invalid'
 
-/** Wire shape of plugins:list — must stay assignable from the main-process
- *  projection in src/main/plugins/plugin-list-projection.ts. */
+// Keep assignable from main/plugins/plugin-list-projection.ts.
 export type PluginHostListEntry = {
   pluginKey: string
   consentFingerprint: string | null
@@ -159,12 +155,10 @@ export type PluginMarketplaceHostInstallPreview = {
 export type PluginsApi = {
   list: () => Promise<PluginHostListEntry[]>
   listLanguagePacks: () => Promise<PluginLanguagePackRegistration[]>
-  /** Records the consent-dialog answer; approval is keyed to the plugin's
-   *  current capability and trusted-worker fingerprint. */
+  /** Approval is bound to the current capability and trusted-worker fingerprint. */
   consent: (args: PluginConsentRequest) => Promise<PluginHostListEntry[]>
   setEnabled: (args: { pluginKey: string; enabled: boolean }) => Promise<PluginHostListEntry[]>
-  /** Returns the panel's CSP-wrapped HTML, or null when the plugin or
-   *  panel is missing/disabled. Rendered only inside a sandboxed iframe. */
+  /** CSP-wrapped HTML for a sandboxed iframe; null if missing or disabled. */
   readPanelEntry: (args: { pluginKey: string; panelId: string }) => Promise<PluginPanelEntry | null>
   invokeCommand: (args: {
     pluginKey: string
@@ -190,8 +184,7 @@ export type PluginsApi = {
     key: string
     value: PluginSettingValue | null
   }) => Promise<Record<string, PluginSettingValue>>
-  /** Relays a sandboxed panel's bridge request to main, which enforces the
-   *  plugin's consented capabilities before executing. */
+  /** Main enforces consented capabilities before executing sandboxed panel requests. */
   panelAction: (args: {
     sessionToken: string
     action: string
@@ -221,6 +214,5 @@ export type PluginsApi = {
   getLogs: (args: { pluginKey: string }) => Promise<PluginHostLogLine[]>
   /** Re-discovers after settings edits (feature flag, dev paths). */
   refresh: () => Promise<PluginHostListEntry[]>
-  /** Fires whenever installed plugins, worker states, panels, or content packs change. */
   onChanged: (callback: (event: PluginChangeEvent) => void) => () => void
 }
