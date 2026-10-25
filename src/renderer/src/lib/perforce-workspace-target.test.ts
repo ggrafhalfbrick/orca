@@ -22,7 +22,7 @@ vi.mock('@/store', () => ({
   }
 }))
 vi.mock('@/lib/worktree-runtime-owner', () => ({
-  runtimeEnvironmentIdWithLegacyFallbackUnlessTwin: () => null
+  runtimeEnvironmentIdOrLocalUnlessTwin: () => null
 }))
 vi.mock('./perforce-workspace-detection', () => ({ isPerforceWorkspaceForFiles: detect }))
 
