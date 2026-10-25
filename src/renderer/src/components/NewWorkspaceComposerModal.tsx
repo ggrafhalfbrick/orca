@@ -31,11 +31,8 @@ import type { WorkspaceSource as WorkspaceCreateTelemetrySource } from '../../..
 import type { WorkspaceStatus } from '../../../shared/worktree/types'
 import type { TaskSourceContext } from '../../../shared/task-source-context'
 import type { LinkedPluginTask } from '../../../shared/plugins/plugin-task-link'
-import {
-  describePluginTaskSessionOptions,
-  sessionOptionsForAgent,
-  type PluginTaskSessionOptions
-} from '@/lib/plugin-task-session-options'
+import type { PluginTaskSessionOptions } from '@/lib/plugin-task-session-options'
+import { usePluginTaskComposerDraft } from '@/components/new-workspace/use-plugin-task-composer-draft'
 import { translate } from '@/i18n/i18n'
 import { getWorkspaceComposerInitialFocusTarget } from '@/lib/workspace-composer-initial-focus'
 import { getFolderWorkspacePrimaryActionLabel } from '@/components/sidebar/folder-workspace-composer-helpers'
@@ -235,18 +232,6 @@ function QuickTabBody({
     setQuickAgentOverride(null)
     setQuickSelectionCleared(true)
   }, [])
-  const [agentDraft, setAgentDraft] = useState<string | null>(modalData.initialAgentDraft ?? null)
-  // Why keyed by project: picking another project must fall back to creating a workspace.
-  const [existingWorkspace, setExistingWorkspace] = useState<{
-    repoId: string
-    worktreeId: string
-  } | null>(null)
-
-  const { initialAgentSessionOptions, linkedPluginTask } = modalData
-  const launchSessionOptions = useMemo(
-    () => sessionOptionsForAgent(initialAgentSessionOptions, quickAgent),
-    [initialAgentSessionOptions, quickAgent]
-  )
   // Layer Add Project without replacing the composer. Retain it for close animation and clone/scan cancellation; folder/non-Git navigation still tears down the modal.
   const [addProjectOpen, setAddProjectOpen] = useState(false)
   const [addProjectMounted, setAddProjectMounted] = useState(false)
@@ -283,12 +268,16 @@ function QuickTabBody({
     (option) => option.id === cardProps.selectedProjectId
   )
   const isFolderWorkspaceTarget = selectedProjectOption?.kind === 'project-group'
-  const offersExistingWorkspace =
-    modalData.initialAgentDraft !== undefined && !isFolderWorkspaceTarget
-  const existingWorktreeId =
-    offersExistingWorkspace && quickAgent !== null && existingWorkspace?.repoId === cardProps.repoId
-      ? existingWorkspace.worktreeId
-      : null
+  const { linkedPluginTask } = modalData
+  const pluginTaskDraft = usePluginTaskComposerDraft({
+    initialAgentDraft: modalData.initialAgentDraft,
+    initialAgentSessionOptions: modalData.initialAgentSessionOptions,
+    linkedPluginTask,
+    quickAgent,
+    isFolderWorkspaceTarget,
+    repoId: cardProps.repoId
+  })
+  const { agentDraft, existingWorktreeId, launchSessionOptions } = pluginTaskDraft
   const primaryActionLabel = existingWorktreeId
     ? translate('auto.components.NewWorkspaceComposerCard.startInWorkspace', 'Start in workspace')
     : isFolderWorkspaceTarget
@@ -296,17 +285,6 @@ function QuickTabBody({
       : cardProps.selectedRepoIsGit
         ? translate('auto.components.NewWorkspaceComposerModal.createWorktree', 'Create worktree')
         : translate('auto.components.NewWorkspaceComposerModal.createWorkspace', 'Create workspace')
-  const agentDraftUnavailableReason = isFolderWorkspaceTarget
-    ? translate(
-        'auto.components.NewWorkspaceComposerModal.agentDraftFolderGroup',
-        'Folder workspaces do not take an agent prompt, so this one will not be sent.'
-      )
-    : quickAgent === null
-      ? translate(
-          'auto.components.NewWorkspaceComposerModal.agentDraftNoAgent',
-          'Pick an agent to send this prompt.'
-        )
-      : null
 
   const handleCreate = useCallback(async (): Promise<void> => {
     if (createDisabled) {
@@ -328,9 +306,7 @@ function QuickTabBody({
     await submitQuick(quickAgent, {
       setupOnly: quickSetupOnly,
       launchChoice: launchSelection.choice,
-      ...(agentDraft?.trim() ? { agentDraft } : {}),
-      ...(launchSessionOptions ? { sessionOptions: launchSessionOptions } : {}),
-      ...(linkedPluginTask ? { linkedPluginTask } : {})
+      ...pluginTaskDraft.submitOptions
     })
   }, [
     agentDraft,
@@ -340,6 +316,7 @@ function QuickTabBody({
     launchSessionOptions,
     linkedPluginTask,
     onClose,
+    pluginTaskDraft.submitOptions,
     quickAgent,
     quickSetupOnly,
     submitQuick
@@ -403,21 +380,19 @@ function QuickTabBody({
         quickAgent={quickAgent}
         onQuickAgentChange={handleQuickAgentChange}
         agentDraft={agentDraft}
-        onAgentDraftChange={setAgentDraft}
-        agentDraftUnavailableReason={agentDraftUnavailableReason}
-        agentSessionNote={describePluginTaskSessionOptions(initialAgentSessionOptions, quickAgent)}
+        onAgentDraftChange={pluginTaskDraft.setAgentDraft}
+        agentDraftUnavailableReason={pluginTaskDraft.agentDraftUnavailableReason}
+        agentSessionNote={pluginTaskDraft.agentSessionNote}
         quickSetupOnly={quickSetupOnly}
         onQuickSetupOnlySelect={handleQuickSetupOnlySelect}
         existingWorkspaceField={
-          offersExistingWorkspace ? (
+          pluginTaskDraft.offersExistingWorkspace ? (
             <NewWorkspaceComposerExistingWorkspaceField
               repoId={cardProps.repoId}
               executionHostId={cardProps.selectedRepoExecutionHostId}
               value={existingWorktreeId}
-              onChange={(worktreeId) =>
-                setExistingWorkspace(worktreeId ? { repoId: cardProps.repoId, worktreeId } : null)
-              }
-              unavailableReason={agentDraftUnavailableReason}
+              onChange={pluginTaskDraft.selectExistingWorkspace}
+              unavailableReason={pluginTaskDraft.agentDraftUnavailableReason}
             />
           ) : undefined
         }
