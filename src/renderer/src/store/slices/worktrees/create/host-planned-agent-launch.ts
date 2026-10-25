@@ -3,6 +3,7 @@ import { callRuntimeRpc, runtimeEnvironmentSupportsCapability } from '@/runtime/
 import { RuntimeRpcCallError } from '@/runtime/runtime-rpc-result'
 import { AGENT_LAUNCH_RUNTIME_CAPABILITY } from '../../../../../../shared/agent-launch-runtime-capability'
 import type { CreateWorktreeResult } from '../../../../../../shared/worktree/create-types'
+import { PERFORCE_COPY_REQUEST_TIMEOUT_MS } from '../../../../../../shared/perforce/workspace-copy/workspace-copy-operations'
 import type { ClientWorktreeCreateSettings } from './client-worktree-create-settings'
 import {
   buildRuntimeWorktreeCreateParams,
@@ -28,7 +29,9 @@ export async function createWorktreeOnRuntimeHost(
         // Why: the host's own store defaults would otherwise override the user's choices.
         ...clientCreateSettings
       },
-      { timeoutMs: 10 * 60_000 }
+      {
+        timeoutMs: request.options?.perforceCopy ? PERFORCE_COPY_REQUEST_TIMEOUT_MS : 10 * 60_000
+      }
     )
   const launch = request.options?.hostAgentLaunch
   if (!launch || !(await hostPlansAgentLaunch(environmentId))) {
