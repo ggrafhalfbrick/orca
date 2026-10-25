@@ -26,7 +26,7 @@ export function useTaskPageEscapeToClose(blocked: boolean, closeTaskPage: () => 
         return
       }
 
-      // Why: Esc first blurs a focused input so it doesn't accidentally close the whole page; only closes once focus is outside an input.
+      // Esc first blurs input; leave the page only when focus is outside one.
       if (
         target instanceof HTMLInputElement ||
         target instanceof HTMLTextAreaElement ||

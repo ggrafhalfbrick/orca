@@ -65,7 +65,6 @@ export function useTaskPageGlobalEffects(model: TaskPageJiraSummaryGenerationMod
     refreshPreflightStatus
   ])
 
-  // Why: debounce the Linear search input so we don't fire a request per keystroke (300ms, matching GitHub search).
   const nextModel = model as typeof model & {
     githubTasksBusy: typeof githubTasksBusy
   }
