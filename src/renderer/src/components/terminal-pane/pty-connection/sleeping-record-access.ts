@@ -1,9 +1,8 @@
 import { useAppStore } from '@/store'
 import type { PtyConnectResult } from '../pty-transport-types'
 import { createBrowserUuid } from '@/lib/browser-uuid'
-import { parseLegacyNumericPaneKey } from '../../../../../shared/stable-pane-id'
+import { findLegacyNumericSleepingRecord } from '../../../../../shared/sleeping-record-legacy-pane-key'
 import { neutralTerminalTitle } from '../../../../../shared/terminal-pane-title-reset'
-import { getProviderSessionClaimKey } from '@/lib/sleeping-agent-pane-ownership'
 import {
   agentProviderSessionsEqual,
   type SleepingAgentSessionRecord
@@ -28,40 +27,12 @@ export function installSleepingRecordAccess(session: ConnectPanePtySession): voi
     if (stableRecord) {
       return { paneKey: session.cacheKey, record: stableRecord }
     }
-    const legacyMatches = Object.entries(state.sleepingAgentSessionsByPaneKey).filter(
-      ([paneKey, record]) => {
-        const legacy = parseLegacyNumericPaneKey(paneKey)
-        return (
-          legacy?.tabId === session.deps.tabId &&
-          record.worktreeId === session.deps.worktreeId &&
-          (!record.tabId || record.tabId === session.deps.tabId)
-        )
-      }
+    const legacy = findLegacyNumericSleepingRecord(
+      state.sleepingAgentSessionsByPaneKey,
+      { tabId: session.deps.tabId, numericPaneId: String(session.pane.id) },
+      (record) => record.worktreeId === session.deps.worktreeId
     )
-    const exactLegacyMatch = legacyMatches.find(([paneKey]) => {
-      const legacy = parseLegacyNumericPaneKey(paneKey)
-      return legacy?.numericPaneId === String(session.pane.id)
-    })
-    const providerSessionKeys = new Set(
-      legacyMatches.map(([, record]) => getProviderSessionClaimKey(record))
-    )
-    const oldestLegacyMatch = legacyMatches
-      .slice()
-      .sort(([, a], [, b]) => a.capturedAt - b.capturedAt || a.updatedAt - b.updatedAt)[0]
-    // Why: duplicate legacy aliases can point at one provider session; consume
-    // the oldest capture as canonical and clear its aliases after resume.
-    const selectedLegacyMatch =
-      exactLegacyMatch ??
-      (providerSessionKeys.size === 1
-        ? legacyMatches.length === 1
-          ? legacyMatches[0]
-          : oldestLegacyMatch
-        : null)
-    if (!selectedLegacyMatch) {
-      return null
-    }
-    const [paneKey, record] = selectedLegacyMatch
-    return { paneKey, record }
+    return legacy ? { paneKey: legacy.paneKey, record: legacy.record } : null
   }
   session.clearSleepingRecordProviderDuplicates = (
     state: ReturnType<typeof useAppStore.getState>,
@@ -79,8 +50,7 @@ export function installSleepingRecordAccess(session: ConnectPanePtySession): voi
           consumed.record.providerSession
         )
       ) {
-        // Why: legacy pane aliases can leave multiple sleeping rows for one
-        // provider session; once this pane resumes it, every alias is stale.
+        // Consume every alias of the resumed provider session so legacy rows cannot resume it twice.
         state.clearSleepingAgentSession(paneKey)
       }
     }
@@ -110,9 +80,7 @@ export function installSleepingRecordAccess(session: ConnectPanePtySession): voi
     if (session.startupDraftDeliveryClaimed) {
       return true
     }
-    // Why: launch-bound draft paste needs a launch token; all current
-    // draftPrompt startup callers pair it with launchConfig so this can safely
-    // fence off delayed sidecar delivery before Codex's first composer frame.
+    // Draft callers pair launchConfig with prompt paste; reserve its token before delayed sidecar delivery can race Codex composer startup.
     session.startupDraftDeliveryClaimed = beginAgentStartupDeliveryAttempt({
       worktreeId: session.deps.worktreeId,
       tabId: session.deps.tabId,
@@ -155,8 +123,7 @@ export function installSleepingRecordAccess(session: ConnectPanePtySession): voi
   ): void => {
     if (!effectiveLaunchConfig) {
       if (metadata?.launchAgent) {
-        // Why: daemon launch identity can outlive the process while Orca is
-        // closed. Use it to request confirmation, never as current byte authority.
+        // Daemon launch metadata can outlive its process; it requests confirmation without authorizing bytes.
         const state = useAppStore.getState()
         const current = state.paneForegroundAgentByPaneKey[session.cacheKey]
         // Why: re-mounting a parked pane must not demote this session's own read of the same agent.
@@ -170,8 +137,7 @@ export function installSleepingRecordAccess(session: ConnectPanePtySession): voi
       }
       return
     }
-    // Why: daemon reattach preserves the pane's exact launch command but not
-    // renderer metadata; recover only allowlisted command identity from it.
+    // Recover only allowlisted command identity because daemon reattach keeps argv but loses renderer metadata.
     const persistedLaunchAgent = recognizeAgentProcessFromCommandLine(
       effectiveLaunchConfig.agentCommand
     )?.agent
