@@ -86,7 +86,7 @@ const CLAUDE_PERMISSION_MODES = {
  *  CLI routing each tool back to that callback. The callback honours the bypass instead — this is
  *  the one place that names the mode that turns it on. */
 export function claudePermissionModeBypassesToolAsks(
-  mode: AgentChatPermissionMode | undefined
+  mode: AgentChatPermissionChoice | undefined
 ): boolean {
   return mode === 'full-access'
 }
