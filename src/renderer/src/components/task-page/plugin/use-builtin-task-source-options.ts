@@ -4,7 +4,7 @@ import {
   normalizeVisibleTaskProviders,
   restoreAvailableDefaultTaskProvider
 } from '../../../../../shared/task-providers'
-import { getSourceOptions } from '../../task-page-localized-options'
+import { getSourceOptions } from '../task-page-localized-options'
 
 /** Built-in source tabs for the plugin page, filtered the same way the built-in page filters them. */
 export function useVisibleBuiltinTaskSourceOptions(): ReturnType<typeof getSourceOptions> {
