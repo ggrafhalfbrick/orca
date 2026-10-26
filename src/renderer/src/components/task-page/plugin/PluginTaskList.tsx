@@ -6,7 +6,7 @@ import { translate } from '@/i18n/i18n'
 import { cn } from '@/lib/utils'
 import type { PluginTaskItem } from '../../../../../shared/plugins/plugin-task-source'
 import type { Worktree } from '../../../../../shared/worktree/types'
-import { formatRelativeTime } from '../../task-page-source-context'
+import { formatRelativeTime } from '../task-page-source-context'
 import { getPluginTaskStatusTone } from './plugin-task-status-tone'
 
 const ROW_GRID =
