@@ -53,6 +53,17 @@ const WORKTREE_HANDLER_CHANNELS = [
   'perforce:runCopy'
 ] as const
 
+vi.mock('../text-generation/commit-message-text-generation', () => ({
+  resolveTextGenerationParams: () => ({
+    ok: true,
+    params: { agentId: 'claude', model: 'fixture' }
+  }),
+  generateBranchNameFromContext: async () => ({ success: true, slug: 'fix-auth' })
+}))
+vi.mock('../text-generation/commit-message-agent-environment', () => ({
+  prepareLocalCommitMessageAgentEnv: async () => ({ ok: true })
+}))
+
 vi.mock('electron', async () =>
   (await import('./worktrees-test-module-mocks')).electronModuleMock()
 )
