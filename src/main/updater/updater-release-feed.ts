@@ -1,5 +1,6 @@
 import { app } from 'electron'
 import {
+  fetchLatestStableReleaseTag,
   fetchNewerReleaseTagsWithReadiness,
   getReleaseDownloadUrl
 } from '../updater-prerelease-feed'
@@ -8,7 +9,8 @@ import type { CheckFailureSource } from './updater-state'
 import type { UpdateCheckVariant } from './updater-types'
 import { ReleaseFeedPreflightError } from './updater-state'
 import { UpdaterInstallExecution } from './updater-install-execution'
-import { LATEST_RELEASE_DOWNLOAD_URL } from './update-release-repo'
+import { LATEST_RELEASE_DOWNLOAD_URL, UPDATE_RELEASE_REPO } from './update-release-repo'
+import { MAIN_RELEASE_REPO } from '../../shared/release-channel'
 
 export abstract class UpdaterReleaseFeed extends UpdaterInstallExecution {
   protected clearPrereleaseFallbackContextIfSettled(): void {
@@ -208,10 +210,28 @@ export abstract class UpdaterReleaseFeed extends UpdaterInstallExecution {
     }
     this.clearPrereleaseFallbackContext()
     this.clearPublishingWindowLastGoodCheck()
-    const url = LATEST_RELEASE_DOWNLOAD_URL
-    console.info(
-      `[updater] release feed fallback: current=${currentVersion} includePrerelease=${includePrerelease} → ${url}`
-    )
+    if (UPDATE_RELEASE_REPO !== MAIN_RELEASE_REPO) {
+      // Integration-only (AGENTS.md): fork release tags are prereleases, so the stable-tag lookup below never resolves for them.
+      const url = LATEST_RELEASE_DOWNLOAD_URL
+      console.info(
+        `[updater] release feed fallback: current=${currentVersion} includePrerelease=${includePrerelease} → ${url}`
+      )
+      autoUpdater.setFeedURL({ provider: 'generic', url })
+      return 'ready'
+    }
+    const stableTag = await fetchLatestStableReleaseTag()
+    if (!this.isActiveUpdateCheckAttempt(attemptId)) {
+      return 'not-available'
+    }
+    if (!stableTag) {
+      throw new ReleaseFeedPreflightError(
+        'manifest-unavailable',
+        'default',
+        'Unable to resolve a ready stable release on GitHub'
+      )
+    }
+    const url = getReleaseDownloadUrl(stableTag)
+    console.info(`[updater] stable fallback feed pinned: current=${currentVersion} → ${url}`)
     autoUpdater.setFeedURL({ provider: 'generic', url })
     return 'ready'
   }
