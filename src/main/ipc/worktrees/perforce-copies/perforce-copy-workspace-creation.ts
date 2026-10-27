@@ -38,7 +38,7 @@ export function createPerforceCopyWorkspace(
       route.kind === 'ssh' ? repo.path : await resolveRegisteredWorktreePath(repo.path, store)
     const { worktreeId, summary } = await createPerforceCopyForWorkspace({
       backend: resolveWorkspaceCopyBackend(route.kind === 'ssh' ? route.connectionId : undefined),
-      repo,
+      repo: route.kind === 'ssh' ? { ...repo, connectionId: route.connectionId } : repo,
       sourceDir,
       workspaceName: args.name,
       stream: args.perforceCopy?.stream,
