@@ -84,7 +84,7 @@ Settings › Perforce › Workspace Copies: minimum free space (default 10 GB), 
 2. **Copy.** `robocopy /E /COPY:DAT /DCOPY:DAT /MT:32` into `<root>.wt\<name>`, keeping timestamps so
    Unity does not reimport. Each Unity project's `Temp`, `Logs`, `obj` and editor lock files stay behind.
 3. **Stream and client.** The copy's own sparsedev stream `<parent>_wt_<name>` (`stream -o -t sparsedev
--P <parent>` → `stream -i`), branched at the parent's latest change; an earlier copy's stream of the
+   -P <parent>` → `stream -i`), branched at the parent's latest change; an earlier copy's stream of the
    same name that kept submitted work is continued instead. Then `<client>_wt_<name>` from the source's
    spec (`client -o` → `client -i`) with the new Root and Stream.
 4. **Adopt.** `p4 flush //<copy>/...` (or `@<source client>` when working directly on the workspace's
