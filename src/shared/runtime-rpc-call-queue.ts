@@ -3,6 +3,7 @@ import { REMOTE_RUNTIME_MAX_PREPARED_RPC_BYTES } from './remote-runtime/remote-r
 
 const DEFAULT_REMOTE_RUNTIME_CALL_CONCURRENCY = 8
 const DEFAULT_REMOTE_RUNTIME_BACKGROUND_CALL_CONCURRENCY = 2
+const REMOTE_RUNTIME_BULK_READ_CONCURRENCY = 2
 export const RUNTIME_RPC_MAX_QUEUED_CALLS_PER_SELECTOR = 256
 export const RUNTIME_RPC_MAX_QUEUED_CALLS_TOTAL = 2_048
 export const RUNTIME_RPC_QUEUE_OVERLOAD_CODE = 'runtime_rpc_queue_overloaded'
@@ -28,6 +29,7 @@ type QueuedRuntimeCall<T> = {
 }
 
 type RuntimeCallQueue = {
+  concurrency: number
   active: number
   backgroundActive: number
   foreground: (QueuedRuntimeCall<unknown> | undefined)[]
@@ -62,11 +64,19 @@ function isLongWaitRuntimeMethod(method: string): boolean {
   return method === 'worktree.rm' || method === 'agentSession.modelCatalog'
 }
 
+// Byte-range reads (media, paged files, downloads) are bulk: a playing video must not hold terminal or workspace slots.
+function isBulkReadRuntimeMethod(method: string): boolean {
+  return method === 'files.readChunk'
+}
+
 // Why: p4 scans, syncs and copy removals run for minutes on large workspaces, so Perforce gets its
 // own queue rather than holding the slots Git status and listing refreshes share.
 function runtimeCallQueueLane(method: string): string | null {
   if (isLongWaitRuntimeMethod(method)) {
     return 'long-wait'
+  }
+  if (isBulkReadRuntimeMethod(method)) {
+    return 'bulk-read'
   }
   return method.startsWith('perforce.') ? 'perforce' : null
 }
@@ -96,6 +106,7 @@ export class RuntimeRpcCallQueuePool {
     }
     // Same concurrency bound, counted apart from the selector's other calls; global caps still apply.
     const lane = runtimeCallQueueLane(method)
+    const bulkRead = lane === 'bulk-read'
     const queueKey = lane ? `${selector}\u0000${lane}` : selector
     if (this.queuedCallCount >= this.maxQueuedTotal) {
       return Promise.reject(new RuntimeRpcCallQueueOverloadError('global'))
@@ -112,7 +123,10 @@ export class RuntimeRpcCallQueuePool {
       return Promise.reject(new RuntimeRpcCallQueueOverloadError('memory'))
     }
 
-    const queue = this.getQueue(queueKey)
+    const queue = this.getQueue(
+      queueKey,
+      bulkRead ? Math.min(this.concurrency, REMOTE_RUNTIME_BULK_READ_CONCURRENCY) : this.concurrency
+    )
     return new Promise<T>((resolve, reject) => {
       const call: QueuedRuntimeCall<T> = {
         background: isBackgroundRuntimeMethod(method),
@@ -135,10 +149,11 @@ export class RuntimeRpcCallQueuePool {
     })
   }
 
-  private getQueue(selector: string): RuntimeCallQueue {
+  private getQueue(selector: string, concurrency: number): RuntimeCallQueue {
     let queue = this.queues.get(selector)
     if (!queue) {
       queue = {
+        concurrency,
         active: 0,
         backgroundActive: 0,
         foreground: [],
@@ -152,7 +167,7 @@ export class RuntimeRpcCallQueuePool {
   }
 
   private pump(selector: string, queue: RuntimeCallQueue): void {
-    while (queue.active < this.concurrency) {
+    while (queue.active < queue.concurrency) {
       let call = this.takeForeground(queue)
       if (!call && queue.backgroundActive < this.backgroundConcurrency) {
         call = this.takeBackground(queue)
