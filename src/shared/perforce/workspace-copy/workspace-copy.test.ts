@@ -212,6 +212,8 @@ describe('createWorkspaceCopy (other streams)', () => {
 
     expect(result).toMatchObject({ mode: 'child', stream: '//s/dev_wt_feat' })
     expect(existsSync(join(base, 'ws.wt', 'feat', 'dev-only.txt'))).toBe(true)
+    const marker = JSON.parse(await readFile(join(base, 'ws.wt', 'feat.p4-worktree.json'), 'utf8'))
+    expect(marker.handBack).toContain('brings the work into //s/dev with Copy Up')
   })
 
   it('fetches only the files that differ when the copy goes on another stream', async () => {
