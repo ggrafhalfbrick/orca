@@ -2,8 +2,15 @@ import { useAppStore } from '@/store'
 import { MODAL_DISMISSED_KEY } from '@/store/slices/modal-slot-dismissal'
 import { normalizePerforceSettings } from '../../../shared/perforce/perforce-settings'
 
-let pending: { path: string; answer: (open: boolean) => void; decision: Promise<boolean> } | null =
-  null
+type PendingPrompt = {
+  path: string
+  answer: (open: boolean) => void
+  decision: Promise<boolean>
+  /** Set once "Always open for edit" is saving: the answer waits for the setting, not the dialog. */
+  savingPreference?: true
+}
+
+let pending: PendingPrompt | null = null
 
 /**
  * Asks in an in-app dialog whether to open a read-only Perforce file for edit before saving it.
@@ -27,11 +34,15 @@ export function askToOpenForEdit(relativePath: string): Promise<boolean> {
       resolve(open)
     }
   })
-  const current = { path: relativePath, answer, decision }
+  const current: PendingPrompt = { path: relativePath, answer, decision }
   useAppStore.getState().openModal('perforce-open-for-edit', {
     path: relativePath,
     // Why: another modal taking the slot must not leave the save waiting forever.
-    [MODAL_DISMISSED_KEY]: () => current.answer(false)
+    [MODAL_DISMISSED_KEY]: () => {
+      if (!current.savingPreference) {
+        current.answer(false)
+      }
+    }
   })
   pending = current
   return decision
@@ -42,11 +53,23 @@ export function answerOpenForEditPrompt(open: boolean): void {
   pending?.answer(open)
 }
 
-/** "Always open for edit": opens this file, and later saves open theirs without asking. */
-export function alwaysOpenForEdit(): void {
-  const { settings, updateSettings } = useAppStore.getState()
-  void updateSettings({
-    perforce: { ...normalizePerforceSettings(settings?.perforce), saveReadOnlyBehavior: 'auto' }
-  })
-  answerOpenForEditPrompt(true)
+/**
+ * "Always open for edit": opens this file, and later saves open theirs without asking. When the
+ * setting cannot be saved the file is not opened either, and the error is rethrown.
+ */
+export async function alwaysOpenForEdit(): Promise<void> {
+  const prompt = pending
+  if (prompt) {
+    prompt.savingPreference = true
+  }
+  const { settings, updateSettingsOrThrow } = useAppStore.getState()
+  try {
+    await updateSettingsOrThrow({
+      perforce: { ...normalizePerforceSettings(settings?.perforce), saveReadOnlyBehavior: 'auto' }
+    })
+  } catch (error) {
+    prompt?.answer(false)
+    throw error
+  }
+  prompt?.answer(true)
 }

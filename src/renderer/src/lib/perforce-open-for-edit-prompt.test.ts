@@ -10,13 +10,13 @@ const modal = vi.hoisted((): { data: Record<string, unknown> | null; opened: num
   data: null,
   opened: 0
 }))
-const updateSettings = vi.hoisted(() => vi.fn(async (_updates: unknown) => {}))
+const updateSettingsOrThrow = vi.hoisted(() => vi.fn(async (_updates: unknown) => {}))
 
 vi.mock('@/store', () => ({
   useAppStore: {
     getState: () => ({
       settings: { perforce: { saveReadOnlyBehavior: 'ask', refreshIntervalSeconds: 30 } },
-      updateSettings,
+      updateSettingsOrThrow,
       // Like the store: the singleton slot settles whatever modal it replaces.
       openModal: (_modal: string, data: Record<string, unknown>) => {
         const dismissed = modal.data?.[MODAL_DISMISSED_KEY]
@@ -29,6 +29,15 @@ vi.mock('@/store', () => ({
     })
   }
 }))
+
+// Like the dialog: the "Always open for edit" button closes the modal right away.
+function closeDialog(): void {
+  const dismissed = modal.data?.[MODAL_DISMISSED_KEY]
+  modal.data = null
+  if (typeof dismissed === 'function') {
+    dismissed()
+  }
+}
 
 beforeEach(() => {
   answerOpenForEditPrompt(false)
@@ -48,14 +57,25 @@ describe('askToOpenForEdit', () => {
 
   it('"Always open for edit" opens this file and stops asking, keeping the other settings', async () => {
     const save = askToOpenForEdit('a.cs')
-    alwaysOpenForEdit()
+    const always = alwaysOpenForEdit()
+    closeDialog()
+    await always
     await expect(save).resolves.toBe(true)
-    expect(updateSettings).toHaveBeenCalledWith({
+    expect(updateSettingsOrThrow).toHaveBeenCalledWith({
       perforce: expect.objectContaining({
         saveReadOnlyBehavior: 'auto',
         refreshIntervalSeconds: 30
       })
     })
+  })
+
+  it('does not open the file when "Always open for edit" cannot be saved', async () => {
+    updateSettingsOrThrow.mockRejectedValueOnce(new Error('disk full'))
+    const save = askToOpenForEdit('a.cs')
+    const always = alwaysOpenForEdit()
+    closeDialog()
+    await expect(always).rejects.toThrow('disk full')
+    await expect(save).resolves.toBe(false)
   })
 
   it('declines a prompt that another modal replaced', async () => {

@@ -1,3 +1,4 @@
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -43,7 +44,9 @@ export default function PerforceOpenForEditDialog() {
           <Button
             variant="outline"
             onClick={() => {
-              alwaysOpenForEdit()
+              alwaysOpenForEdit().catch((error: unknown) =>
+                toast.error(error instanceof Error ? error.message : String(error))
+              )
               closeModal()
             }}
           >
