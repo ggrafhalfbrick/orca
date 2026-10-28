@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useAppStore } from '@/store'
 import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
 import { runtimeTargetForRepoOwner } from '@/lib/repo-runtime-owner'
+import { ipcOrRuntimeTargetForHostId } from '@/runtime/runtime-client-target'
 import { findRepoForHost } from '@/store/slices/repo-host-identity'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import { isFolderRepo, isPerforceRepo } from '../../../shared/repo-kind'
@@ -97,7 +98,9 @@ export function perforceProjectTarget(
 ): PerforceProjectTarget {
   const state = useAppStore.getState()
   return {
-    target: runtimeTargetForRepoOwner(state, repoId) ?? { kind: 'local' },
+    // Why: twin rows share `repoId`, so only `hostId` can name the runtime that owns this one.
+    target: (hostId ? ipcOrRuntimeTargetForHostId(hostId) : null) ??
+      runtimeTargetForRepoOwner(state, repoId) ?? { kind: 'local' },
     settings: {
       perforce: state.settings?.perforce,
       agentCmdOverrides: state.settings?.agentCmdOverrides,

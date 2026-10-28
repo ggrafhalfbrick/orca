@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Repo } from '../../../shared/repo-types'
-import { perforceTargetForFile } from './perforce-workspace-target'
+import { perforceProjectTarget, perforceTargetForFile } from './perforce-workspace-target'
 
 type Row = { id: string; repoId: string; path: string }
 
@@ -74,5 +74,18 @@ describe('perforceTargetForFile', () => {
     detect.mockClear()
     await expect(perforceTargetForFile(context('git::/git', '/git'))).resolves.toBeNull()
     expect(detect).not.toHaveBeenCalled()
+  })
+})
+
+describe('perforceProjectTarget', () => {
+  it('routes a project whose id repeats across hosts to the host named by hostId', () => {
+    store.repos = [
+      repo('p4', { kind: 'folder', vcs: 'perforce' }),
+      repo('p4', { kind: 'folder', vcs: 'perforce', executionHostId: 'runtime:box' })
+    ]
+    expect(perforceProjectTarget('p4', 'runtime:box').target).toEqual({
+      kind: 'environment',
+      environmentId: 'box'
+    })
   })
 })
