@@ -17,8 +17,9 @@ Git worktree on a branch of its own.
   in Create from.
 
 The requirement is the host's, not the desktop's: the readiness check runs where the workspace is, so
-a Mac connected to a Windows 11 SSH host (managed Orca server or relay) or paired with a Windows 11 Orca
-server makes copies there. Everywhere else (macOS, Linux, older
+a Mac connected to a Windows 11 SSH host that runs a managed Orca server, or paired with a Windows 11
+Orca server, makes copies there. An SSH host that stays on the relay cannot make copies for now (see
+the code map). Everywhere else (macOS, Linux, older
 Windows, a drive that does not block-clone) Perforce source control works as usual and a new
 workspace shares the project folder. The UI says so before anyone tries: the Create workspace option
 replaces its stream picker with the requirement when the host cannot make copies, and Manage Perforce
@@ -136,8 +137,9 @@ list and remove the ones Orca makes.
   `worktree.create` with `perforceCopy` (`runtime-folder-worktree-create.ts`) records the workspace.
   An Orca server gets the client's copy options in `perforceCopy.settings`, and the client waits up to
   an hour (`PERFORCE_COPY_REQUEST_TIMEOUT_MS`).
-- `src/main/perforce/perforce-copy-backend.ts`: where the engine runs, on this host or over an SSH
-  target's relay (`src/relay/perforce-copy-handler.ts`).
+- `src/main/perforce/perforce-copy-backend.ts`: where the engine runs: on this host. An SSH target on
+  the relay gets a deferred backend that refuses every operation until copies move to the host's Orca
+  runtime.
 - `src/main/perforce/perforce-copy-worktrees.ts`: sidebar metadata (including the copy's
   `perforceStream`) for adopted and vanished copies.
 - `src/shared/worktree/perforce-copy-worktree.ts`: copy worktree ids (`${repoId}::<root>.wt\<name>`).
