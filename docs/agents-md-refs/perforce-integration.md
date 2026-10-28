@@ -13,11 +13,10 @@ Orca can drive a Perforce (Helix Core) client workspace from the Source Control 
 - **Remote folders work the same way**, with `p4` (and its login ticket) needed only on the host that owns the folder:
   - On an SSH host that runs a managed Orca server (the default), and on a paired Orca server, the renderer calls
     that server's `perforce.*` runtime RPC methods, exactly as it calls `git.*` there.
-  - On an SSH host that stays on the relay, the desktop sends the same `perforce.*` requests over the relay
-    connection.
-  - A host whose Orca build predates this answers without the `perforce.v1` capability (or method-not-found on a
-    relay); the app asks the user to update Orca on that host (or reconnect the SSH target) instead of failing each
-    call.
+  - An SSH host that stays on the relay has no Perforce for now: since the SSH relay change, every request for a
+    relay-hosted folder fails with "Remote Perforce is unavailable", until Perforce moves to the host's Orca runtime.
+  - A host whose Orca build predates this answers without the `perforce.v1` capability; the app asks the user to
+    update Orca on that host instead of failing each call.
 
 ## Concepts mapped to the panel
 
@@ -50,7 +49,7 @@ workspace, and right-click offers **Open shelved file** and **Unshelve file**. R
 **Copy changelist number** and **Delete changelist** (drops the shelf, reverts opened files, deletes it).
 
 Every one of these operations is one entry of `PERFORCE_WORKSPACE_OPERATIONS`
-(`src/shared/perforce/perforce-operations.ts`), so local, relay and Orca-server workspaces support the same set and
+(`src/shared/perforce/perforce-operations.ts`), so local and Orca-server workspaces support the same set and
 validate arguments the same way.
 
 Saving a read-only workspace file from Orca's editor first runs `p4 edit` on it: automatically by default, or after an
@@ -72,9 +71,9 @@ removed from the project menu; see [perforce-workspace-copies.md](./perforce-wor
 - `src/shared/perforce/` — everything that runs `p4`: runner, tagged-output parser, detection, status/diff,
   mutations, changelists, `PerforceBackend` (the full operation set) and `perforce-operations.ts` (the operation table
   every transport dispatches through).
-- `src/main/ipc/perforce.ts` + `src/preload/api/perforce-*.ts` — `perforce:run` IPC for this desktop's folders and
-  its relay-hosted SSH folders (`connectionId` selects SSH; `src/main/perforce/perforce-ssh-backend.ts`).
-- `src/relay/perforce-handler.ts` — the same table as `perforce.*` relay RPC.
+- `src/main/ipc/perforce.ts` + `src/preload/api/perforce-*.ts` — `perforce:run` IPC for this desktop's folders. A
+  relay-hosted SSH folder (`connectionId`) gets the deferred backend in `src/main/perforce/perforce-ssh-backend.ts`,
+  which refuses every operation.
 - `src/main/runtime/runtime-perforce-commands.ts` + `src/main/runtime/rpc/methods/perforce.ts` — the same table as
   `perforce.*` runtime RPC (`src/shared/rpc-contract/perforce-params.ts`), served by every Orca runtime.
 - `src/renderer/src/runtime/runtime-perforce-client.ts` — routes a workspace the way Git routes it: IPC for this
@@ -90,7 +89,7 @@ the `E` tab marker, new-changelist defaults, submit and destructive-action confi
 submit, and the AI description button.
 
 Settings travel with each request and reach the p4 runner through a request-scoped context
-(`p4-settings-context.ts`): desktop IPC applies this desktop's settings, and the relay and Orca-server methods apply
+(`p4-settings-context.ts`): desktop IPC applies this desktop's settings, and the Orca-server methods apply
 the `settings` param the client sends. Those omit the p4 path, client and P4CONFIG, which name things on the client's
 machine. An Orca server fills them from its own Settings > Perforce (`perforceSettingsOnHost`), along with its
 P4PORT and P4USER where the client leaves those empty, and a client that sends no settings (mobile, an older

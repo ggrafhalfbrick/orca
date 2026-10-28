@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import type { WorkspaceCopyNames } from './workspace-copy-names'
 import type { CopySource } from './workspace-copy-source'
+import { copyOwnStreamParent } from './workspace-copy-stream-choice'
 import type { WorkspaceCopyMode } from './workspace-copy-types'
 
 /**
@@ -23,10 +24,17 @@ export type WorkspaceCopyMarker = {
   createdBy?: string
 }
 
-function handBackText(source: CopySource, stream: string, mode: WorkspaceCopyMode): string {
+function handBackText(
+  source: CopySource,
+  name: string,
+  stream: string,
+  mode: WorkspaceCopyMode
+): string {
   const submit = `Submit finished work from this copy once it is tested here; sync and retest first if ${stream} has moved on. Shelve instead only to review it in the original workspace.`
+  // Copy Up submits into the stream's parent, which a child copy may have picked over the source's stream.
+  const parent = copyOwnStreamParent(stream, name) ?? source.stream
   return mode === 'child'
-    ? `This copy is on its own stream ${stream}. ${submit} The developer brings the work into ${source.stream} with Copy Up in the copy's Orca workspace menu, then removes the copy.`
+    ? `This copy is on its own stream ${stream}. ${submit} The developer brings the work into ${parent} with Copy Up in the copy's Orca workspace menu, then removes the copy.`
     : `This copy is on ${stream}. ${submit} Then remove the copy.`
 }
 
@@ -49,7 +57,7 @@ export function buildMarker(args: {
     source: { client: source.client, root: source.root, stream: source.stream },
     created: now,
     updated: now,
-    handBack: handBackText(source, stream, mode),
+    handBack: handBackText(source, names.name, stream, mode),
     unityVersionControlBinding: args.unityVersionControlBinding,
     createdBy: 'orca'
   }
