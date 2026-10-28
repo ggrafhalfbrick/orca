@@ -21,7 +21,10 @@ The same places Unity Hub uses, read directly:
 3. `<version>` under Hub's default install folder: `C:\Program Files\Unity\Hub\Editor` on
    Windows, `/Applications/Unity/Hub/Editor` on macOS, `~/Unity/Hub/Editor` on Linux.
 
-It starts the editor with `-projectPath <worktree>`. On Windows it tells whether the project is
+It starts the editor with `-projectPath <worktree>`. On Windows the editor gets the environment
+Unity Hub would give it: the machine, session and user variables from the registry, so the
+project's tools find `Path` entries, `PSModulePath` and variables like `WWISEROOT` you have set.
+On Windows it tells whether the project is
 open from the editor's lock on `Temp/UnityLockfile`; on macOS and Linux from the running
 editors' command lines.
 
