@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { withTimeout } from '../../shared/promise-timeout-fallback'
 import { isFolderRepo } from '../../shared/repo-kind'
 import type { Repo } from '../../shared/repo-types'
+import type { WorktreeMeta } from '../../shared/worktree/meta-types'
 import { splitWorktreeId } from '../../shared/worktree/id'
 import { isPerforceCopyWorktreeIdForRepo } from '../../shared/worktree/perforce-copy-worktree'
 import { getErrorCode } from '../git/worktree-operation-options'
@@ -33,10 +34,10 @@ export async function listWorktreeRootsWithConcurrency(
 ): Promise<ListedRoots[]> {
   const runtimes = resolveLocalProjectRuntimesForRepos(store, repos)
   // Perforce copies of folder projects are known only from metadata; skip the read when none can exist.
-  const worktreeIds =
+  const worktreeMeta =
     repos.some(isFolderRepo) && typeof store.getAllWorktreeMeta === 'function'
-      ? Object.keys(store.getAllWorktreeMeta())
-      : []
+      ? store.getAllWorktreeMeta()
+      : {}
   const results: ListedRoots[] = []
   let nextIndex = 0
   await Promise.all(
@@ -65,7 +66,7 @@ export async function listWorktreeRootsWithConcurrency(
             )) {
               roots.add(resolve(worktree.path))
             }
-            for (const copyPath of perforceCopyPaths(repo, worktreeIds)) {
+            for (const copyPath of perforceCopyPaths(repo, worktreeMeta)) {
               roots.add(resolve(copyPath))
             }
           } catch (error) {
@@ -83,14 +84,17 @@ export async function listWorktreeRootsWithConcurrency(
   return results
 }
 
-function perforceCopyPaths(repo: Repo, worktreeIds: readonly string[]): string[] {
+function perforceCopyPaths(repo: Repo, worktreeMeta: Record<string, WorktreeMeta>): string[] {
   if (!isFolderRepo(repo)) {
     return []
   }
-  return worktreeIds.flatMap((worktreeId) => {
-    const path = isPerforceCopyWorktreeIdForRepo(repo, worktreeId)
-      ? splitWorktreeId(worktreeId)?.worktreePath
-      : undefined
+  return Object.entries(worktreeMeta).flatMap(([worktreeId, meta]) => {
+    // Why: main stamps a copy it records with creation provenance, which renderer meta writes cannot
+    // set, so a copy-shaped id written through `worktrees:updateMeta` never authorizes its folder.
+    const path =
+      meta.orcaCreatedAt !== undefined && isPerforceCopyWorktreeIdForRepo(repo, worktreeId)
+        ? splitWorktreeId(worktreeId)?.worktreePath
+        : undefined
     return path ? [path] : []
   })
 }
