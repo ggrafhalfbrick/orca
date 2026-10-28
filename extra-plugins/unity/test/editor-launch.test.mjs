@@ -11,7 +11,7 @@ test('drops the worker-only variables that make Electron apps run as Node', () =
   assert.deepEqual(env, { PATH: '/bin' })
 })
 
-test('restores Windows folder variables that older Orca workers omit', () => {
+test('restores Windows folder variables the worker omits', () => {
   const env = editorEnvironment(
     { USERPROFILE: 'C:\\Users\\dev', SYSTEMDRIVE: 'C:', ProgramFiles: 'D:\\PF' },
     'win32'
@@ -19,8 +19,25 @@ test('restores Windows folder variables that older Orca workers omit', () => {
   assert.equal(env.APPDATA, 'C:\\Users\\dev\\AppData\\Roaming')
   assert.equal(env.LOCALAPPDATA, 'C:\\Users\\dev\\AppData\\Local')
   assert.equal(env.PROGRAMDATA, 'C:\\ProgramData')
+  assert.equal(env.ALLUSERSPROFILE, 'C:\\ProgramData')
   assert.equal(env.ProgramFiles, 'D:\\PF')
   assert.equal(env.PROGRAMFILES, undefined)
+  assert.equal(env.COMMONPROGRAMFILES, 'D:\\PF\\Common Files')
+  assert.equal(env.PUBLIC, 'C:\\Users\\Public')
+  assert.equal(env.OS, 'Windows_NT')
+})
+
+test('derives ALLUSERSPROFILE from PROGRAMDATA in any casing and keeps an existing one', () => {
+  assert.equal(
+    editorEnvironment({ SystemDrive: 'C:', ProgramData: 'E:\\Data' }, 'win32').ALLUSERSPROFILE,
+    'E:\\Data'
+  )
+  const env = editorEnvironment(
+    { SYSTEMDRIVE: 'C:', AllUsersProfile: 'F:\\All', PROGRAMDATA: 'E:\\Data' },
+    'win32'
+  )
+  assert.equal(env.AllUsersProfile, 'F:\\All')
+  assert.equal(env.ALLUSERSPROFILE, undefined)
 })
 
 test('requires a display on Linux only', () => {
@@ -56,6 +73,26 @@ test('starts the editor detached on the project and lets it outlive the worker',
   assert.equal(call[2].stdio, 'ignore')
   assert.deepEqual(call[2].env, { PATH: '/bin' })
   assert.equal(child.unrefed, true)
+})
+
+test('gives the editor the variables from the Windows registry, as Unity Hub has them', async () => {
+  const child = fakeChild()
+  let call
+  await launchEditor('C:\\Unity.exe', 'C:\\work\\game', {
+    env: { PATH: 'C:\\Windows', SYSTEMDRIVE: 'C:', ELECTRON_RUN_AS_NODE: '1' },
+    platform: 'win32',
+    readRegistry: async () => [
+      { scope: 'user', name: 'WWISEROOT', expand: false, value: 'C:\\Wwise' }
+    ],
+    spawnProcess: (...args) => {
+      call = args
+      queueMicrotask(() => child.emit('spawn'))
+      return child
+    }
+  })
+  assert.equal(call[2].env.WWISEROOT, 'C:\\Wwise')
+  assert.equal(call[2].env.ALLUSERSPROFILE, 'C:\\ProgramData')
+  assert.equal(call[2].env.ELECTRON_RUN_AS_NODE, undefined)
 })
 
 test('reports a failed start', async () => {
