@@ -18,8 +18,7 @@ vi.mock('@/store', () => ({
         activeModal: 'none',
         settings: { defaultTuiAgent: null, disabledTuiAgents: [] },
         updateSettings: vi.fn(),
-        endpointProjects: [],
-        endpointProjectHostSetups: [],
+        projects: [],
         repos: []
       }),
     { getState: () => ({ setRuntimeEnvironmentStatus: vi.fn() }) }
