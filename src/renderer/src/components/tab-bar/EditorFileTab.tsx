@@ -1,17 +1,16 @@
-import { createElement, useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { GitCompareArrows, Eye, ShieldAlert, Pin, ListChecks } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { TabHoverCard } from './TabHoverCard'
 import { basename } from '@/lib/path'
-import { getEditorDisplayLabel } from '@/components/editor/editor-labels'
+import { useEditorTabLabel } from './use-editor-tab-label'
 import { renameFileOnDisk } from '@/lib/rename-file'
 import { isImeCompositionKeyDown } from '@/lib/ime-composition-keyboard-event'
 import { detectLanguage } from '@/lib/language-detect'
 import { getFileTypeIcon } from '@/lib/file-type-icons'
 import { useRepoById, useWorktreeById } from '@/store/selectors'
 import { useAppStore } from '@/store'
-import { usePerforceEditedTab } from '../right-sidebar/perforce/use-perforce-edited-tab'
 import { STATUS_COLORS, STATUS_LABELS } from '../right-sidebar/status-display'
 import type { GitFileStatus } from '../../../../shared/git-status-types'
 import type { OpenFile } from '../../store/slices/editor'
@@ -34,6 +33,8 @@ import { useTabStripSlotProps } from './use-tab-strip-slot-props'
 import { EditorFileTabCloseButton } from './EditorFileTabCloseButton'
 import { useTabStripPointerActivation } from './tab-strip-pointer-activation'
 import { editorTabDocumentFolderAccess } from '@/lib/local-file-access'
+import { useTabCustomEditor } from '@/store/plugin-custom-editors'
+import { PluginContributionIcon } from '../plugins/PluginContributionIcon'
 
 export default function EditorFileTab({
   file,
@@ -90,6 +91,7 @@ export default function EditorFileTab({
   const isConflictReview = file.mode === 'conflict-review'
   const isCheckDetails = file.mode === 'check-details'
   const isMarkdownPreviewTab = file.mode === 'markdown-preview'
+  const customEditor = useTabCustomEditor(file)
   const HoverIcon = isConflictReview
     ? ShieldAlert
     : isCheckDetails
@@ -99,6 +101,13 @@ export default function EditorFileTab({
         : isMarkdownPreviewTab
           ? Eye
           : FileIcon
+  const tabIcon = (className: string): React.ReactNode => (
+    <PluginContributionIcon
+      url={customEditor?.iconUrl}
+      fallback={HoverIcon}
+      className={className}
+    />
+  )
   // Strike through missing paths only; changed content is explained by the editor’s on-disk banner.
   const isMissingFileMutation =
     file.externalMutation === 'deleted' || file.externalMutation === 'renamed'
@@ -196,8 +205,7 @@ export default function EditorFileTab({
   )
 
   const tabStatusColor = tabStatus ? STATUS_COLORS[tabStatus] : undefined
-  const isOpenedForEdit = usePerforceEditedTab(file, worktree?.path ?? null, repo)
-  const tabLabel = `${isOpenedForEdit ? 'E ' : ''}${getEditorDisplayLabel(file)}`
+  const tabLabel = useEditorTabLabel(file, worktree?.path ?? null, repo)
 
   useEffect(() => {
     const closeMenu = (): void => setMenuOpen(false)
@@ -270,9 +278,7 @@ export default function EditorFileTab({
           className={`w-3.5 h-3.5 mr-1.5 shrink-0 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
         />
       ) : (
-        createElement(HoverIcon, {
-          className: `w-3 h-3 mr-1 shrink-0 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`
-        })
+        tabIcon(`w-3 h-3 mr-1 shrink-0 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`)
       )}
       {isPinned && <Pin className="mr-1 size-3 shrink-0 text-muted-foreground" aria-hidden />}
       <span className="mr-1 flex min-w-0 flex-1 items-baseline gap-1">
@@ -378,8 +384,8 @@ export default function EditorFileTab({
         ) : (
           <TabHoverCard
             title={tabLabel}
-            programName={translate('tabHoverCard.editor', 'Editor')}
-            icon={createElement(HoverIcon, { className: 'size-4' })}
+            programName={customEditor?.title ?? translate('tabHoverCard.editor', 'Editor')}
+            icon={tabIcon('size-4')}
             description={file.relativePath}
           >
             {tabRoot}

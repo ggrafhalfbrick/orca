@@ -83,7 +83,7 @@ export type RuntimePerforceCopyCommandHost = {
     connectionId?: string
   ): Promise<{ finish(completed: boolean): Promise<void> }>
   /** Stops the workspace's terminals and agent sessions; throws when it cannot prove they stopped. */
-  stopWorkspaceTerminals(worktreeId: string, connectionId: string | null): Promise<void>
+  stopWorkspaceTerminals(worktreeId: string, options: { connectionId?: string }): Promise<void>
   forgetWorktree(worktreeId: string, repoId: string, hostId: ExecutionHostId): void
   worktreesChanged(repoId: string): void
   reposChanged(): void
@@ -204,7 +204,10 @@ export class RuntimePerforceCopyCommands {
     let result: WorkspaceCopyRemovalResult
     try {
       if (found) {
-        await this.host.stopWorkspaceTerminals(found.worktreeId, connectionId)
+        await this.host.stopWorkspaceTerminals(
+          found.worktreeId,
+          connectionId ? { connectionId } : {}
+        )
       }
       result = await backend.remove(repo.path, name, options)
       completed = true

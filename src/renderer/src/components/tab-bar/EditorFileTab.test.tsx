@@ -54,6 +54,8 @@ vi.mock('react', async () => {
   }
 })
 
+vi.mock('@/store/plugin-custom-editors', () => ({ useTabCustomEditor: () => null }))
+
 vi.mock('./use-tab-strip-slot-props', () => ({
   useTabStripSlotProps: () => ({ className: '', 'data-tab-strip-slot': '' })
 }))

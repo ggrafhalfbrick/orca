@@ -4,7 +4,9 @@ import { RuntimeRpcCallError } from '@/runtime/runtime-rpc-result'
 import { AGENT_LAUNCH_RUNTIME_CAPABILITY } from '../../../../../../shared/agent-launch-runtime-capability'
 import type { CreateWorktreeResult } from '../../../../../../shared/worktree/create-types'
 import { PERFORCE_COPY_REQUEST_TIMEOUT_MS } from '../../../../../../shared/perforce/workspace-copy/workspace-copy-operations'
-import type { ClientWorktreeCreateSettings } from './client-worktree-create-settings'
+import type { GlobalSettings } from '../../../../../../shared/global-settings-types'
+import { assertPerforceRuntime, remotePerforceSettings } from '@/runtime/runtime-perforce-client'
+import { pickClientWorktreeCreateSettings } from './client-worktree-create-settings'
 import {
   buildRuntimeWorktreeCreateParams,
   type CreatedWorktreeResult,
@@ -13,13 +15,23 @@ import {
   type WorktreeCreateRequest
 } from './worktree-create-payload'
 
+/** The client's settings; a paired host applies the ones a create needs instead of its own. */
+export type HostCreateSettings = GlobalSettings | null | undefined
+
 /** Choose one planner for paired-host create: capable host settings or universally accepted desktop-built command. */
 export async function createWorktreeOnRuntimeHost(
   environmentId: string,
-  request: WorktreeCreateRequest,
+  hostRequest: WorktreeCreateRequest,
   attempt: WorktreeCreateAttempt,
-  clientCreateSettings: ClientWorktreeCreateSettings
+  settings: HostCreateSettings
 ): Promise<CreatedWorktreeResult> {
+  let request = hostRequest
+  if (request.options?.perforceCopy) {
+    // Why: a host without Perforce copies would ignore the request and share the project folder.
+    await assertPerforceRuntime({ kind: 'environment', environmentId })
+    request = { ...request, perforceSettings: remotePerforceSettings(settings) }
+  }
+  const clientCreateSettings = pickClientWorktreeCreateSettings(settings)
   const call = (launch?: HostAgentLaunch): Promise<CreateWorktreeResult> =>
     callRuntimeRpc<CreateWorktreeResult>(
       { kind: 'environment', environmentId },
