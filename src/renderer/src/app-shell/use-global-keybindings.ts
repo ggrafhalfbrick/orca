@@ -4,7 +4,7 @@ import { translate } from '@/i18n/i18n'
 import { canShowRightSidebarForView } from '@/lib/right-sidebar-visibility'
 import { getSelectedTextForFileSearch } from '../lib/file-search-selection'
 import { registerAppCommandDispatcher } from '@/lib/app-command-dispatch'
-import { executePluginCommand } from '@/lib/plugin-command-execution'
+import { executePluginCommand, showPluginCommandMessage } from '@/lib/plugin-command-execution'
 import {
   findPluginCommandForKeybinding,
   globalShortcutTargetYields
@@ -18,7 +18,7 @@ import {
 import { usePluginCommands } from '@/store/plugin-panels'
 import { useAppStore } from '../store'
 import { keybindingMatchesAction, type KeybindingActionId } from '../../../shared/keybindings'
-import { PLUGIN_COMMAND_ALIAS_ACTION_IDS } from '../../../shared/plugins/plugin-command-actions'
+import { PLUGIN_COMMAND_ALIAS_ACTION_IDS } from '../../../shared/plugins/contributions/plugin-command-actions'
 import {
   ModifierDoubleTapDetector,
   toModifierDoubleTapEvent
@@ -202,7 +202,9 @@ export function useGlobalKeybindings(args: {
           input.preventDefault()
           void executePluginCommand(pluginCommand, 'plugin-keybinding', {
             worktreeId: activeWorktreeId
-          }).catch(() => {
+          })
+            .then(showPluginCommandMessage)
+            .catch(() => {
             toast.error(
               translate('auto.App.pluginCommandFailed', 'Could not run the plugin command.')
             )

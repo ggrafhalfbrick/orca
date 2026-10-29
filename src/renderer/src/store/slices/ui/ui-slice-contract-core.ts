@@ -14,7 +14,7 @@ import type { LaunchSource } from '../../../../../shared/telemetry-events'
 import type { TaskSourceContext } from '../../../../../shared/task-source-context'
 import type { ExecutionHostId } from '../../../../../shared/execution-host'
 import type { TaskResumeState, TopLevelView } from '../../../../../shared/ui-chrome-types'
-import type { PluginTaskSourceRef } from '../../../../../shared/plugins/plugin-task-source-ref'
+import type { PluginTaskSourceRef } from '../../../../../shared/plugins/tasks/plugin-task-source-ref'
 
 export type PendingSidebarWorktreeReveal = {
   worktreeId: string
@@ -73,8 +73,8 @@ export type TaskPageData = {
   openJiraIssue?: JiraIssue
   openJiraSourceContext?: TaskSourceContext | null
   pluginTaskSource?: PluginTaskSourceRef
-  /** Item of `pluginTaskSource` whose detail opens on arrival. */
-  openPluginTaskItem?: { id: string; title: string }
+  /** Item of `pluginTaskSource` whose detail opens on arrival; `openedAt` tells repeated opens apart. */
+  openPluginTaskItem?: { id: string; title: string; openedAt?: number }
 }
 
 export type NewWorkspaceDraft = {

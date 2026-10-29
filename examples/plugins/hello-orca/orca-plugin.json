@@ -1,20 +1,21 @@
 {
-  "manifestVersion": 1,
+  "manifestVersion": 2,
+  "execution": "trusted-worker",
   "id": "hello-orca",
-  "publisher": "orca-samples",
+  "publisher": "your-github-user",
   "name": "Hello Orca",
   "version": "1.0.0",
-  "description": "Sample plugin combining a sandboxed panel, worker commands, a worktree badge, and event subscriptions.",
-  "engines": { "orca": ">=1.4.0" },
+  "description": "Sample plugin combining a sandboxed panel, worker commands, a workspace badge, and event subscriptions.",
+  "engines": { "orca": ">=1.4.245" },
   "pluginApi": 1,
   "main": "main.mjs",
   "contributes": {
     "panels": [{ "id": "hello", "title": "Hello Orca", "icon": "plug", "entry": "panel.html" }],
     "commands": [
       { "id": "hello-ping", "title": "Hello: Ping" },
-      { "id": "hello-worktree", "title": "Hello: Show folder", "context": "worktree" }
+      { "id": "hello-worktree", "title": "Hello: Show folder", "when": "workspace" }
     ],
-    "events": [{ "on": "worktree.created" }, { "on": "agent.status.changed" }],
+    "events": [{ "on": "workspace.created" }, { "on": "agent.status.changed" }],
     "worktreeBadges": [
       {
         "id": "node-project",
@@ -27,9 +28,8 @@
   },
   "capabilities": [
     { "kind": "workspace:read" },
-    { "kind": "terminal:send" },
     { "kind": "notifications:show" },
-    { "kind": "storage" },
-    { "kind": "events:subscribe" }
+    { "kind": "storage:own" },
+    { "kind": "agent:read" }
   ]
 }

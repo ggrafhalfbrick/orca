@@ -20,7 +20,7 @@ import {
   removeWorktreeMetadataForHost
 } from '../loading-store/worktree-identity-metadata'
 import type { WorktreeMeta } from '../../../shared/worktree/meta-types'
-import { normalizeLinkedPluginTask } from '../../../shared/plugins/plugin-task-link'
+import { normalizeLinkedPluginTask } from '../../../shared/plugins/tasks/plugin-task-link'
 import { fillDefaultWorktreeMetaFields } from '../../../shared/worktree/meta-persisted-defaults'
 import { getWorkspaceAttachments } from '../../../shared/workspace-attachments'
 import { rehomeLocalOnlyWorktreeMetadata } from '../loading-store/local-only-worktree-meta-rehoming'

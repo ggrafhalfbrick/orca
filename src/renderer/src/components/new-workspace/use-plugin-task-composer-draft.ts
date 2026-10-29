@@ -6,7 +6,7 @@ import {
   type PluginTaskSessionOptions
 } from '@/lib/plugin-task-session-options'
 import type { QuickSubmitOptions } from '@/hooks/composer-state/quick-creation-request'
-import type { LinkedPluginTask } from '../../../../shared/plugins/plugin-task-link'
+import type { LinkedPluginTask } from '../../../../shared/plugins/tasks/plugin-task-link'
 import type { TuiAgent } from '../../../../shared/tui-agent'
 
 type PluginTaskComposerDraftInput = {

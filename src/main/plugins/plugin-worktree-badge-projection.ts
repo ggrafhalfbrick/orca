@@ -5,7 +5,7 @@ import {
   PLUGIN_WORKTREE_BADGE_SVG_MAX_BYTES,
   type PluginWorktreeBadgeEntry,
   type PluginWorktreeBadgeIcon
-} from '../../shared/plugins/plugin-worktree-badge'
+} from '../../shared/plugins/contributions/plugin-worktree-badge'
 
 const FALLBACK_BADGE_ICON: PluginWorktreeBadgeIcon = { kind: 'lucide', name: 'puzzle' }
 

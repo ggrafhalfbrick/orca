@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { isQualifiedPluginKey } from '../plugins/plugin-manifest'
-import { pluginTaskSourceRequestSchema } from '../plugins/plugin-task-source'
+import { isQualifiedPluginKey } from '../plugins/manifest/plugin-manifest'
+import { pluginTaskSourceRequestSchema } from '../plugins/tasks/plugin-task-source'
 
 export const PluginSetEnabledParams = z.object({
   pluginKey: z.string().refine(isQualifiedPluginKey, 'invalid qualified plugin key'),

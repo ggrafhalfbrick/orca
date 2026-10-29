@@ -1,4 +1,4 @@
-import { splitQualifiedPluginKey } from './plugin-marketplace'
+import { splitQualifiedPluginKey } from './catalog/plugin-marketplace'
 
 /**
  * Publishers whose plugins this build ships from `extra-plugins/`. Unlike Orca's official launch

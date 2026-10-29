@@ -2,7 +2,7 @@ import type { ValidDiscoveredPlugin } from './plugin-discovery'
 import {
   pluginWorktreeCommandRequestSchema,
   type PluginWorktreeCommandArgs
-} from '../../shared/plugins/plugin-worktree-badge'
+} from '../../shared/plugins/contributions/plugin-worktree-badge'
 
 export type PluginWorktreeContextResolver = {
   resolvePluginWorktreeContext(
@@ -40,7 +40,7 @@ export async function prepareWorkerCommandArgs(
   )
   // Why: worktree ids embed the folder path, so a request is never forwarded as-is; only a
   // worktree command of a plugin granted workspace:read learns the folder.
-  if (command?.context !== 'worktree' || !canReadWorkspace) {
+  if (command?.when !== 'workspace' || !canReadWorkspace) {
     return undefined
   }
   const worktree = await worktrees?.resolvePluginWorktreeContext(request.data.worktreeId)

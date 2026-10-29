@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { parsePluginManifest } from '../../shared/plugins/plugin-manifest'
+import { parsePluginManifest } from '../../shared/plugins/manifest/plugin-manifest'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
 import { prepareWorkerCommandArgs } from './plugin-command-invocation'
 

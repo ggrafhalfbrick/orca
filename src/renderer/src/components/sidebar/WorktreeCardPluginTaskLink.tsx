@@ -3,7 +3,7 @@ import { ListTodo } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
-import type { LinkedPluginTask } from '../../../../shared/plugins/plugin-task-link'
+import type { LinkedPluginTask } from '../../../../shared/plugins/tasks/plugin-task-link'
 
 /** The plugin task a workspace was started from; opens it on the Tasks page. */
 export function WorktreeCardPluginTaskLink({
@@ -30,7 +30,7 @@ export function WorktreeCardPluginTaskLink({
             event.stopPropagation()
             openTaskPage({
               pluginTaskSource: { pluginKey: link.pluginKey, sourceId: link.sourceId },
-              openPluginTaskItem: { id: link.itemId, title: link.title }
+              openPluginTaskItem: { id: link.itemId, title: link.title, openedAt: Date.now() }
             })
           }}
           className="mt-0.5 flex min-w-0 max-w-full items-center gap-1 rounded-sm text-left text-[11px] leading-snug text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-worktree-sidebar-ring"

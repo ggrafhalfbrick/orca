@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { extractIpcErrorMessage } from '@/components/editor/rich-markdown-ipc-error-message'
 import { translate } from '@/i18n/i18n'
-import { executePluginCommand } from '@/lib/plugin-command-execution'
+import { executePluginCommand, showPluginCommandMessage } from '@/lib/plugin-command-execution'
 import { useMatchingPluginWorktreeBadges } from '@/lib/plugin-worktree-badge-match'
 import type { ActivePluginCommand } from '@/store/plugin-panels'
 import type { ActivePluginWorktreeBadge } from '@/store/plugin-worktree-badges'
@@ -20,7 +20,9 @@ async function runPluginWorktreeCommand(
   worktreeId: string
 ): Promise<void> {
   try {
-    await executePluginCommand(command, 'plugin-worktree-menu', { worktreeId })
+    showPluginCommandMessage(
+      await executePluginCommand(command, 'plugin-worktree-menu', { worktreeId })
+    )
   } catch (error) {
     const detail = pluginCommandErrorDetail(error)
     toast.error(

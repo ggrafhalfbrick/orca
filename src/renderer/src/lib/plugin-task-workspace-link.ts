@@ -1,7 +1,7 @@
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
-import type { LinkedPluginTask } from '../../../shared/plugins/plugin-task-link'
+import type { LinkedPluginTask } from '../../../shared/plugins/tasks/plugin-task-link'
 
 async function saveCreatedWorkspacePluginTaskLink(
   worktreeId: string,

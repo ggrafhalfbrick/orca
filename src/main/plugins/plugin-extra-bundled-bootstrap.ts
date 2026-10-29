@@ -7,8 +7,8 @@ import {
   type PluginBundledBootstrapResult
 } from './plugin-bundled-bootstrap'
 import { getUserPluginsDir } from './plugin-discovery'
-import { installBundledPlugin, readPluginLockfile } from './plugin-install'
-import { inspectPluginInstallTree } from './plugin-install-staging'
+import { installBundledPlugin, readPluginLockfile } from './installation/plugin-install'
+import { inspectPluginInstallTree } from './installation/plugin-install-staging'
 
 type BundledBootstrapRequest = Parameters<typeof bootstrapBundledPlugins>[0]
 

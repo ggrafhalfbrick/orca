@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { PluginTaskDetail } from '../../../../../shared/plugins/plugin-task-source'
+import type { PluginTaskDetail } from '../../../../../shared/plugins/tasks/plugin-task-source'
 import type { ActivePluginTaskSource } from '@/store/plugin-task-sources'
 import { pluginTaskErrorMessage } from './plugin-task-error-message'
 

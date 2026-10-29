@@ -1,5 +1,5 @@
 import { translate } from '@/i18n/i18n'
-import type { PluginTaskStartRecipe } from '../../../shared/plugins/plugin-task-source'
+import type { PluginTaskStartRecipe } from '../../../shared/plugins/tasks/plugin-task-source'
 
 export type PluginTaskSessionOptions = NonNullable<PluginTaskStartRecipe['sessionOptions']>
 

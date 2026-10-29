@@ -2,7 +2,7 @@ import { translate } from '@/i18n/i18n'
 import { findGitProjectForSource } from '@/lib/git-remote-project-match'
 import { getComposerEligibleRepos } from '@/lib/new-workspace-composer-repo'
 import type { ProjectSourceMatcher } from '@/lib/project-source-match'
-import type { PluginTaskStartRecipe } from '../../../../../shared/plugins/plugin-task-source'
+import type { PluginTaskStartRecipe } from '../../../../../shared/plugins/tasks/plugin-task-source'
 import type { Repo } from '../../../../../shared/repo-types'
 
 function normalizeProjectPath(value: string): string {

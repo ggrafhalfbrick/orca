@@ -13,7 +13,7 @@ import type { Page } from '@stablyai/playwright-test'
 import { expect, test } from './helpers/orca-app'
 import { removeWorktreeViaStore } from './helpers/dead-terminal'
 
-async function enableFromPluginSettings(page: Page, pluginKey: string): Promise<void> {
+async function openInstalledPlugins(page: Page): Promise<void> {
   await page.evaluate(() => {
     const state = window.__store?.getState()
     if (!state) {
@@ -24,12 +24,21 @@ async function enableFromPluginSettings(page: Page, pluginKey: string): Promise<
   })
   await expect(page.locator('[data-settings-section="plugins"]')).toBeVisible()
   await page.getByRole('tab', { name: /^Installed/ }).click()
-  const row = page.locator(`[data-plugin-key="${pluginKey}"]`)
-  await row.getByRole('button', { name: 'Review & enable' }).click()
-  const consent = page.getByRole('dialog', { name: 'Review permissions' })
+}
+
+async function enableFromPluginSettings(page: Page, pluginKey: string): Promise<void> {
+  await openInstalledPlugins(page)
+  await page
+    .locator(`[data-plugin-key="${pluginKey}"]`)
+    .getByRole('button', { name: 'Review', exact: true })
+    .click()
+  const consent = page.locator('[data-plugin-consent]')
   await expect(consent).toContainText('Add task lists to the Tasks page')
-  await consent.getByRole('button', { name: 'Enable plugin' }).click()
-  await expect(row).toContainText('Enabled')
+  await page
+    .getByRole('article')
+    .getByRole('button', { name: /^Enable plugin/ })
+    .click()
+  await expect(consent).toBeHidden()
 }
 
 async function installHelloTasks(page: Page, tempRoot: string): Promise<string> {
@@ -151,23 +160,16 @@ test('remembers filters, edits plugin settings, and links workspaces to tasks', 
     await expect(orcaPage.getByRole('heading', { name: 'Fix the flaky upload test' })).toBeVisible()
     await expect(orcaPage.getByRole('heading', { name: 'Wire up the login form' })).toBeHidden()
 
-    await orcaPage.evaluate(() => {
-      const state = window.__store?.getState()
-      state?.openSettingsTarget({ pane: 'plugins', repoId: null })
-      state?.openSettingsPage()
-    })
-    await orcaPage.getByRole('tab', { name: /^Installed/ }).click()
-    await orcaPage
-      .locator(`[data-plugin-key="${pluginKey}"]`)
-      .getByRole('button', { name: 'Settings' })
-      .click()
-    const settingsDialog = orcaPage.getByRole('dialog', { name: 'Hello Tasks settings' })
-    const showBlocked = settingsDialog.getByRole('switch', { name: 'Show blocked tasks' })
+    // Declared settings sit on the plugin's own page, each saved as it changes.
+    await openInstalledPlugins(orcaPage)
+    await orcaPage.locator(`[data-plugin-key="${pluginKey}"] [data-plugin-row-name]`).click()
+    const showBlocked = orcaPage
+      .getByRole('article')
+      .getByRole('switch', { name: 'Show blocked tasks' })
     await showBlocked.click()
     await expect(showBlocked).toHaveAttribute('aria-checked', 'false')
     await settleAnimations(orcaPage)
-    await orcaPage.screenshot({ path: testInfo.outputPath('plugin-settings-dialog.png') })
-    await settingsDialog.getByRole('button', { name: 'Done' }).click()
+    await orcaPage.screenshot({ path: testInfo.outputPath('plugin-settings-section.png') })
 
     await openHelloTasks(orcaPage)
     await selectStatus(orcaPage, 'All')

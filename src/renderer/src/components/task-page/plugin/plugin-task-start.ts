@@ -1,8 +1,8 @@
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
-import type { PluginTaskItem } from '../../../../../shared/plugins/plugin-task-source'
-import type { LinkedPluginTask } from '../../../../../shared/plugins/plugin-task-link'
-import type { PluginTaskSourceRef } from '../../../../../shared/plugins/plugin-task-source-ref'
+import type { PluginTaskItem } from '../../../../../shared/plugins/tasks/plugin-task-source'
+import type { LinkedPluginTask } from '../../../../../shared/plugins/tasks/plugin-task-link'
+import type { PluginTaskSourceRef } from '../../../../../shared/plugins/tasks/plugin-task-source-ref'
 import { pluginTaskErrorMessage } from './plugin-task-error-message'
 import { resolvePluginTaskProject, type PluginTaskProject } from './plugin-task-project'
 

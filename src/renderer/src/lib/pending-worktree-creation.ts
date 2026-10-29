@@ -19,7 +19,7 @@ import type { AgentStartupPlan } from '@/lib/tui-agent-startup'
 import type { AgentStartedTelemetry } from '@/lib/worktree-startup-payload'
 import type { TaskSourceContext, WorkspaceRunContext } from '../../../shared/task-source-context'
 import type { AgentLaunchRoute } from '@/lib/agent-launch-routing'
-import type { LinkedPluginTask } from '../../../shared/plugins/plugin-task-link'
+import type { LinkedPluginTask } from '../../../shared/plugins/tasks/plugin-task-link'
 import { translate } from '@/i18n/i18n'
 
 /** Creation phases include renderer preflight, base fetch and worktree add; remote/runtime can skip git phases, while VM recipes provision before runtime creation. */
@@ -91,7 +91,7 @@ export type WorktreeCreationRequest = {
   linkedLinearIssueWorkspaceId?: string | null
   linkedLinearIssueOrganizationUrlKey?: string | null
   branchNameOverride?: string
-  branchIntent?: 'open-existing'
+  branchIntent?: CreateWorktreeArgs['branchIntent']
   /** Parent picked in the composer's Advanced drawer. Sidebar nesting only, no git effect. */
   parentWorktreeId?: string
   workspaceStatus?: WorkspaceStatus

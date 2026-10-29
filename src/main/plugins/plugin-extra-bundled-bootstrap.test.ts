@@ -8,7 +8,7 @@ import {
   bootstrapLaunchAndExtraPlugins,
   resolveExtraBundledPluginRoot
 } from './plugin-extra-bundled-bootstrap'
-import { readPluginLockfile } from './plugin-install'
+import { readPluginLockfile } from './installation/plugin-install'
 
 const roots: string[] = []
 

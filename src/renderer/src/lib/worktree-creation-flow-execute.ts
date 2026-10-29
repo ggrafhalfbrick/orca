@@ -4,7 +4,6 @@ import { useAppStore } from '@/store'
 import { activateAndRevealWorktree, type ActivateAndRevealResult } from '@/lib/worktree-activation'
 import { ensureWorktreeHasInitialTerminal } from '@/lib/worktree-initial-terminal-seeding'
 import {
-  attachEphemeralVmRuntimeToWorkspace,
   cleanupEphemeralVmRuntimeForFailedCreate,
   prepareRequestForCreate
 } from '@/lib/ephemeral-vm-worktree-creation'
@@ -29,7 +28,7 @@ import { showWorktreeCreationReadyToast } from '@/lib/worktree-creation-ready-to
 import { mountCreatedWorktreeStartupTabsInBackground } from '@/lib/worktree-creation-background-mount'
 import { ensureWebRuntimeWorktreeTerminalAfterWake } from '@/lib/web-runtime-worktree-terminal-after-wake'
 import { announcePerforceCopy } from '@/components/perforce-copies/perforce-copy-announcement'
-import { persistCreatedWorkspacePluginTaskLink } from '@/lib/plugin-task-workspace-link'
+import { attachCreatedWorkspaceState } from '@/lib/worktree-creation-created-attachments'
 import {
   isCreatedWorkspaceInView,
   isPendingCreationSurfaceVisible
@@ -149,8 +148,7 @@ export async function executeWorktreeCreation(
     }
     return
   }
-  await attachEphemeralVmRuntimeToWorkspace(preparedRequest, worktree.id)
-  persistCreatedWorkspacePluginTaskLink(worktree.id, preparedRequest.linkedPluginTask)
+  await attachCreatedWorkspaceState(preparedRequest, worktree.id)
 
   const backendSpawned = result.startupTerminal?.spawned === true
   const windowStartup = windowStartupAfterCreate(creationId, preparedRequest, result)

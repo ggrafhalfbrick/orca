@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import type { PluginHostListEntry } from '../../../preload/api-types'
-import type { PluginWorktreeBadgeEntry } from '../../../shared/plugins/plugin-worktree-badge'
+import type { PluginWorktreeBadgeEntry } from '../../../shared/plugins/contributions/plugin-worktree-badge'
+import { isWorkspaceScopedPluginContext } from '../../../shared/plugins/contributions/plugin-command-contribution'
 import {
   ensurePluginPanelsLoaded,
   usePluginPanelsStore,
@@ -29,7 +30,7 @@ export function collectActivePluginWorktreeBadges(
           const command = plugin.commands.find(
             (entry) =>
               entry.id === commandId &&
-              entry.context === 'worktree' &&
+              isWorkspaceScopedPluginContext(entry.context) &&
               entry.handler.type === 'worker'
           )
           return command

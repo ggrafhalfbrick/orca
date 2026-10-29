@@ -2,7 +2,7 @@ import { createElement } from 'react'
 import type React from 'react'
 import { resolvePluginPanelIcon } from '@/components/right-sidebar/plugin-panel-activity-items'
 import { cn } from '@/lib/utils'
-import type { PluginWorktreeBadgeIcon as BadgeIcon } from '../../../../shared/plugins/plugin-worktree-badge'
+import type { PluginWorktreeBadgeIcon as BadgeIcon } from '../../../../shared/plugins/contributions/plugin-worktree-badge'
 
 /** Lucide icons render as-is; plugin SVGs are used as a mask so they take the text color in
  *  light and dark themes, and can never run script or load anything. */
