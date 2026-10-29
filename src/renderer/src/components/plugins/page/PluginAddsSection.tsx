@@ -11,7 +11,8 @@ import {
   PanelRight,
   PenTool,
   Server,
-  SquareTerminal
+  SquareTerminal,
+  Tag
 } from 'lucide-react'
 import type {
   PluginHostListEntry,
@@ -105,7 +106,8 @@ const CONTRIBUTION_ICON: Record<PluginContributionKind, React.ReactNode> = {
   customEditors: <PenTool />,
   vmRecipes: <Server />,
   newFiles: <FilePlus />,
-  taskSources: <ListTodo />
+  taskSources: <ListTodo />,
+  worktreeBadges: <Tag />
 }
 
 type AddsCommand = {
@@ -252,7 +254,8 @@ function useContributionRowActions(
       case 'customEditors':
       case 'vmRecipes':
       case 'taskSources':
-        // Themes have "Use now" above the list; editors open from their new files; recipes and task lists have nothing to try here.
+      case 'worktreeBadges':
+        // Themes have "Use now" above the list; editors open from their new files; recipes, task lists and badges have nothing to try here.
         return null
     }
   }
