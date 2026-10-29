@@ -73,8 +73,8 @@ export type TaskPageData = {
   openJiraIssue?: JiraIssue
   openJiraSourceContext?: TaskSourceContext | null
   pluginTaskSource?: PluginTaskSourceRef
-  /** Item of `pluginTaskSource` whose detail opens on arrival. */
-  openPluginTaskItem?: { id: string; title: string }
+  /** Item of `pluginTaskSource` whose detail opens on arrival; `openedAt` tells repeated opens apart. */
+  openPluginTaskItem?: { id: string; title: string; openedAt?: number }
 }
 
 export type NewWorkspaceDraft = {

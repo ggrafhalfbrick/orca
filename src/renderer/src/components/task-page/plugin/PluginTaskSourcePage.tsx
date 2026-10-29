@@ -2,6 +2,7 @@ import type React from 'react'
 import { useCallback, useState } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { translate } from '@/i18n/i18n'
+import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store'
 import type { ActivePluginTaskSource } from '@/store/plugin-task-sources'
 import type { PluginTaskItem } from '../../../../../shared/plugins/tasks/plugin-task-source'
@@ -77,6 +78,14 @@ function PluginTaskListBody({
         onStart={onStart}
         onOpenWorkspace={workspaces.openWorkspace}
       />
+      {list.result?.nextCursor ? (
+        <div className="flex justify-center border-t border-border/50 px-4 py-3">
+          <Button variant="outline" size="sm" disabled={list.loadingMore} onClick={list.loadMore}>
+            {list.loadingMore ? <LoaderCircle className="animate-spin" /> : null}
+            {translate('auto.components.TaskPage.pluginTaskLoadMore', 'Load more')}
+          </Button>
+        </div>
+      ) : null}
     </>
   )
 }

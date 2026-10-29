@@ -51,7 +51,8 @@ export default function TaskPage(): React.JSX.Element {
   if (view.kind === 'plugin') {
     return (
       <PluginTaskSourcePage
-        key={`${view.source.key}#${openPluginTaskItem?.id ?? ''}`}
+        // Why openedAt: opening the same item again must remount, so its closed detail reopens.
+        key={`${view.source.key}#${openPluginTaskItem?.id ?? ''}#${openPluginTaskItem?.openedAt ?? ''}`}
         source={view.source}
         initialItem={openPluginTaskItem}
       />

@@ -2951,6 +2951,7 @@
         "pluginTaskSourceContext": "{{value0}} · plugin",
         "pluginTaskEmpty": "No tasks found",
         "pluginTaskEmptyHint": "Try different search terms or filters.",
+        "pluginTaskLoadMore": "Load more",
         "pluginTaskProjectMissing": "No Orca project is at {{path}}. Add it as a project, then start again.",
         "pluginTaskOpenWorkspaceAction": "Open workspace",
         "pluginTaskStartAnotherShort": "Start another",

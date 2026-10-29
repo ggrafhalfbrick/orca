@@ -27,7 +27,10 @@ export const pluginSettingContributionSchema = z
     /** String settings only: edit in a multi-line field. */
     multiline: z.boolean().optional(),
     options: z
-      .array(z.object({ value: z.string().max(256), label: z.string().min(1).max(128) }).strict())
+      // Why min(1): the settings picker cannot show an empty value as a choice.
+      .array(
+        z.object({ value: z.string().min(1).max(256), label: z.string().min(1).max(128) }).strict()
+      )
       .min(1)
       .max(32)
       .optional()

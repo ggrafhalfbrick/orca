@@ -30,7 +30,7 @@ export function WorktreeCardPluginTaskLink({
             event.stopPropagation()
             openTaskPage({
               pluginTaskSource: { pluginKey: link.pluginKey, sourceId: link.sourceId },
-              openPluginTaskItem: { id: link.itemId, title: link.title }
+              openPluginTaskItem: { id: link.itemId, title: link.title, openedAt: Date.now() }
             })
           }}
           className="mt-0.5 flex min-w-0 max-w-full items-center gap-1 rounded-sm text-left text-[11px] leading-snug text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-worktree-sidebar-ring"

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PluginTaskListResult } from '../../../../../shared/plugins/tasks/plugin-task-source'
 import type { ActivePluginTaskSource } from '@/store/plugin-task-sources'
 import {
@@ -24,6 +24,10 @@ export type PluginTaskListState = {
   setFilter: (filterId: string, value: string) => void
   result: PluginTaskListResult | null
   loading: boolean
+  /** A later page is being fetched; `result` keeps the pages already shown. */
+  loadingMore: boolean
+  /** Appends the page after `result`, when the source returned a `nextCursor`. */
+  loadMore: () => void
   error: string | null
   refresh: () => void
 }
@@ -42,7 +46,10 @@ export function usePluginTaskList(source: ActivePluginTaskSource): PluginTaskLis
       : null
   })
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Why: a later page that lands after the view changed belongs to the old list.
+  const viewKeyRef = useRef(viewKeyOf(query, filters))
 
   useEffect(() => {
     const timer = setTimeout(() => setQuery(searchInput.trim()), SEARCH_DEBOUNCE_MS)
@@ -52,8 +59,10 @@ export function usePluginTaskList(source: ActivePluginTaskSource): PluginTaskLis
   useEffect(() => {
     let cancelled = false
     setLoading(true)
+    setLoadingMore(false)
     savePluginTaskSourceView(source.key, { query, filters })
     const viewKey = viewKeyOf(query, filters)
+    viewKeyRef.current = viewKey
     window.api.plugins
       .listTaskSourceItems({
         pluginKey: source.pluginKey,
@@ -89,6 +98,52 @@ export function usePluginTaskList(source: ActivePluginTaskSource): PluginTaskLis
     setFilters((current) => ({ ...current, [filterId]: value }))
   }, [])
   const refresh = useCallback(() => setRefreshNonce((nonce) => nonce + 1), [])
+  const cursor = result?.nextCursor
+  const loadMore = useCallback(() => {
+    if (!cursor || loadingMore) {
+      return
+    }
+    const viewKey = viewKeyRef.current
+    setLoadingMore(true)
+    window.api.plugins
+      .listTaskSourceItems({
+        pluginKey: source.pluginKey,
+        sourceId: source.sourceId,
+        params: { query, filters, cursor }
+      })
+      .then((page) => {
+        if (viewKeyRef.current !== viewKey) {
+          return
+        }
+        setResult((current) => {
+          const shown = new Set(current?.items.map((item) => item.id))
+          const items = [...(current?.items ?? []), ...page.items.filter((i) => !shown.has(i.id))]
+          return { ...current, items, nextCursor: page.nextCursor }
+        })
+        setError(null)
+      })
+      .catch((failure: unknown) => {
+        if (viewKeyRef.current === viewKey) {
+          setError(pluginTaskErrorMessage(failure))
+        }
+      })
+      .finally(() => {
+        if (viewKeyRef.current === viewKey) {
+          setLoadingMore(false)
+        }
+      })
+  }, [cursor, filters, loadingMore, query, source.pluginKey, source.sourceId])
 
-  return { searchInput, setSearchInput, filters, setFilter, result, loading, error, refresh }
+  return {
+    searchInput,
+    setSearchInput,
+    filters,
+    setFilter,
+    result,
+    loading,
+    loadingMore,
+    loadMore,
+    error,
+    refresh
+  }
 }

@@ -59,7 +59,8 @@ describe('settings contributions', () => {
       { key: 'flag', title: 'Flag', type: 'boolean', default: 'yes' },
       { key: 'name', title: 'Name', type: 'string', options: SORT.options },
       { key: 'flag', title: 'Flag', type: 'boolean', multiline: true },
-      { key: '1bad', title: 'Bad', type: 'string' }
+      { key: '1bad', title: 'Bad', type: 'string' },
+      { ...SORT, default: undefined, options: [{ value: '', label: 'None' }] }
     ]
 
     for (const setting of invalid) {
