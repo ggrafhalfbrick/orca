@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import { PerforceCopyDeleteDialog } from './PerforceCopyDeleteDialog'
@@ -20,7 +21,8 @@ function readTarget(data: Record<string, unknown>): PerforceCopyDeleteTarget | n
 export default function PerforceCopyDeleteModal() {
   const modalData = useAppStore((s) => s.modalData)
   const closeModal = useAppStore((s) => s.closeModal)
-  const target = readTarget(modalData)
+  // Why memo: the dialog starts over for a new target object, so a sidebar re-render must not make one.
+  const target = useMemo(() => readTarget(modalData), [modalData])
   return (
     <PerforceCopyDeleteDialog
       target={target}

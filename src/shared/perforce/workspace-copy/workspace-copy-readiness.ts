@@ -9,6 +9,7 @@ import {
   findOwnMarker,
   pathExists,
   resolveCopySource,
+  samePath,
   type CopySource
 } from './workspace-copy-source'
 import { MIN_BLOCK_CLONE_BUILD } from './workspace-copy-platform'
@@ -130,6 +131,12 @@ export async function checkCopyReadiness(
     if (!source.stream) {
       result.problems.push(
         `Client ${source.client} is not a stream client; copies are only made of stream workspaces.`
+      )
+    }
+    // Why: a copy is bound and checked from its root, which never finds a config in a subfolder.
+    if (!samePath(dirname(source.configPath), source.root)) {
+      result.problems.push(
+        `P4CLIENT comes from ${source.configPath}, below the workspace root ${source.root}. Copies are bound from their root, so move that file to ${source.root} first.`
       )
     }
     if (await findOwnMarker(source.root)) {

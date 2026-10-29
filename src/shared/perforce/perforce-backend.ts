@@ -24,13 +24,8 @@ import {
   submitDefaultChangelist,
   syncLatest
 } from './perforce-mutations'
-import {
-  getPerforceDiff,
-  getPerforceDiffText,
-  getPerforceHistory,
-  getPerforceInfo,
-  getPerforceStatus
-} from './perforce-status'
+import { getPerforceInfo, getPerforceStatus } from './perforce-status'
+import { getPerforceDiff, getPerforceDiffText, getPerforceHistory } from './perforce-file-revisions'
 import type {
   PerforceDetectResult,
   PerforceEntry,

@@ -2,6 +2,11 @@ import { WorkspaceCopyError } from './workspace-copy-errors'
 
 const busySources = new Set<string>()
 
+/** True while a create or remove of a copy of this workspace runs. */
+export function isSourceLocked(sourceRoot: string): boolean {
+  return busySources.has(sourceRoot.toLowerCase())
+}
+
 /** One create or remove per source workspace at a time: both read and rewrite its copies folder. */
 export async function withSourceLock<T>(sourceRoot: string, run: () => Promise<T>): Promise<T> {
   const key = sourceRoot.toLowerCase()

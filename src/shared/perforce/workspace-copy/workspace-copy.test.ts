@@ -7,6 +7,7 @@ import { createFakeCopyHost } from './__fixtures__/fake-copy-host'
 import { depotContent, FakePerforceServer } from './__fixtures__/fake-perforce-server'
 import { createWorkspaceCopy } from './workspace-copy-create'
 import { listWorkspaceCopies } from './workspace-copy-list'
+import { withSourceLock } from './workspace-copy-lock'
 import { previewWorkspaceCopyRemoval } from './workspace-copy-removal-preview'
 import { removeWorkspaceCopy } from './workspace-copy-remove'
 import { resetBlockCloningProbeCacheForTests } from './workspace-copy-readiness'
@@ -235,6 +236,19 @@ describe('createWorkspaceCopy (other streams)', () => {
   })
 })
 
+describe('createWorkspaceCopy readiness', () => {
+  it('refuses a workspace whose P4CONFIG sits below its root, before copying anything', async () => {
+    await rm(join(ws, 'p4config.txt'))
+    await put(join(ws, 'Game', 'p4config.txt'), 'P4PORT=srv:1666\nP4CLIENT=src\n')
+    const host = createFakeCopyHost(server, base)
+
+    await expect(createWorkspaceCopy(host, join(ws, 'Game'), { name: 'one' })).rejects.toThrow(
+      'below the workspace root'
+    )
+    expect(existsSync(join(base, 'ws.wt', 'one'))).toBe(false)
+  })
+})
+
 describe('listWorkspaceCopies', () => {
   it('joins markers on disk with the server clients and flags leftovers', async () => {
     const host = createFakeCopyHost(server, base)
@@ -251,6 +265,18 @@ describe('listWorkspaceCopies', () => {
       ['ghost', true, false, false],
       ['one', true, true, true]
     ])
+  })
+
+  it('leaves a moved-aside folder alone while a removal holds the workspace', async () => {
+    const host = createFakeCopyHost(server, base)
+    await createWorkspaceCopy(host, ws, { name: 'one' })
+    const { source } = await listWorkspaceCopies(host, ws, { checkServer: false })
+    const aside = join(base, 'ws.wt', '.removing-one-0a1b2c3d')
+    await mkdir(aside, { recursive: true })
+
+    await withSourceLock(source.root, () => listWorkspaceCopies(host, ws, { checkServer: false }))
+
+    expect(existsSync(aside)).toBe(true)
   })
 })
 
