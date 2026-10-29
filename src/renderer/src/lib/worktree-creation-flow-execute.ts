@@ -27,12 +27,11 @@ import { completeWorktreeCreation } from '@/lib/worktree-creation-completion'
 import { showWorktreeCreationReadyToast } from '@/lib/worktree-creation-ready-toast'
 import { mountCreatedWorktreeStartupTabsInBackground } from '@/lib/worktree-creation-background-mount'
 import { ensureWebRuntimeWorktreeTerminalAfterWake } from '@/lib/web-runtime-worktree-terminal-after-wake'
-import { announcePerforceCopy } from '@/components/perforce-copies/perforce-copy-announcement'
 import { attachCreatedWorkspaceState } from '@/lib/worktree-creation-created-attachments'
 import {
   isCreatedWorkspaceInView,
   isPendingCreationSurfaceVisible
-} from '@/lib/worktree-creation-view-state'
+} from '@/lib/worktree-creation-surface-view'
 
 export async function executeWorktreeCreation(
   creationId: string,
@@ -138,7 +137,6 @@ export async function executeWorktreeCreation(
     }
     return
   }
-  announcePerforceCopy(result.perforceCopy)
 
   const worktree = result.worktree
   // Why: cancellation can race a successful backend adoption; clean up again after it settles so an adopted workspace cannot outlive its destroyed VM.

@@ -110,7 +110,6 @@ export abstract class OrcaRuntimeWithStateFields extends OrcaRuntimeWithLinearCo
     repoId: string,
     removalHostId?: ExecutionHostId
   ): void
-  abstract notifyWorktreesChanged(repoId: string): void
 
   readonly getSetupTerminalTitle: () => string
 
@@ -204,26 +203,19 @@ export abstract class OrcaRuntimeWithStateFields extends OrcaRuntimeWithLinearCo
       )
     })
     installRuntimeSkillCommandSurface(this, this.skillCommands)
-    const getRuntimeSettings = () => this.store?.getSettings?.() ?? {}
     installRuntimePerforceCommandSurface(this, {
       workspaces: new RuntimePerforceCommands({
         resolveRuntimeFileTarget: (selector) => this.resolveRuntimeFileTarget(selector),
-        getRuntimeSettings,
+        getRuntimeSettings: () => this.store?.getSettings?.() ?? {},
         getCommitMessageAgentEnvironment: () => this.accounts.getCommitMessageAgentEnvironment()
       }),
       copies: new RuntimePerforceCopyCommands({
         resolveRepo: (selector) => this.resolveRepoSelector(selector),
         getStore: () => this.requireStore(),
-        getRuntimeSettings,
-        acquireFileWatcherRemoval: (path, connectionId) =>
-          this.acquireFileWatcherRemoval(path, connectionId),
-        stopWorkspaceTerminals: (worktreeId, connectionId) =>
-          this.stopPtysForDestructiveWorktreeRemoval(
-            worktreeId,
-            connectionId ? { connectionId } : {}
-          ),
-        forgetWorktree: (worktreeId, repoId, hostId) =>
-          this.purgeRemovedWorktree(this.requireStore(), worktreeId, repoId, hostId),
+        getRuntimeSettings: () => this.store?.getSettings?.() ?? {},
+        acquireFileWatcherRemoval: (...args) => this.acquireFileWatcherRemoval(...args),
+        stopWorkspaceTerminals: (...args) => this.stopPtysForDestructiveWorktreeRemoval(...args),
+        forgetWorktree: (...args) => this.purgeRemovedWorktree(this.requireStore(), ...args),
         worktreesChanged: (repoId) => {
           this.invalidateWorktreeScanCacheForRepo(repoId)
           this.notifyWorktreesChanged(repoId)

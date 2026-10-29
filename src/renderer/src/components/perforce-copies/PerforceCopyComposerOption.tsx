@@ -74,10 +74,10 @@ function ReadinessLine({ readiness }: { readiness: WorkspaceCopyReadiness | null
  */
 export function PerforceCopyComposerOption({
   repoId,
-  hostId
+  hostId = null
 }: {
   repoId: string
-  hostId: ExecutionHostId | null
+  hostId?: ExecutionHostId | null
 }) {
   const isPerforce = useAppStore((s) => {
     const repo = findRepoForHost(s.repos, repoId, { hostId, settings: s.settings })

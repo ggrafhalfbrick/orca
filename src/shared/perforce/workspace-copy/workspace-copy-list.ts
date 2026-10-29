@@ -10,6 +10,7 @@ import {
   copyNameFromMarkerFile,
   copyNamesFor
 } from './workspace-copy-names'
+import { isSourceLocked } from './workspace-copy-lock'
 import { listClientsWithPrefix } from './workspace-copy-p4'
 import { REMOVING_PREFIX } from './workspace-copy-remove'
 import { normalizePath, pathExists, resolveCopySource } from './workspace-copy-source'
@@ -44,7 +45,10 @@ export async function listWorkspaceCopies(
   const source = await resolveCopySource(host, dir)
   const copiesDir = copiesDirFor(source.root)
   const dirEntries = await readdir(copiesDir).catch((): string[] => [])
-  sweepLeftovers(host, copiesDir, dirEntries)
+  // Why not during a removal: the folder it moved aside is its way back if Perforce cleanup fails.
+  if (!isSourceLocked(source.root)) {
+    sweepLeftovers(host, copiesDir, dirEntries)
+  }
   const names = new Map<string, string>()
   for (const entry of dirEntries) {
     const name = copyNameFromMarkerFile(entry) ?? (COPY_NAME_PATTERN.test(entry) ? entry : null)

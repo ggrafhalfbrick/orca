@@ -360,10 +360,7 @@ export default function NewWorkspaceComposerCard(
         {props.startsInExistingWorkspace ? null : (
           <>
             <NewWorkspaceComposerNameSection {...props} onNamePlainEnter={handleNamePlainEnter} />
-            <PerforceCopyComposerOption
-              repoId={props.repoId}
-              hostId={selectedRepoExecutionHostId ?? null}
-            />
+            <PerforceCopyComposerOption repoId={props.repoId} hostId={selectedRepoExecutionHostId} />
           </>
         )}
         <NewWorkspaceComposerAgentSection

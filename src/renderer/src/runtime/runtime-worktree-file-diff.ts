@@ -7,10 +7,11 @@ import { runPerforceOperation } from './runtime-perforce-client'
 /** A file's working diff from the version control its workspace uses: Perforce, else Git. */
 export async function getRuntimeWorktreeFileDiff(
   context: RuntimeGitContext,
-  args: { filePath: string; staged: boolean; compareAgainstHead?: boolean }
+  args: { filePath: string; staged: boolean; compareAgainstHead?: boolean },
+  options?: { wakeWslDistro?: boolean }
 ): Promise<GitDiffResult> {
   const perforce = await perforceTargetForFile(context)
   return perforce
     ? runPerforceOperation(perforce, 'diff', { filePath: args.filePath })
-    : getRuntimeGitDiff(context, args)
+    : getRuntimeGitDiff(context, args, options)
 }

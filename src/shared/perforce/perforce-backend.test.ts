@@ -16,6 +16,7 @@ const root = process.env.FAKE_P4_ROOT
 const out = (text) => process.stdout.write(text)
 const [cmd] = args
 if (cmd === 'info') out('... clientName ws\\n... userName me\\n... serverAddress srv:1666\\n... clientRoot ' + root + '\\n')
+else if (cmd === 'fstat' && process.env.FAKE_P4_FSTAT_ERROR) { process.stderr.write(process.env.FAKE_P4_FSTAT_ERROR + '\\n'); process.exitCode = 1 }
 else if (cmd === 'fstat') out('... depotFile //d/a.txt\\n... clientFile ' + root + '/a.txt\\n... action edit\\n... change 12\\n')
 else if (cmd === 'reconcile') out('... clientFile ' + root + '/n.txt\\n... action add\\n')
 else if (cmd === 'changes' && args.includes('pending')) out('... change 12\\n... desc Fix things\\n')
@@ -72,6 +73,18 @@ describe.skipIf(process.platform === 'win32')('localPerforceBackend with a fake 
         shelvedFiles: [{ depotPath: '//d/s.txt', action: 'edit' }]
       }
     ])
+  })
+
+  it('reads "nothing opened" as no opened files', async () => {
+    process.env.FAKE_P4_FSTAT_ERROR = '... - file(s) not opened on this client.'
+    const status = await localPerforceBackend.status(dir)
+    expect(status.entries.map((e) => [e.path, e.group])).toEqual([['n.txt', 'new']])
+  })
+
+  it('fails the status instead of hiding opened files when their scan fails', async () => {
+    process.env.FAKE_P4_FSTAT_ERROR =
+      'TCP receive exceeded maximum configured duration of 60 seconds.'
+    await expect(localPerforceBackend.status(dir)).rejects.toThrow('maximum configured duration')
   })
 
   it('edits a changelist description while keeping its file list', async () => {

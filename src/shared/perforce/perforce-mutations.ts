@@ -1,6 +1,7 @@
 import { P4_SUBMIT_TIMEOUT_MS, P4_SYNC_TIMEOUT_MS } from './perforce-timeouts'
 import { access, constants, lstat, rm } from 'node:fs/promises'
 import { resolveInWorkspace } from './perforce-arguments'
+import { resolveDeletableInWorkspace } from './perforce-workspace-real-path'
 import type { PerforceEntry, PerforceOperationResult } from './perforce-types'
 import { escapeP4FileArg, runP4 } from './p4-command'
 
@@ -48,6 +49,13 @@ export async function closeFilesKeepingContent(
   return toResult(await runP4(['revert', '-k', ...fileArgs(filePaths)], { cwd }))
 }
 
+async function removeWorkspaceFile(cwd: string, filePath: string): Promise<void> {
+  const absolute = await resolveDeletableInWorkspace(cwd, filePath)
+  if (absolute) {
+    await rm(absolute, { force: true })
+  }
+}
+
 /** Discards local changes: reverts opened files, resyncs modified ones, deletes new ones. */
 export async function discardFiles(
   cwd: string,
@@ -67,7 +75,7 @@ export async function discardFiles(
     outputs.push(result.output)
     // Why: reverting an add leaves the file behind; a discard should remove it.
     for (const entry of opened.filter((e) => e.action === 'add' || e.action === 'branch')) {
-      await rm(resolveInWorkspace(cwd, entry.path), { force: true })
+      await removeWorkspaceFile(cwd, entry.path)
     }
   }
   if (modified.length > 0) {
@@ -79,7 +87,7 @@ export async function discardFiles(
     outputs.push(result.output)
   }
   for (const entry of fresh) {
-    await rm(resolveInWorkspace(cwd, entry.path), { force: true })
+    await removeWorkspaceFile(cwd, entry.path)
   }
   return { success: true, output: outputs.filter(Boolean).join('\n') }
 }

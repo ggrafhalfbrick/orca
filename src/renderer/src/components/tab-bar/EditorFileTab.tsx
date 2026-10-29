@@ -4,14 +4,13 @@ import { GitCompareArrows, Eye, ShieldAlert, Pin, ListChecks } from 'lucide-reac
 import { Input } from '@/components/ui/input'
 import { TabHoverCard } from './TabHoverCard'
 import { basename } from '@/lib/path'
-import { getEditorDisplayLabel } from '@/components/editor/editor-labels'
+import { useEditorTabLabel } from './use-editor-tab-label'
 import { renameFileOnDisk } from '@/lib/rename-file'
 import { isImeCompositionKeyDown } from '@/lib/ime-composition-keyboard-event'
 import { detectLanguage } from '@/lib/language-detect'
 import { getFileTypeIcon } from '@/lib/file-type-icons'
 import { useRepoById, useWorktreeById } from '@/store/selectors'
 import { useAppStore } from '@/store'
-import { usePerforceEditedTab } from '../right-sidebar/perforce/use-perforce-edited-tab'
 import { STATUS_COLORS, STATUS_LABELS } from '../right-sidebar/status-display'
 import type { GitFileStatus } from '../../../../shared/git-status-types'
 import type { OpenFile } from '../../store/slices/editor'
@@ -206,8 +205,7 @@ export default function EditorFileTab({
   )
 
   const tabStatusColor = tabStatus ? STATUS_COLORS[tabStatus] : undefined
-  const isOpenedForEdit = usePerforceEditedTab(file, worktree?.path ?? null, repo)
-  const tabLabel = `${isOpenedForEdit ? 'E ' : ''}${getEditorDisplayLabel(file)}`
+  const tabLabel = useEditorTabLabel(file, worktree?.path ?? null, repo)
 
   useEffect(() => {
     const closeMenu = (): void => setMenuOpen(false)
