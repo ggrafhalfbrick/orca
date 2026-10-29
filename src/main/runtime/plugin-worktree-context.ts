@@ -10,7 +10,10 @@ export abstract class OrcaRuntimeWithPluginWorktreeContext extends OrcaRuntimeWi
     host: 'local' | 'ssh'
   } | null> {
     try {
-      const resolved = await this.resolveWorktreeSelector(`id:${worktreeId}`)
+      // Why the workspace resolver: folder workspaces run plugin commands too, and need a real path.
+      const resolved = await this.resolveWorkspaceSelector(`id:${worktreeId}`, {
+        requireUsableFolderPath: true
+      })
       const repo = this.store?.getRepo(resolved.repoId)
       return {
         path: resolved.git.path,

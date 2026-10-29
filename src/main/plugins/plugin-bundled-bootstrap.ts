@@ -1,3 +1,4 @@
+import { isExtraBundledPluginIdentity } from '../../shared/plugins/plugin-extra-bundles'
 import { readFile, realpath, stat } from 'node:fs/promises'
 import { isAbsolute, join, relative, sep } from 'node:path'
 import { z } from 'zod'
@@ -167,7 +168,12 @@ export async function bootstrapBundledPlugins(options: {
   // Why: a release that drops a bundled plugin must not leave it installed but unremovable.
   const shipped = new Set(index.plugins.map((entry) => entry.pluginKey))
   for (const [pluginKey, locked] of Object.entries(lock.plugins)) {
-    if (locked.source.kind !== 'bundled' || shipped.has(pluginKey)) {
+    // Why skip extra plugins: they ship outside the launch index, and their own bootstrap retires them.
+    if (
+      locked.source.kind !== 'bundled' ||
+      shipped.has(pluginKey) ||
+      isExtraBundledPluginIdentity(pluginKey)
+    ) {
       continue
     }
     try {

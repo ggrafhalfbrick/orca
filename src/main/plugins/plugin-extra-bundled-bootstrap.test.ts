@@ -9,6 +9,7 @@ import {
   resolveExtraBundledPluginRoot
 } from './plugin-extra-bundled-bootstrap'
 import { readPluginLockfile } from './installation/plugin-install'
+import { BUNDLED_PLUGIN_INDEX_FILENAME, bootstrapBundledPlugins } from './plugin-bundled-bootstrap'
 
 const roots: string[] = []
 
@@ -60,6 +61,7 @@ describe('extra bundled plugin bootstrap', () => {
     await expect(bootstrapExtraBundledPlugins(request)).resolves.toEqual({
       installed: ['earlgeorg.roadmap'],
       unchanged: [],
+      retired: [],
       errors: []
     })
     await expect(bootstrapExtraBundledPlugins(request)).resolves.toMatchObject({
@@ -87,6 +89,7 @@ describe('extra bundled plugin bootstrap', () => {
     ).resolves.toEqual({
       installed: [],
       unchanged: [],
+      retired: [],
       errors: [{ pluginKey: 'community.roadmap', error: 'not an extra plugin identity' }]
     })
     await expect(
@@ -95,7 +98,44 @@ describe('extra bundled plugin bootstrap', () => {
         userDataPath,
         hostVersion: '1.4.0'
       })
-    ).resolves.toEqual({ installed: [], unchanged: [], errors: [] })
+    ).resolves.toEqual({ installed: [], unchanged: [], retired: [], errors: [] })
+  })
+
+  it('retires an extra plugin the build stopped shipping', async () => {
+    const root = await tempRoot('orca-extra-plugins-')
+    const userDataPath = await tempRoot('orca-extra-user-data-')
+    await writePlugin(root, 'earlgeorg')
+    const request = { root, userDataPath, hostVersion: '1.4.0' }
+    await bootstrapExtraBundledPlugins(request)
+    await rm(join(root, 'roadmap'), { recursive: true })
+
+    await expect(bootstrapExtraBundledPlugins(request)).resolves.toMatchObject({
+      retired: ['earlgeorg.roadmap']
+    })
+    const lock = await readPluginLockfile(join(userDataPath, 'plugins'))
+    expect(lock.plugins['earlgeorg.roadmap']).toBeUndefined()
+  })
+
+  it('leaves installed extra plugins to their own bootstrap when the launch bundle runs', async () => {
+    const extraRoot = await tempRoot('orca-extra-plugins-')
+    const launchRoot = await tempRoot('orca-launch-plugins-')
+    const userDataPath = await tempRoot('orca-extra-user-data-')
+    await writePlugin(extraRoot, 'earlgeorg')
+    await writeFile(
+      join(launchRoot, BUNDLED_PLUGIN_INDEX_FILENAME),
+      JSON.stringify({ version: 1, plugins: [] })
+    )
+    await bootstrapExtraBundledPlugins({ root: extraRoot, userDataPath, hostVersion: '1.4.0' })
+
+    const launch = await bootstrapBundledPlugins({
+      root: launchRoot,
+      userDataPath,
+      hostVersion: '1.4.0'
+    })
+
+    expect(launch.retired).toEqual([])
+    const lock = await readPluginLockfile(join(userDataPath, 'plugins'))
+    expect(lock.plugins['earlgeorg.roadmap']?.source.kind).toBe('bundled')
   })
 
   it('still installs extra plugins when the launch bundle cannot be read', async () => {

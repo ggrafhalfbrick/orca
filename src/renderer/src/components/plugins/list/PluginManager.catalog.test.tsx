@@ -104,7 +104,8 @@ const preview: PluginMarketplaceHostInstallPreview = {
       customEditors: [],
       newFiles: [],
       taskSources: [],
-      settings: []
+      settings: [],
+      worktreeBadges: []
     },
     capabilities: [{ kind: 'workspace:read' }]
   }

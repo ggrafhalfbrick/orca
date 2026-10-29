@@ -6,9 +6,10 @@ import {
   bundledInstallIsIntact,
   type PluginBundledBootstrapResult
 } from './plugin-bundled-bootstrap'
-import { getUserPluginsDir } from './plugin-discovery'
+import { getPluginsDataDir, getUserPluginsDir } from './plugin-discovery'
 import { installBundledPlugin, readPluginLockfile } from './installation/plugin-install'
 import { inspectPluginInstallTree } from './installation/plugin-install-staging'
+import { retireBundledPlugin } from './installation/plugin-removal'
 
 type BundledBootstrapRequest = Parameters<typeof bootstrapBundledPlugins>[0]
 
@@ -30,8 +31,17 @@ export function resolveExtraBundledPluginRoot(options: {
 export async function bootstrapExtraBundledPlugins(
   options: BundledBootstrapRequest
 ): Promise<PluginBundledBootstrapResult> {
-  const result: PluginBundledBootstrapResult = { installed: [], unchanged: [], errors: [] }
-  const folders = await readdir(options.root, { withFileTypes: true }).catch(() => [])
+  const result: PluginBundledBootstrapResult = {
+    installed: [],
+    unchanged: [],
+    retired: [],
+    errors: []
+  }
+  const shipped = new Set<string>()
+  const folders = await readdir(options.root, { withFileTypes: true }).catch(() => null)
+  if (!folders) {
+    return result
+  }
   const pluginsDir = getUserPluginsDir(options.userDataPath)
   const lock = await readPluginLockfile(pluginsDir)
   for (const folder of folders.filter((entry) => entry.isDirectory())) {
@@ -48,6 +58,7 @@ export async function bootstrapExtraBundledPlugins(
       continue
     }
     const { pluginKey, contentHash } = inspection
+    shipped.add(pluginKey)
     const locked = lock.plugins[pluginKey]
     if (
       locked?.source.kind === 'bundled' &&
@@ -70,6 +81,24 @@ export async function bootstrapExtraBundledPlugins(
       result.errors.push({ pluginKey, error: installed.error })
     }
   }
+  // Why: an extra plugin this build stopped shipping must not stay installed but unremovable.
+  // Only after a clean read: a folder that failed to inspect may still be shipped.
+  for (const [pluginKey, locked] of result.errors.length === 0
+    ? Object.entries(lock.plugins)
+    : []) {
+    if (
+      locked.source.kind === 'bundled' &&
+      isExtraBundledPluginIdentity(pluginKey) &&
+      !shipped.has(pluginKey) &&
+      (await retireBundledPlugin({
+        pluginsDir,
+        pluginsDataDir: getPluginsDataDir(options.userDataPath),
+        pluginKey
+      }))
+    ) {
+      result.retired.push(pluginKey)
+    }
+  }
   return result
 }
 
@@ -82,6 +111,7 @@ export async function bootstrapLaunchAndExtraPlugins(
     (error: unknown): PluginBundledBootstrapResult => ({
       installed: [],
       unchanged: [],
+      retired: [],
       errors: [
         {
           pluginKey: 'launch bundle',
@@ -94,6 +124,7 @@ export async function bootstrapLaunchAndExtraPlugins(
   return {
     installed: results.flatMap((result) => result.installed),
     unchanged: results.flatMap((result) => result.unchanged),
+    retired: results.flatMap((result) => result.retired),
     errors: results.flatMap((result) => result.errors)
   }
 }

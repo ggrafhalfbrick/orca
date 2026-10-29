@@ -66,7 +66,7 @@ describe('worktree badge contributions', () => {
     const global = parsePluginManifest(manifest({ commands: ['refresh'] }))
 
     expect(unknown).toMatchObject({ ok: false })
-    expect(!unknown.ok && unknown.error).toContain('worktreeBadges.0.commands.0')
+    expect(!unknown.ok && unknown.error).toContain('worktreeBadges[0].commands[0]')
     expect(global).toMatchObject({ ok: false })
   })
 

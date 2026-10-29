@@ -11,6 +11,7 @@ import { pluginInstalledHostImages } from './plugin-manifest-images'
 import type { PluginService } from './plugin-service'
 import { listPluginVmRecipeCommands } from '../../shared/plugins/artifacts/plugin-vm-recipe-artifact'
 import {
+  hasOfficialPluginPublisher,
   isOfficialMarketplaceGitSource,
   isOfficialOrganizationGitSource,
   pluginSourceLabel
@@ -101,7 +102,7 @@ export async function buildPluginList(
       const bundled = lockEntry?.source.kind === 'bundled'
       // Why the identity check: extra bundles ship in the app but are not Orca's.
       const official =
-        (bundled && isOfficialPluginIdentity(plugin.pluginKey)) ||
+        (bundled && hasOfficialPluginPublisher(plugin.pluginKey)) ||
         (lockEntry?.source.kind === 'marketplace' &&
           isOfficialMarketplaceGitSource(lockEntry.source.marketplace.url) &&
           isOfficialOrganizationGitSource(lockEntry.source.plugin.url))

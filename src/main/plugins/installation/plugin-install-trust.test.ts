@@ -118,7 +118,7 @@ describe('plugin install trust', () => {
     ['earlgeorg.unity', null],
     [
       'community.roadmap',
-      'bundled plugins must use an official stablyai.orca-* or extra plugin identity'
+      'bundled plugins must use the official stablyai publisher or an extra plugin identity'
     ]
   ])('allows the app-bundled path for extra plugin identities only (%s)', (pluginKey, expected) => {
     expect(pluginInstallTrustError(pluginKey, { kind: 'bundled', bundleId: pluginKey })).toBe(

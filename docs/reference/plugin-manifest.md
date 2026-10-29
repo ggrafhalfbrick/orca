@@ -44,6 +44,7 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schem
 | `contributes.newFiles` | [NewFileContribution](#newfilecontribution)[] | no | 1.4.245 | Untitled files the user can create from the + menu and the command palette. At most 16. |
 | `contributes.taskSources` | object[] | no | 1.4.245 | Task lists shown on the Tasks page, filled by the plugin worker. At most 8. |
 | `contributes.settings` | object[] | no | 1.4.245 | Options the user edits on the plugin's page; the worker reads them with settings.get. At most 32. |
+| `contributes.worktreeBadges` | object[] | no | 1.4.245 | Icons beside a workspace whose folder holds a marker file; they open workspace commands. At most 16. |
 | `contributes.agentHarnesses` | any[] | no | 1.4.245 | Reserved for coding-agent harness definitions; must be empty until their format is defined. |
 | `contributes.skills` | any[] | no | 1.4.245 | Reserved for agent skills; must be empty until their format is defined. |
 | `contributes.mcpServers` | any[] | no | 1.4.245 | Reserved for MCP server definitions; must be empty until their format is defined. |
