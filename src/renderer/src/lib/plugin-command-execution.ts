@@ -1,7 +1,5 @@
-import { toast } from 'sonner'
 import type { ActivePluginCommand } from '@/store/plugin-panels'
 import { isWorkspaceScopedPluginContext } from '../../../shared/plugins/contributions/plugin-command-contribution'
-import { pluginCommandResultMessageSchema } from '../../../shared/plugins/contributions/plugin-worktree-badge'
 import { dispatchAppCommand, type AppCommandSource } from './app-command-dispatch'
 
 /** Resolves with whatever a worker handler returned; built-in actions return nothing. A workspace
@@ -23,13 +21,4 @@ export async function executePluginCommand(
     commandId: command.id,
     ...(worktreeId ? { args: { worktreeId } } : {})
   })
-}
-
-/** Shows a worker's `{ message }` reply as a toast. */
-export function showPluginCommandMessage(result: unknown): void {
-  const reply = pluginCommandResultMessageSchema.safeParse(result)
-  if (reply.success) {
-    // Why: plugin replies render untranslated, like their manifest titles.
-    toast(reply.data.message)
-  }
 }

@@ -4,7 +4,8 @@ import { translate } from '@/i18n/i18n'
 import { canShowRightSidebarForView } from '@/lib/right-sidebar-visibility'
 import { getSelectedTextForFileSearch } from '../lib/file-search-selection'
 import { registerAppCommandDispatcher } from '@/lib/app-command-dispatch'
-import { executePluginCommand, showPluginCommandMessage } from '@/lib/plugin-command-execution'
+import { executePluginCommand } from '@/lib/plugin-command-execution'
+import { showPluginCommandMessage } from '@/lib/plugin-command-message'
 import {
   findPluginCommandForKeybinding,
   globalShortcutTargetYields
@@ -205,10 +206,10 @@ export function useGlobalKeybindings(args: {
           })
             .then(showPluginCommandMessage)
             .catch(() => {
-            toast.error(
-              translate('auto.App.pluginCommandFailed', 'Could not run the plugin command.')
-            )
-          })
+              toast.error(
+                translate('auto.App.pluginCommandFailed', 'Could not run the plugin command.')
+              )
+            })
           return
         }
       }
