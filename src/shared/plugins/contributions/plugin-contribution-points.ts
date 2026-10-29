@@ -259,6 +259,6 @@ export const PLUGIN_CONTRIBUTION_POINT_POLICY: Record<
   newFiles: { execution: 'data', catalogType: null, bindsContent: false },
   // Why no catalog type: a task source needs a worker, which `main` already declares.
   taskSources: { execution: 'trusted-worker', catalogType: null, bindsContent: false },
-  // Why declarative: the declaration is inert; values reach only the plugin's own worker.
-  settings: { execution: 'declarative', catalogType: null, bindsContent: false }
+  // Why data: the declaration is inert (it never acts), so it must not draw the commands warning.
+  settings: { execution: 'data', catalogType: null, bindsContent: false }
 }
