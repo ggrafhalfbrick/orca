@@ -26,6 +26,40 @@ import { projectPluginWorktreeBadges } from './plugin-worktree-badge-projection'
 
 const PLUGIN_LIST_PROJECTION_CONCURRENCY = 4
 
+type PluginLockEntry = PluginLockfile['plugins'][string]
+
+function lockEntrySource(
+  lockEntry: PluginLockEntry | undefined
+): Pick<PluginHostListEntry, 'source'> {
+  if (!lockEntry) {
+    return {}
+  }
+  return {
+    source: {
+      kind: lockEntry.source.kind,
+      reference:
+        lockEntry.source.kind === 'local-path'
+          ? lockEntry.source.path
+          : lockEntry.source.kind === 'git'
+            ? lockEntry.source.url
+            : lockEntry.source.kind === 'marketplace'
+              ? pluginSourceLabel(lockEntry.source.plugin)
+              : `bundled:${lockEntry.source.bundleId}`,
+      resolvedCommit: lockEntry.resolvedCommit,
+      contentHash: lockEntry.contentHash,
+      ...(lockEntry.source.kind === 'marketplace'
+        ? {
+            marketplace: {
+              reference: lockEntry.source.marketplace.url,
+              ref: lockEntry.source.marketplace.ref,
+              resolvedCommit: lockEntry.source.marketplace.resolvedCommit
+            }
+          }
+        : {})
+    }
+  }
+}
+
 const withImages = (images: PluginHostImages | undefined) => (images ? { images } : {})
 
 export async function buildPluginList(
@@ -44,11 +78,14 @@ export async function buildPluginList(
       if (isInvalidDiscoveredPlugin(plugin)) {
         // Invalid dev paths may expose private absolute paths; use opaque identities for clients.
         const fallbackKey = plugin.pluginKey ?? `invalid-development-plugin-${index + 1}`
+        // Why the lock entry: it says which catalog installed it, so the list can offer an update.
+        const lockEntry =
+          !plugin.isDev && plugin.pluginKey ? lock.plugins[plugin.pluginKey] : undefined
         return {
           pluginKey: fallbackKey,
           consentFingerprint: null,
           name: fallbackKey,
-          version: '0.0.0',
+          version: lockEntry?.version ?? '0.0.0',
           publisher: '',
           status: 'invalid' as const,
           needsReconsent: false,
@@ -66,7 +103,8 @@ export async function buildPluginList(
           taskSources: [],
           settings: [],
           vmRecipes: [],
-          restarts: 0
+          restarts: 0,
+          ...lockEntrySource(lockEntry)
         }
       }
       const activation = service.activationState(plugin)
@@ -184,32 +222,7 @@ export async function buildPluginList(
               }
             }
           : {}),
-        ...(lockEntry
-          ? {
-              source: {
-                kind: lockEntry.source.kind,
-                reference:
-                  lockEntry.source.kind === 'local-path'
-                    ? lockEntry.source.path
-                    : lockEntry.source.kind === 'git'
-                      ? lockEntry.source.url
-                      : lockEntry.source.kind === 'marketplace'
-                        ? pluginSourceLabel(lockEntry.source.plugin)
-                        : `bundled:${lockEntry.source.bundleId}`,
-                resolvedCommit: lockEntry.resolvedCommit,
-                contentHash: lockEntry.contentHash,
-                ...(lockEntry.source.kind === 'marketplace'
-                  ? {
-                      marketplace: {
-                        reference: lockEntry.source.marketplace.url,
-                        ref: lockEntry.source.marketplace.ref,
-                        resolvedCommit: lockEntry.source.marketplace.resolvedCommit
-                      }
-                    }
-                  : {})
-              }
-            }
-          : {})
+        ...lockEntrySource(lockEntry)
       }
     }
   )
