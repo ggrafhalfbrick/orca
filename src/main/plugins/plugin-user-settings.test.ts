@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { parsePluginManifest } from '../../shared/plugins/plugin-manifest'
+import { parsePluginManifest } from '../../shared/plugins/manifest/plugin-manifest'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
 import { readPluginUserSettings, writePluginUserSetting } from './plugin-user-settings'
 

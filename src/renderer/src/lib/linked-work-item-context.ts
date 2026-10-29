@@ -196,7 +196,9 @@ export function resolveQuickCreateLinkedWorkItemPrompt(
       > & { linkedContext?: LinkedWorkItemContext })
     | null
     | undefined,
-  note: string
+  note: string,
+  /** Appended after the linked-item draft, e.g. a plugin task's start prompt. */
+  agentDraft?: string | null
 ): { prompt: string; draftPrompt: string | null } {
   const trimmedNote = note.trim()
   const linearBlock = isLinearWorkItemReference(linkedWorkItem)
@@ -217,6 +219,6 @@ export function resolveQuickCreateLinkedWorkItemPrompt(
   const isLinearTypedOnly = linkedWorkItem?.number === 0 && Boolean(trimmedNote) && !draftPrompt
   return {
     prompt: isLinearTypedOnly ? trimmedNote : '',
-    draftPrompt
+    draftPrompt: appendAgentLaunchDraft(draftPrompt, agentDraft)
   }
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import { parsePluginManifest } from '../../shared/plugins/plugin-manifest'
+import { parsePluginManifest } from '../../shared/plugins/manifest/plugin-manifest'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
-import type { PluginWorkerHandle } from './plugin-host-process'
+import type { PluginWorkerHandle } from './workers/plugin-host-process'
 import { invokePluginTaskSource, invokePluginWorkerCommand } from './plugin-worker-invocation'
 
 const PLUGIN_KEY = 'orca-samples.tasks'
@@ -59,7 +59,7 @@ function deps(
 ) {
   const subject = options.subject ?? plugin()
   return {
-    findStartablePlugin: (pluginKey: string) =>
+    findApprovedPlugin: (pluginKey: string) =>
       options.enabled === false || pluginKey !== PLUGIN_KEY ? null : subject,
     ensureWorker: vi.fn(async () => handle)
   }

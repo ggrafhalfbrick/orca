@@ -28,7 +28,7 @@ import type { TuiAgent } from '../../../shared/tui-agent'
 import type { WorkspaceSource as WorkspaceCreateTelemetrySource } from '../../../shared/workspace-source'
 import type { WorkspaceStatus } from '../../../shared/worktree/types'
 import type { TaskSourceContext } from '../../../shared/task-source-context'
-import type { LinkedPluginTask } from '../../../shared/plugins/plugin-task-link'
+import type { LinkedPluginTask } from '../../../shared/plugins/tasks/plugin-task-link'
 import {
   describePluginTaskSessionOptions,
   sessionOptionsForAgent,
@@ -215,7 +215,8 @@ function QuickTabBody({
   const observation = useAgentMenuObservation(
     cardProps.agentRows?.target ?? null,
     active && Boolean(cardProps.agentRows),
-    cardProps.agentRows?.detectionTarget
+    cardProps.agentRows?.detectionTarget,
+    { wakeOnOpen: true }
   )
   const launchSelection = observation.selectionFor(quickAgent, quickAgentSurface)
   const createDisabled = formDisabled || !launchSelection.ready

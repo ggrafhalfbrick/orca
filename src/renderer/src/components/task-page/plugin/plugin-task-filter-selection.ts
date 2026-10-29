@@ -1,4 +1,4 @@
-import type { PluginTaskFilter } from '../../../../../shared/plugins/plugin-task-source'
+import type { PluginTaskFilter } from '../../../../../shared/plugins/tasks/plugin-task-source'
 
 function isOffered(filter: PluginTaskFilter | undefined, value: string): boolean {
   return filter?.options.some((option) => option.value === value) ?? false

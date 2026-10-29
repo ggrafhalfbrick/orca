@@ -5,7 +5,7 @@ import { taskPageDataRequestsBuiltin } from '@/lib/plugin-task-page-source'
 import {
   isSamePluginTaskSource,
   resolveActivePluginTaskSource
-} from '../../../../../shared/plugins/plugin-task-source-ref'
+} from '../../../../../shared/plugins/tasks/plugin-task-source-ref'
 
 export type TaskPageSourceView =
   | { kind: 'builtin' }

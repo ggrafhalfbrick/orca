@@ -1,4 +1,4 @@
-import type { PluginTaskStatusTone } from '../../../../../shared/plugins/plugin-task-source'
+import type { PluginTaskStatusTone } from '../../../../../shared/plugins/tasks/plugin-task-source'
 
 const TONE_CLASSES: Record<PluginTaskStatusTone, string> = {
   open: 'border-border/50 bg-muted/40 text-muted-foreground',

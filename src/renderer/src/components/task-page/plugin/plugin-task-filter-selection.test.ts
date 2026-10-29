@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { PluginTaskFilter } from '../../../../../shared/plugins/plugin-task-source'
+import type { PluginTaskFilter } from '../../../../../shared/plugins/tasks/plugin-task-source'
 import { reconcileFilterSelection, selectedFilterValue } from './plugin-task-filter-selection'
 
 const status: PluginTaskFilter = {

@@ -41,10 +41,7 @@ import { settleComposerSubmit } from '@/lib/composer-submit-cancellation'
 import { runBackgroundWorktreeCreation } from '@/lib/worktree-creation-flow'
 import type { ComposerCreateHandoff } from '@/lib/composer-create-handoff'
 import { translate } from '@/i18n/i18n'
-import {
-  appendAgentLaunchDraft,
-  resolveQuickCreateLinkedWorkItemPrompt
-} from '@/lib/linked-work-item-context'
+import { resolveQuickCreateLinkedWorkItemPrompt } from '@/lib/linked-work-item-context'
 import { buildQuickComposerStartup } from './quick-startup-plan'
 import { buildQuickCreationRequest, type QuickSubmitOptions } from './quick-creation-request'
 import type { PendingSmartGitHubSubmitResolution } from './source-selection-decisions'
@@ -125,14 +122,10 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         trimmedNote
       } = prepared
 
-      const promptLinkedWorkItem = agent === null ? null : submitLinkedWorkItem
-
-      const { prompt: quickPrompt, draftPrompt: linkedDraftPrompt } =
-        resolveQuickCreateLinkedWorkItemPrompt(promptLinkedWorkItem, trimmedNote)
-      const quickDraftPrompt =
-        agent === null
-          ? linkedDraftPrompt
-          : appendAgentLaunchDraft(linkedDraftPrompt, options?.agentDraft)
+      // Why: without an agent there is nothing to type a linked item or task prompt into.
+      const draft = agent && options?.agentDraft
+      const { prompt: quickPrompt, draftPrompt: quickDraftPrompt } =
+        resolveQuickCreateLinkedWorkItemPrompt(agent && submitLinkedWorkItem, trimmedNote, draft)
 
       const {
         startupPlan,

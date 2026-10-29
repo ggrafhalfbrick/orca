@@ -1,22 +1,25 @@
 import React from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { translate } from '@/i18n/i18n'
+import type { NewWorkspaceComposerCardProps } from './new-workspace-composer-card-props'
 
-/** Prefilled agent prompt (e.g. from a plugin task's start recipe), editable before Create. */
+/** Prefilled agent prompt (e.g. from a plugin task's start recipe), editable before Create;
+ *  absent unless the opener prefilled one. */
 export function NewWorkspaceComposerAgentDraftSection({
-  value,
-  onChange,
-  unavailableReason,
-  sessionNote
-}: {
-  value: string
-  onChange: (value: string) => void
-  unavailableReason: string | null
-  /** Which model/effort the launch uses, when the opener pinned them. */
-  sessionNote?: string | null
-}): React.JSX.Element {
+  agentDraft: value,
+  onAgentDraftChange: onChange,
+  agentDraftUnavailableReason,
+  agentSessionNote: sessionNote
+}: Pick<
+  NewWorkspaceComposerCardProps,
+  'agentDraft' | 'onAgentDraftChange' | 'agentDraftUnavailableReason' | 'agentSessionNote'
+>): React.JSX.Element | null {
   const inputId = React.useId()
   const helpId = React.useId()
+  if (value == null || !onChange) {
+    return null
+  }
+  const unavailableReason = agentDraftUnavailableReason ?? null
   return (
     <div className="min-w-0 space-y-1">
       <label htmlFor={inputId} className="text-xs font-medium text-muted-foreground">

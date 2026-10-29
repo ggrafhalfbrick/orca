@@ -8,7 +8,7 @@ import type { EphemeralVmCheckoutMode } from '../orca-yaml-hook-types'
 import type { BuiltInWorktreeVisibilitySourceId } from '../repo-types'
 import type { WorktreeIdentity } from './identity'
 import type { WorktreeScanFailureKind } from '../worktree-scan-failure'
-import type { LinkedPluginTask } from '../plugins/plugin-task-link'
+import type { LinkedPluginTask } from '../plugins/tasks/plugin-task-link'
 import type { SmartTier } from '../sidebar-list/sort-stamps'
 
 export type WorkspaceAttachmentOrigin = {

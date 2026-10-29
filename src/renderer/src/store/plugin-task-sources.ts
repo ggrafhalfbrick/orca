@@ -4,7 +4,7 @@ import { ensurePluginPanelsLoaded, usePluginPanelsStore } from './plugin-panels'
 import {
   pluginTaskSourceKey,
   type PluginTaskSourceRef
-} from '../../../shared/plugins/plugin-task-source-ref'
+} from '../../../shared/plugins/tasks/plugin-task-source-ref'
 
 export type ActivePluginTaskSource = PluginTaskSourceRef & {
   key: string

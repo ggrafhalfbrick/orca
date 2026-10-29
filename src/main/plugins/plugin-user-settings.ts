@@ -1,9 +1,9 @@
 import { z } from 'zod'
-import { isQualifiedPluginKey } from '../../shared/plugins/plugin-manifest'
+import { isQualifiedPluginKey } from '../../shared/plugins/manifest/plugin-manifest'
 import {
   parsePluginSettingValue,
   type PluginSettingValue
-} from '../../shared/plugins/plugin-settings-contribution'
+} from '../../shared/plugins/contributions/plugin-settings-contribution'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
 import { PluginKvStore } from './plugin-storage-store'
 

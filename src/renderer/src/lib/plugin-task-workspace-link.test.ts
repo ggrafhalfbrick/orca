@@ -6,7 +6,7 @@ vi.mock('@/store', () => ({
   useAppStore: { getState: () => ({ updateWorktreeMeta: mocks.updateWorktreeMeta }) }
 }))
 
-import type { LinkedPluginTask } from '../../../shared/plugins/plugin-task-link'
+import type { LinkedPluginTask } from '../../../shared/plugins/tasks/plugin-task-link'
 import { persistCreatedWorkspacePluginTaskLink } from './plugin-task-workspace-link'
 
 const link: LinkedPluginTask = {

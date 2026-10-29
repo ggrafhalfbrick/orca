@@ -3,15 +3,15 @@ import {
   pluginTaskSourceRequestSchema,
   type PluginTaskDetail,
   type PluginTaskListResult
-} from '../../shared/plugins/plugin-task-source'
+} from '../../shared/plugins/tasks/plugin-task-source'
 import { assertPluginWorkerCommand } from './plugin-command-invocation'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
-import type { PluginWorkerHandle } from './plugin-host-process'
+import type { PluginWorkerHandle } from './workers/plugin-host-process'
 
 /** What invoking plugin worker code needs from the plugin service. */
 export type PluginWorkerInvocationDeps = {
   /** Null unless the plugin is installed, approved, and allowed to start work. */
-  findStartablePlugin(pluginKey: string): ValidDiscoveredPlugin | null
+  findApprovedPlugin(pluginKey: string): ValidDiscoveredPlugin | null
   ensureWorker(plugin: ValidDiscoveredPlugin): Promise<PluginWorkerHandle>
 }
 
@@ -19,7 +19,7 @@ function requireStartablePlugin(
   deps: PluginWorkerInvocationDeps,
   pluginKey: string
 ): ValidDiscoveredPlugin {
-  const plugin = deps.findStartablePlugin(pluginKey)
+  const plugin = deps.findApprovedPlugin(pluginKey)
   if (!plugin) {
     throw new Error(`plugin ${pluginKey} is not enabled`)
   }

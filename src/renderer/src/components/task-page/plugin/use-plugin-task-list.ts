@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { PluginTaskListResult } from '../../../../../shared/plugins/plugin-task-source'
+import type { PluginTaskListResult } from '../../../../../shared/plugins/tasks/plugin-task-source'
 import type { ActivePluginTaskSource } from '@/store/plugin-task-sources'
 import {
   readPluginTaskSourceView,
