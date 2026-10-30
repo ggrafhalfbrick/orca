@@ -40,13 +40,15 @@ beforeEach(() => {
   store.repos = [
     repo('p4', { path: '/ws', kind: 'folder', vcs: 'perforce' }),
     repo('folder', { path: '/plain', kind: 'folder' }),
-    repo('git', { path: '/git' })
+    repo('git', { path: '/git' }),
+    repo('remote', { path: '/remote', kind: 'folder', vcs: 'perforce', connectionId: 'box' })
   ]
   store.worktrees = [
     { id: 'p4::/ws', repoId: 'p4', path: '/ws' },
     { id: 'p4::/ws.wt/one', repoId: 'p4', path: '/ws.wt/one' },
     { id: 'folder::/plain', repoId: 'folder', path: '/plain' },
-    { id: 'git::/git', repoId: 'git', path: '/git' }
+    { id: 'git::/git', repoId: 'git', path: '/git' },
+    { id: 'remote::/remote', repoId: 'remote', path: '/remote' }
   ]
   store.detected = false
   detect.mockClear()
@@ -62,6 +64,10 @@ describe('perforceTargetForFile', () => {
   it('finds the Perforce workspace that holds a file opened from elsewhere', async () => {
     const target = await perforceTargetForFile(context('git::/git', '/git'), '/ws.wt/one/a.cs')
     expect(target).toMatchObject({ worktreeId: 'p4::/ws.wt/one', worktreePath: '/ws.wt/one' })
+    // A same-path workspace on another host is never the one a local save checks out.
+    await expect(
+      perforceTargetForFile(context('git::/git', '/git'), '/remote/a.cs')
+    ).resolves.toBeNull()
   })
 
   it('detects a folder project not yet marked Perforce, and leaves Git projects alone', async () => {
