@@ -3113,6 +3113,7 @@
         "pluginTaskEmptyHint": "Try different search terms or filters.",
         "pluginTaskLoadMore": "Load more",
         "pluginTaskProjectMissing": "No Orca project is at {{path}}. Add it as a project, then start again.",
+        "pluginTaskProjectSourceUnsupported": "Orca cannot find a project for {{source}}. Add it as a project, then start again.",
         "pluginTaskOpenWorkspaceAction": "Open workspace",
         "pluginTaskStartAnotherShort": "Start another",
         "pluginTaskWorkspacesLabel": "Workspaces",

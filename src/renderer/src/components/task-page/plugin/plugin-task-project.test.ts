@@ -50,6 +50,9 @@ describe('resolvePluginTaskProject', () => {
     await expect(
       resolvePluginTaskProject({ projectSource: 'https://github.com/acme/gone' }, repos, 'active')
     ).resolves.toMatchObject({ kind: 'missing' })
+    await expect(
+      resolvePluginTaskProject({ projectSource: '/srv/repos/app.git' }, repos, 'active')
+    ).resolves.toMatchObject({ kind: 'missing', message: expect.stringContaining('/srv/repos') })
   })
 
   it('leaves the composer default when the recipe names no project', async () => {
