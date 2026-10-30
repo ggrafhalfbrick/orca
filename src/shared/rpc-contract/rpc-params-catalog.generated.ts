@@ -42,7 +42,6 @@ import {
   OrcadPeerDesktopsParamsSchema
 } from '../orcad-peer-desktops-contract'
 import { OrcadTerminalCensusParamsSchema } from '../orcad-terminal-census'
-import { pluginConsentRequestSchema } from '../plugins/approval/plugin-consent-request'
 import {
   AccountsUnsubscribeParams,
   AddClaudeFromConfigDirParams,
@@ -97,6 +96,7 @@ import {
 import { CertificateProceed } from './browser-core-params'
 import { MouseClick } from './browser-extras-params'
 import { BrowserIdentitySet, ProfileCreate } from './browser-identity-params'
+import { Screenshot, Snapshot } from './browser-observation-params'
 import {
   Check,
   ClipboardWrite,
@@ -127,7 +127,6 @@ import {
   ProfileDelete,
   ProfileImportFromBrowser,
   Screencast,
-  Screenshot,
   Scroll,
   Select,
   SelectorPath,
@@ -227,6 +226,7 @@ import {
 import {
   ChatImageRead,
   DocPreviewFileRead,
+  DocPreviewFileReadChunk,
   FileDirRead,
   FileListAll,
   FileOpenDiff,
@@ -275,6 +275,7 @@ import {
   GitRebaseFromBase,
   GitRemoteCommitUrl,
   GitRemoteFileUrl,
+  GitResolveConflict,
   GitStatusParams,
   GitSubmoduleStatus,
   GitTargetedRemote,
@@ -512,8 +513,12 @@ import {
   PerforceWorktree
 } from './perforce-params'
 import {
+  PluginDevLoadParams,
+  PluginDevUnloadParams,
+  PluginGetLogsParams,
   PluginInvokeCommandParams,
   PluginReadPanelEntryParams,
+  PluginRpcConsentParams,
   PluginSetEnabledParams,
   PluginsPanelActionParams
 } from './plugins-params'
@@ -629,6 +634,7 @@ import {
 } from './structured-agent-session-queued-edit-params'
 import { RenameParams } from './structured-agent-session-rename-params'
 import { TerminalDaemonRestartSeveredParams } from './terminal-daemon-params'
+import { TerminalLimitUpdateParams } from './terminal-limit-params'
 import { TerminalAdoptOrphans } from './terminal-orphan-params'
 import { TerminalQuickCommandsUpdate } from './terminal-quick-command-params'
 import {
@@ -911,7 +917,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'browser.setHeaders': SetHeaders,
   'browser.setMedia': SetMedia,
   'browser.setOffline': SetOffline,
-  'browser.snapshot': BrowserTarget,
+  'browser.snapshot': Snapshot,
   'browser.storage.local.clear': BrowserTarget,
   'browser.storage.local.get': StorageKey,
   'browser.storage.local.set': StorageKeyValue,
@@ -997,6 +1003,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'files.readChunk': FileReadChunk,
   'files.readDir': FileDirRead,
   'files.readDocPreview': DocPreviewFileRead,
+  'files.readDocPreviewChunk': DocPreviewFileReadChunk,
   'files.readPreview': FileOpen,
   'files.readTerminalArtifact': TerminalArtifactFile,
   'files.readTerminalArtifactPreview': TerminalArtifactFile,
@@ -1036,6 +1043,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'git.commit': GitCommit,
   'git.commitCompare': GitCommitCompare,
   'git.commitDiff': GitCommitDiff,
+  'git.completeMerge': WorktreeSelectorOfGitParams,
   'git.conflictOperation': WorktreeSelectorOfGitParams,
   'git.diff': GitDiff,
   'git.discard': GitFilePath,
@@ -1053,6 +1061,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'git.rebaseFromBase': GitRebaseFromBase,
   'git.remoteCommitUrl': GitRemoteCommitUrl,
   'git.remoteFileUrl': GitRemoteFileUrl,
+  'git.resolveConflict': GitResolveConflict,
   'git.stage': GitFilePath,
   'git.status': GitStatusParams,
   'git.submoduleStatus': GitSubmoduleStatus,
@@ -1340,11 +1349,15 @@ export const RPC_PARAMS_BY_METHOD = {
   'perforce.unshelve': PerforceChangelist,
   'perforce.unshelveFiles': PerforceShelvedFiles,
   'perforce.unshelveFrom': PerforceUnshelveFrom,
-  'plugins.consent': pluginConsentRequestSchema,
+  'plugins.consent': PluginRpcConsentParams,
+  'plugins.devLoad': PluginDevLoadParams,
+  'plugins.devUnload': PluginDevUnloadParams,
+  'plugins.getLogs': PluginGetLogsParams,
   'plugins.invokeCommand': PluginInvokeCommandParams,
   'plugins.list': null,
   'plugins.panelAction': PluginsPanelActionParams,
   'plugins.readPanelEntry': PluginReadPanelEntryParams,
+  'plugins.refresh': null,
   'plugins.setEnabled': PluginSetEnabledParams,
   'preflight.check': PreflightCheck,
   'preflight.detectAgents': PreflightProjectAgentDetection,
@@ -1511,7 +1524,9 @@ export const RPC_PARAMS_BY_METHOD = {
   'terminal.updateViewport': TerminalUpdateViewport,
   'terminal.viewClaudeAgent': TerminalViewClaudeAgent,
   'terminal.wait': TerminalWait,
+  'terminalDaemon.limit': null,
   'terminalDaemon.restartSevered': TerminalDaemonRestartSeveredParams,
+  'terminalDaemon.setLimit': TerminalLimitUpdateParams,
   'terminalDaemon.severedStatus': null,
   'ui.get': null,
   'ui.getJiraQuickFilters': null,

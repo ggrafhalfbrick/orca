@@ -40,7 +40,7 @@ function inFlightDiffKey(
     file.diffSource === 'commit' && file.commitCompare
       ? `${file.commitCompare.parentOid ?? 'empty-tree'}..${file.commitCompare.commitOid}::${file.branchOldPath ?? ''}`
       : ''
-  return `${connectionId ?? ''}::${file.diffSource ?? ''}::${compareAgainstHead ? 'head' : 'default'}::${file.filePath}::${branch}::${commit}`
+  return `${connectionId ?? ''}::${file.diffSource ?? ''}::${compareAgainstHead ? 'head' : 'default'}::${file.filePath}::${file.branchOldPath ?? ''}::${branch}::${commit}`
 }
 
 export function useEditorPanelDiffContentLoader({
@@ -145,7 +145,10 @@ export function useEditorPanelDiffContentLoader({
                     {
                       filePath: file.relativePath,
                       staged: effectiveDiffSource === 'staged',
-                      compareAgainstHead
+                      compareAgainstHead,
+                      ...(effectiveDiffSource === 'staged' && file.branchOldPath
+                        ? { oldPath: file.branchOldPath }
+                        : {})
                     },
                     wake
                   )

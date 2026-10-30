@@ -62,7 +62,11 @@ export function setRuntimeFileWriteGuard(next: RuntimeFileWriteGuard | null): vo
 export async function readRuntimeDirectory(
   context: RuntimeFileOperationArgs,
   dirPath: string,
-  { wakeWslDistro, ...options }: { followSymlinks?: boolean; wakeWslDistro?: boolean } = {}
+  {
+    wakeWslDistro,
+    access,
+    ...options
+  }: { followSymlinks?: boolean; wakeWslDistro?: boolean; access?: LocalFileAccess } = {}
 ): Promise<DirEntry[]> {
   const remoteArgs = getRemoteFileArgs(context, dirPath)
   if (!remoteArgs) {
@@ -71,7 +75,8 @@ export async function readRuntimeDirectory(
       dirPath,
       connectionId: context.connectionId,
       ...options,
-      ...(wakeWslDistro ? { wakeWslDistro } : {})
+      ...(wakeWslDistro ? { wakeWslDistro } : {}),
+      ...(access ? { access } : {})
     })
   }
   return callRuntimeRpc<DirEntry[]>(

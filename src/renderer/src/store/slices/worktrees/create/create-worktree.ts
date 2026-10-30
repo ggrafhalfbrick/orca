@@ -1,5 +1,5 @@
+import { showWorktreeCreateWarningToast } from './worktree-create-warning-toast'
 import { createWorktreeOnRuntimeHost, type HostCreateSettings } from './host-planned-agent-launch'
-import { toast } from 'sonner'
 import { runtimeRpcTargetForAuthorityKey } from '@/runtime/runtime-client-target'
 import { repoHostId } from '../listing/worktree-host-ownership'
 import {
@@ -275,9 +275,7 @@ export function createCreateWorktree(
             holdCreatedSidebarWorkspace({ worktree: created })
           }
           const { result } = outcome
-          if (result.warning) {
-            toast.warning(result.warning)
-          }
+          showWorktreeCreateWarningToast(result.warning)
           showLocalBaseRefRefreshToast(result.localBaseRefRefresh, result.worktree, {
             updateSettings: get().updateSettings,
             executionHostId: creationHostId
