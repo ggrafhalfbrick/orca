@@ -1,11 +1,30 @@
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
+import { access, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { deleteChangelistWithFiles } from './perforce-changelists'
 import {
   resolveDeletableInWorkspace,
   resolveReadableInWorkspace
 } from './perforce-workspace-real-path'
+
+const p4 = vi.hoisted(() => ({ added: [] as string[], calls: [] as string[][] }))
+vi.mock('./p4-command', () => ({
+  runP4: vi.fn(async (args: string[]) => {
+    p4.calls.push(args)
+    const stdout = args.includes('fstat')
+      ? p4.added.map((file) => `... clientFile ${file}\n... action add\n`).join('\n')
+      : ''
+    return { code: 0, stdout, stderr: '' }
+  }),
+  runP4OrThrow: vi.fn()
+}))
+
+const exists = (path: string) =>
+  access(path).then(
+    () => true,
+    () => false
+  )
 
 let base: string
 let workspace: string
@@ -42,5 +61,25 @@ describe('workspace paths resolved through links', () => {
 
   it('treats a missing folder as nothing to delete', async () => {
     expect(await resolveDeletableInWorkspace(workspace, 'gone/a.txt')).toBeNull()
+  })
+})
+
+describe('deleteChangelistWithFiles', () => {
+  beforeEach(() => {
+    p4.calls = []
+  })
+
+  it('stops before the revert when an added file sits behind a link that leaves the workspace', async () => {
+    p4.added = [join(workspace, 'link', 'notes.txt')]
+    await expect(deleteChangelistWithFiles(workspace, 7)).rejects.toThrow('escapes the workspace')
+    expect(p4.calls.some((args) => args[0] === 'revert')).toBe(false)
+    expect(await exists(join(outside, 'notes.txt'))).toBe(true)
+  })
+
+  it('deletes added files inside the workspace and leaves ones outside it on disk', async () => {
+    p4.added = [join(workspace, 'src', 'a.txt'), join(outside, 'notes.txt')]
+    await expect(deleteChangelistWithFiles(workspace, 7)).resolves.toMatchObject({ success: true })
+    expect(await exists(join(workspace, 'src', 'a.txt'))).toBe(false)
+    expect(await exists(join(outside, 'notes.txt'))).toBe(true)
   })
 })

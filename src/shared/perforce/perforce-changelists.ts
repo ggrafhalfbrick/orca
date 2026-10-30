@@ -3,6 +3,8 @@ import { rm } from 'node:fs/promises'
 import { runP4, runP4OrThrow } from './p4-command'
 import { parseTaggedOutput } from './p4-tagged-output'
 import { fileArgs, toResult } from './perforce-mutations'
+import { toRelativePath } from './perforce-status'
+import { resolveDeletableInWorkspace } from './perforce-workspace-real-path'
 
 export async function shelveChangelist(
   cwd: string,
@@ -167,16 +169,23 @@ export async function deleteChangelistWithFiles(
   )
   const added = parseTaggedOutput(opened.stdout)
     .filter((record) => record.action === 'add' || record.action === 'branch')
-    .map((record) => record.clientFile)
+    .map((record) => toRelativePath(cwd, record.clientFile))
+  // Why before the revert: a linked folder that leads outside must stop the delete before anything changes.
+  // Adds outside `cwd` stay on disk, as a plain revert leaves them.
+  const deletable: string[] = []
+  for (const file of added) {
+    const absolute = file ? await resolveDeletableInWorkspace(cwd, file) : null
+    if (absolute) {
+      deletable.push(absolute)
+    }
+  }
   const reverted = await runP4(['revert', '-c', id, '//...'], { cwd })
   // Why: "no file(s) to revert" is a non-zero exit for an already-empty changelist.
   if (reverted.code !== 0 && !/not opened|no file/i.test(reverted.stderr)) {
     return toResult(reverted)
   }
-  for (const file of added) {
-    if (file) {
-      await rm(file, { force: true })
-    }
+  for (const file of deletable) {
+    await rm(file, { force: true })
   }
   return toResult(await runP4(['change', '-d', id], { cwd }))
 }

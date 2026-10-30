@@ -30,7 +30,7 @@ function toAction(raw: string | undefined): PerforceFileAction {
   return KNOWN_ACTIONS.find((action) => action === raw) ?? 'unknown'
 }
 
-function toRelativePath(cwd: string, localPath: string | undefined): string | null {
+export function toRelativePath(cwd: string, localPath: string | undefined): string | null {
   const rel = localPath ? relative(cwd, localPath) : ''
   if (!rel || rel.startsWith('..') || isAbsolute(rel)) {
     return null
