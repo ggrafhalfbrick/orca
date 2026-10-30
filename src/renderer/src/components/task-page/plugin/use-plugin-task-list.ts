@@ -48,8 +48,9 @@ export function usePluginTaskList(source: ActivePluginTaskSource): PluginTaskLis
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Why: a later page that lands after the view changed belongs to the old list.
-  const viewKeyRef = useRef(viewKeyOf(query, filters))
+  // Why: every first-page load starts a new list; a cursor or later page from an older one is stale.
+  const listGenerationRef = useRef(0)
+  const cursorGenerationRef = useRef<number | null>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => setQuery(searchInput.trim()), SEARCH_DEBOUNCE_MS)
@@ -62,7 +63,7 @@ export function usePluginTaskList(source: ActivePluginTaskSource): PluginTaskLis
     setLoadingMore(false)
     savePluginTaskSourceView(source.key, { query, filters })
     const viewKey = viewKeyOf(query, filters)
-    viewKeyRef.current = viewKey
+    const generation = ++listGenerationRef.current
     window.api.plugins
       .listTaskSourceItems({
         pluginKey: source.pluginKey,
@@ -74,6 +75,7 @@ export function usePluginTaskList(source: ActivePluginTaskSource): PluginTaskLis
           return
         }
         lastListBySource.set(source.key, { viewKey, result: next })
+        cursorGenerationRef.current = generation
         setResult(next)
         setError(null)
         // Why: a stale remembered value would keep being sent and saved while its picker shows the default.
@@ -82,6 +84,8 @@ export function usePluginTaskList(source: ActivePluginTaskSource): PluginTaskLis
       .catch((failure: unknown) => {
         if (!cancelled) {
           setError(pluginTaskErrorMessage(failure))
+          // Why: the list still shown is from an older request; its cursor would page that one.
+          setResult((current) => (current ? { ...current, nextCursor: undefined } : current))
         }
       })
       .finally(() => {
@@ -100,10 +104,10 @@ export function usePluginTaskList(source: ActivePluginTaskSource): PluginTaskLis
   const refresh = useCallback(() => setRefreshNonce((nonce) => nonce + 1), [])
   const cursor = result?.nextCursor
   const loadMore = useCallback(() => {
-    if (!cursor || loadingMore) {
+    const generation = listGenerationRef.current
+    if (!cursor || loading || loadingMore || cursorGenerationRef.current !== generation) {
       return
     }
-    const viewKey = viewKeyRef.current
     setLoadingMore(true)
     window.api.plugins
       .listTaskSourceItems({
@@ -112,7 +116,7 @@ export function usePluginTaskList(source: ActivePluginTaskSource): PluginTaskLis
         params: { query, filters, cursor }
       })
       .then((page) => {
-        if (viewKeyRef.current !== viewKey) {
+        if (listGenerationRef.current !== generation) {
           return
         }
         setResult((current) => {
@@ -123,16 +127,16 @@ export function usePluginTaskList(source: ActivePluginTaskSource): PluginTaskLis
         setError(null)
       })
       .catch((failure: unknown) => {
-        if (viewKeyRef.current === viewKey) {
+        if (listGenerationRef.current === generation) {
           setError(pluginTaskErrorMessage(failure))
         }
       })
       .finally(() => {
-        if (viewKeyRef.current === viewKey) {
+        if (listGenerationRef.current === generation) {
           setLoadingMore(false)
         }
       })
-  }, [cursor, filters, loadingMore, query, source.pluginKey, source.sourceId])
+  }, [cursor, filters, loading, loadingMore, query, source.pluginKey, source.sourceId])
 
   return {
     searchInput,
