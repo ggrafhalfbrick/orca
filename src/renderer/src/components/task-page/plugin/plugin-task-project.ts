@@ -64,5 +64,15 @@ export async function resolvePluginTaskProject(
         : { kind: 'missing', message: result.missing }
     }
   }
+  if (recipe.projectSource) {
+    return {
+      kind: 'missing',
+      message: translate(
+        'auto.components.TaskPage.pluginTaskProjectSourceUnsupported',
+        'Orca cannot find a project for {{source}}. Add it as a project, then start again.',
+        { source: recipe.projectSource }
+      )
+    }
+  }
   return { kind: 'unspecified' }
 }

@@ -80,7 +80,12 @@ function PluginTaskListBody({
       />
       {list.result?.nextCursor ? (
         <div className="flex justify-center border-t border-border/50 px-4 py-3">
-          <Button variant="outline" size="sm" disabled={list.loadingMore} onClick={list.loadMore}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={list.loading || list.loadingMore}
+            onClick={list.loadMore}
+          >
             {list.loadingMore ? <LoaderCircle className="animate-spin" /> : null}
             {translate('auto.components.TaskPage.pluginTaskLoadMore', 'Load more')}
           </Button>
