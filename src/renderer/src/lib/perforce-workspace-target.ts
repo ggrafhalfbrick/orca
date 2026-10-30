@@ -129,7 +129,7 @@ function folderRepoOf(state: AppState, worktree: Pick<Worktree, 'repoId' | 'host
 
 /**
  * The workspace a file operation runs in: `context`'s own when it holds the file, else a known
- * Perforce workspace that does (a file opened from another workspace's terminal, say).
+ * Perforce workspace on the same host that does (a file opened from another workspace's terminal, say).
  */
 function workspaceOfFile(
   state: AppState,
@@ -138,6 +138,7 @@ function workspaceOfFile(
 ): FileWorkspace | null {
   const own = context.worktreeId ? state.getKnownWorktreeById(context.worktreeId) : undefined
   const ownPath = own?.path ?? context.worktreePath
+  const environmentId = context.target.kind === 'environment' ? context.target.environmentId : null
   if (
     context.worktreeId &&
     ownPath &&
@@ -147,7 +148,7 @@ function workspaceOfFile(
       worktreeId: context.worktreeId,
       worktreePath: ownPath,
       connectionId: context.connectionId,
-      environmentId: context.target.kind === 'environment' ? context.target.environmentId : null,
+      environmentId,
       repo: own
         ? folderRepoOf(state, own)
         : folderRepoOf(state, { repoId: getRepoIdFromWorktreeId(context.worktreeId) })
@@ -167,11 +168,19 @@ function workspaceOfFile(
     ) {
       continue
     }
+    const worktreeEnvironmentId = runtimeEnvironmentIdOrLocalUnlessTwin(state, worktree.id)
+    // Why: the save writes on the context's host, so checking out a same-path file elsewhere is wrong.
+    if (
+      worktreeEnvironmentId !== environmentId ||
+      (repo.connectionId ?? null) !== (context.connectionId ?? null)
+    ) {
+      continue
+    }
     best = {
       worktreeId: worktree.id,
       worktreePath: worktree.path,
       connectionId: repo.connectionId,
-      environmentId: runtimeEnvironmentIdOrLocalUnlessTwin(state, worktree.id),
+      environmentId: worktreeEnvironmentId,
       repo
     }
   }
