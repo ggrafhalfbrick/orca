@@ -18,7 +18,8 @@ function listAfter(args: readonly string[], flag: string): string[] {
   if (start === -1) {
     return []
   }
-  const end = args.findIndex((arg, i) => i > start && arg.startsWith('/'))
+  // Why: robocopy switches are upper-case (/XF, /COPY:DAT); a POSIX path also starts with '/'.
+  const end = args.findIndex((arg, i) => i > start && /^\/[A-Z]+(?::|$)/.test(arg))
   return args.slice(start + 1, end === -1 ? undefined : end).map((p) => resolve(p).toLowerCase())
 }
 
