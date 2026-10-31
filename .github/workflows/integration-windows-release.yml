@@ -81,8 +81,10 @@ jobs:
   orcad-template:
     needs: version
     if: inputs.orcad_template
+    # Why actions: read: the called workflow's template lane reads other lanes' artifacts.
     permissions:
       contents: read
+      actions: read
     uses: ./.github/workflows/node-server-tests.yml
     with:
       ref: ${{ github.sha }}
