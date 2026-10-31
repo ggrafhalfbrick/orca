@@ -29,7 +29,6 @@ import { readClaudeTranscriptEntryUuid } from '../claude-transcript-entry-uuid'
 import { claudeTurnResumePointWriter } from '../claude-structured-resume-point'
 import { withAgentSessionCreatePhase } from '../../observability/agent-session-instrumentation'
 import { resolveClaudeAcquisitionLaunch } from '../claude-structured-acquisition-launch'
-import { claudePermissionModeBypassesToolAsks } from '../claude-structured-launch-resolution'
 import {
   bindClaudeConnectionJournalControls,
   createClaudeSessionJournalTranslator
@@ -174,7 +173,7 @@ export async function acquireClaudeSession({
     sessionId,
     prompts,
     emit,
-    bypassToolApprovals: claudePermissionModeBypassesToolAsks(input.permissionMode)
+    permissionMode: input.permissionMode
   })
 
   try {

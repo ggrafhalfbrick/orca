@@ -21,7 +21,7 @@ function permissionOptions(
   }
 }
 
-function callbacksFor(deps: { bypassToolApprovals?: boolean } = {}) {
+function callbacksFor(deps: { permissionMode?: 'full-access' } = {}) {
   const prompts = new ClaudePromptRegistry()
   const emit = vi.fn()
   const { canUseTool, onUserDialog } = buildClaudePermissionCallbacks({
@@ -118,7 +118,7 @@ describe('Claude permission callbacks', () => {
   })
 
   it('full access allows a tool request without asking, registering, or emitting', async () => {
-    const control = callbacksFor({ bypassToolApprovals: true })
+    const control = callbacksFor({ permissionMode: 'full-access' })
     const register = vi.spyOn(control.prompts, 'register')
     const answered = control.canUseTool(
       'Bash',
@@ -136,7 +136,7 @@ describe('Claude permission callbacks', () => {
   })
 
   it('full access still asks a question', async () => {
-    const control = callbacksFor({ bypassToolApprovals: true })
+    const control = callbacksFor({ permissionMode: 'full-access' })
     const answered = control.canUseTool(
       'AskUserQuestion',
       { questions: [{ question: 'Which database?', options: [{ label: 'Postgres' }] }] },
@@ -154,7 +154,7 @@ describe('Claude permission callbacks', () => {
   })
 
   it('full access still surfaces a plan proposal', async () => {
-    const control = callbacksFor({ bypassToolApprovals: true })
+    const control = callbacksFor({ permissionMode: 'full-access' })
     const answered = control.canUseTool(
       'ExitPlanMode',
       { plan: '# Release\n\n- Run tests' },

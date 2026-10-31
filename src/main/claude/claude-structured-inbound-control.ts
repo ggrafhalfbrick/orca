@@ -6,6 +6,8 @@ import {
   claudePermissionSubject
 } from './claude-permission-presentation'
 import { claudePromptQuestions } from './claude-prompt-registry'
+import { claudePermissionModeBypassesToolAsks } from './claude-structured-launch-resolution'
+import type { AgentChatPermissionChoice } from '../../shared/agent-chat-permission-mode'
 
 export type ClaudePermissionCallbackDeps = {
   sessionId: string
@@ -13,7 +15,7 @@ export type ClaudePermissionCallbackDeps = {
   emit: (event: ClaudeStructuredSessionEvent) => void
   /** Full access: a tool-permission ask runs without prompting. A genuine question or a plan
    *  proposal still reaches the user — the CLI's bypass flag never suppresses those either. */
-  bypassToolApprovals?: boolean
+  permissionMode?: AgentChatPermissionChoice
 }
 
 function allowResult(
@@ -50,7 +52,11 @@ export function buildClaudePermissionCallbacks(deps: ClaudePermissionCallbackDep
       const subject = claudePermissionSubject(toolName, input)
       const isQuestion = toolName === 'AskUserQuestion' && claudePromptQuestions(input).length > 0
       // Full access skips the ask for tool permissions, but never for a question or a plan proposal.
-      if (deps.bypassToolApprovals && !isQuestion && subject?.kind !== 'plan') {
+      if (
+        claudePermissionModeBypassesToolAsks(deps.permissionMode) &&
+        !isQuestion &&
+        subject?.kind !== 'plan'
+      ) {
         settle(allowResult(input, options.toolUseID))
         return
       }
