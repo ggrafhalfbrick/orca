@@ -7,6 +7,12 @@ export type PluginTaskSourceRef = {
   sourceId: string
 }
 
+/** The plugin task source group of GlobalSettings. */
+export type PluginTaskSourceGlobalSettings = {
+  /** Last plugin task source picked on Tasks (`<pluginKey>/<sourceId>`); null when a built-in source was picked last. */
+  defaultPluginTaskSource?: string | null
+}
+
 /** Settings encoding: `<publisher>.<id>/<sourceId>`; neither part may contain `/`. */
 export function pluginTaskSourceKey(ref: PluginTaskSourceRef): string {
   return `${ref.pluginKey}/${ref.sourceId}`
