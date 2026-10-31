@@ -7,6 +7,12 @@ export type PerforceSaveBehavior = 'ask' | 'auto' | 'never'
 export type PerforceNewChangelistMode = 'move-selected' | 'empty'
 export type PerforceShelfAfterSubmit = 'delete' | 'keep-copy'
 
+/** The Perforce group of GlobalSettings. */
+export type PerforceGlobalSettings = {
+  /** Perforce integration preferences; always read through normalizePerforceSettings. */
+  perforce?: PerforceSettings
+}
+
 export type PerforceSettings = {
   /** Absolute path to `p4`; empty means auto-detect. */
   p4Path: string
