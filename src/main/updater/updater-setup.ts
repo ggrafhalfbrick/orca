@@ -25,6 +25,7 @@ import type { PreQuitCleanupFailureMode, UpdateInstallMode } from './updater-sta
 import { LATEST_RELEASE_DOWNLOAD_URL } from './update-release-repo'
 
 export type UpdaterSetupOptions = {
+  getMainWindow?: () => BrowserWindow | null
   getLastUpdateCheckAt?: () => number | null
   onBeforeQuit?: () => void | Promise<void>
   setLastUpdateCheckAt?: (timestamp: number) => void
@@ -113,8 +114,8 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
   }
 
   setupAutoUpdater(mainWindow: BrowserWindow | null, opts?: UpdaterSetupOptions): void {
-    // Headless setup must not erase a later attached window.
-    this.mainWindowRef = mainWindow ?? this.mainWindowRef
+    // Keep direct-window callers compatible; desktop composition supplies the lifecycle getter.
+    this.getMainWindow = opts?.getMainWindow ?? (mainWindow ? () => mainWindow : this.getMainWindow)
     this.onBeforeQuitCleanup = opts?.onBeforeQuit ?? null
     this.onBeforeQuitFailure = opts?.onBeforeQuitFailure ?? 'continue'
     this.persistLastUpdateCheckAt = opts?.setLastUpdateCheckAt ?? null

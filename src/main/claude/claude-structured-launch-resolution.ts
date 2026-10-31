@@ -1,3 +1,5 @@
+import type { ClaudeAccountRecipe } from '../../shared/agent-session-acquired-account'
+import { prepareClaudeReceivingAccount } from './claude-receiving-account'
 import { assertStructuredAgentResolutionCurrent } from '../native-chat/structured-agent-command-resolution'
 import { activeProviderContext } from '../../shared/agent-session-provider-context'
 import { getClaudeProfileRouter } from '../claude-accounts/claude-profile-installed-router'
@@ -27,10 +29,7 @@ import { claudeStructuredLaunchArgs } from './claude-structured-launch-args'
 import type { ClaudeCliFlagCheck, ClaudeCliFlagSupport } from './claude-cli-flag-support'
 import { resolveClaudeLaunchFlags } from './claude-structured-launch-flags'
 import { withNativeChatVisualsEnv } from '../native-chat/native-chat-visuals-delivery'
-import {
-  claudeLaunchResumesTranscript,
-  resolveClaudeStructuredLaunchHome
-} from './claude-structured-launch-home'
+import { claudeLaunchResumesTranscript } from './claude-structured-launch-home'
 import type { StructuredAgentLaunchPartResolver } from '../runtime/structured-agent-launch-composition'
 import { claudeSessionIdForOrcaSession } from './structured/claude-structured-session-id'
 import {
@@ -106,12 +105,14 @@ export function claudeStructuredPermissionOptions(
 export type ClaudeStructuredLaunch = {
   /** Always Orca's resolved user CLI: the SDK's bundled binaries are excluded from the install. */
   pathToClaudeCodeExecutable: string
+  prefixArgs?: readonly string[]
   account?: ClaudeStructuredInvocation['account']
   options: ClaudeStructuredSdkOptions
   cwd: string
   env?: Record<string, string>
   envToDelete?: readonly string[]
   claudeConfigDir: string
+  accountRecipe?: ClaudeAccountRecipe
   providerSessionId: string
   /** The previous head leaf, carried into the publication link; never a resume argument. */
   resumeLeafUuid: string | null
@@ -143,6 +144,7 @@ export type ClaudeStructuredLaunchPartDeps = {
 
 export type ClaudeStructuredInvocation = {
   command: string
+  prefixArgs: string[]
   env: Record<string, string>
   account: 'managed' | 'system'
 }
@@ -164,6 +166,7 @@ export async function resolveClaudeStructuredInvocation(
   // Preserve proxy credentials alongside ANTHROPIC_BASE_URL for every account.
   return {
     command: sources.command,
+    prefixArgs: sources.prefixArgs,
     env: claudeChildEnv(sources, decorateEnv, options),
     account: auth.account
   }
@@ -207,7 +210,12 @@ export function claudeStructuredLaunchPart(
     }
     const sources = await resolveClaudeChildEnvSources(envDeps)
     // Overlap the version probe with remaining launch preparation.
-    const probeLaunch = { command: sources.command, cwd, env: claudeProbeEnv(sources) }
+    const probeLaunch = {
+      command: sources.command,
+      prefixArgs: sources.prefixArgs,
+      cwd,
+      env: claudeProbeEnv(sources)
+    }
     const launchFlags = resolveClaudeLaunchFlags(
       { ...(deps.cliFlags ? { cliFlags: deps.cliFlags } : {}), prepareVisuals: basis.visuals },
       record.sessionId,
@@ -230,12 +238,14 @@ export function claudeStructuredLaunchPart(
         leafUuid,
         providerSessionId,
         claudeConfigDir,
+        recordHome: accountHome.path,
         hasTranscript: deps.hasTranscript
       }))
     // Fixed homes can be checked before the final account-routing recheck.
-    const resumedWithoutRouter = router ? undefined : await resumes(accountHome.path)
+    const resumedWithoutRouter =
+      router || basis.accountRecipe ? undefined : await resumes(accountHome.path)
     // Resolve auth after awaited launch preparation; account routing is rechecked below.
-    const { command, env, account } = await resolveClaudeStructuredInvocation(
+    const { command, prefixArgs, env } = await resolveClaudeStructuredInvocation(
       envDeps,
       (base) =>
         withNativeChatVisualsEnv(
@@ -249,7 +259,13 @@ export function claudeStructuredLaunchPart(
       sources,
       { runtimeOnPath: false }
     )
-    const launchHome = await resolveClaudeStructuredLaunchHome(router, env, accountHome.path)
+    const accountRecipe = await prepareClaudeReceivingAccount(
+      router,
+      env,
+      accountHome.path,
+      basis.accountRecipe
+    )
+    const launchHome = accountRecipe.home
     const resumesTranscript = resumedWithoutRouter ?? (await resumes(launchHome))
     if (fork?.throughEntryId && !resumesTranscript) {
       // Fork sources must pass the same account-history check as resumes.
@@ -258,13 +274,16 @@ export function claudeStructuredLaunchPart(
         leafUuid: fork.throughEntryId,
         providerSessionId: fork.sourceSessionId,
         claudeConfigDir: launchHome,
+        recordHome: accountHome.path,
         hasTranscript: deps.hasTranscript
       })
     }
     return {
       launch: {
         pathToClaudeCodeExecutable: command,
-        account,
+        prefixArgs,
+        account: accountRecipe.route === 'managed' ? 'managed' : 'system',
+        accountRecipe,
         options: {
           ...CLAUDE_STRUCTURED_BASE_OPTIONS,
           ...permission,
