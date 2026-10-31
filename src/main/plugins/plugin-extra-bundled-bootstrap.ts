@@ -10,8 +10,22 @@ import { getPluginsDataDir, getUserPluginsDir } from './plugin-discovery'
 import { installBundledPlugin, readPluginLockfile } from './installation/plugin-install'
 import { inspectPluginInstallTree } from './installation/plugin-install-staging'
 import { retireBundledPlugin } from './installation/plugin-removal'
+import { readPluginManifestText } from './plugin-manifest-file'
 
 type BundledBootstrapRequest = Parameters<typeof bootstrapBundledPlugins>[0]
+
+/** Extra plugins ship in the app with their publisher declared; the identity check below vets it. */
+async function declaredPublisher(rootDir: string): Promise<string> {
+  try {
+    const raw: unknown = JSON.parse(await readPluginManifestText(rootDir))
+    const publisher =
+      typeof raw === 'object' && raw !== null && 'publisher' in raw ? raw.publisher : undefined
+    return typeof publisher === 'string' ? publisher : ''
+  } catch {
+    // Why empty: the inspection reports the unreadable manifest with its real error.
+    return ''
+  }
+}
 
 /** Packaged builds ship `extra-plugins` beside the official launch bundle; dev reads the source. */
 export function resolveExtraBundledPluginRoot(options: {
@@ -48,7 +62,8 @@ export async function bootstrapExtraBundledPlugins(
     const sourcePath = join(options.root, folder.name)
     const inspection = await inspectPluginInstallTree({
       rootDir: sourcePath,
-      hostVersion: options.hostVersion
+      hostVersion: options.hostVersion,
+      identity: { publisher: await declaredPublisher(sourcePath) }
     })
     if (!inspection.ok || !isExtraBundledPluginIdentity(inspection.pluginKey)) {
       result.errors.push({
