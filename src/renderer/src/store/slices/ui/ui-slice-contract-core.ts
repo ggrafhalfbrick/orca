@@ -17,6 +17,7 @@ import type { TaskResumeState, TopLevelView } from '../../../../../shared/ui-chr
 import type { PluginTaskSourceRef } from '../../../../../shared/plugins/tasks/plugin-task-source-ref'
 
 export type PendingSidebarWorktreeReveal = {
+  rowKey?: string
   worktreeId: string
   executionHostId?: ExecutionHostId
   behavior: 'auto' | 'smooth'
@@ -216,6 +217,7 @@ export type UISliceCore = {
   revealWorktreeInSidebar: (
     worktreeId: string,
     options?: {
+      rowKey?: string
       behavior?: PendingSidebarWorktreeReveal['behavior']
       highlight?: boolean
       beginRename?: boolean
