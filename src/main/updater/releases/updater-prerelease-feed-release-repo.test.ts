@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { installNetRequestFetchAdapter } from './updater-net-request.fixture'
+import { installNetRequestFetchAdapter } from '../testing/updater-net-request.fixture'
 
 const { netFetchMock, netRequestMock } = vi.hoisted(() => ({
   netFetchMock: vi.fn(),
@@ -53,7 +53,7 @@ describe('release feed of a build that names its release repo', () => {
   })
 
   it('follows stablyai/orca when the build names no repo', async () => {
-    const { LATEST_RELEASE_DOWNLOAD_URL } = await import('./updater/update-release-repo')
+    const { LATEST_RELEASE_DOWNLOAD_URL } = await import('../update-release-repo')
 
     expect(LATEST_RELEASE_DOWNLOAD_URL).toBe(
       'https://github.com/stablyai/orca/releases/latest/download'
@@ -64,9 +64,9 @@ describe('release feed of a build that names its release repo', () => {
     vi.stubGlobal('ORCA_UPDATE_RELEASE_REPO', FORK_REPO)
     const fetched: string[] = []
     serveForkFeed(fetched)
-    const { fetchNewerReleaseTagsWithReadiness, getReleaseDownloadUrl } =
-      await import('./updater-prerelease-feed')
-    const { LATEST_RELEASE_DOWNLOAD_URL } = await import('./updater/update-release-repo')
+    const { fetchNewerReleaseTagsWithReadiness } = await import('./updater-prerelease-feed')
+    const { getReleaseDownloadUrl } = await import('./updater-release-readiness')
+    const { LATEST_RELEASE_DOWNLOAD_URL } = await import('../update-release-repo')
 
     expect(await fetchNewerReleaseTagsWithReadiness(CURRENT, 1)).toEqual({
       tags: [NEWER_TAG],

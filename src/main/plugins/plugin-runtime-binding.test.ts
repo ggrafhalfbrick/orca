@@ -10,6 +10,7 @@ const LEAF = '11111111-1111-4111-8111-111111111111'
 
 function runtime(terminals: { handle: string; title: string | null; paneTitle?: string }[]) {
   return {
+    resolvePluginWorktreeContext: async () => null,
     resolveActiveWorktreeContext: vi.fn(async () => ({
       worktreeId: 'repo::/w',
       path: '/w',

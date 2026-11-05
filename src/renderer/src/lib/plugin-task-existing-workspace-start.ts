@@ -8,7 +8,7 @@ import { newAgentLaunchRequestId } from '@/lib/agent-launch-request-id'
 import { persistCreatedWorkspacePluginTaskLink } from '@/lib/plugin-task-workspace-link'
 import { activateAndRevealWorktree } from '@/lib/worktree-activation'
 import type { LinkedPluginTask } from '../../../shared/plugins/tasks/plugin-task-link'
-import type { TuiAgent } from '../../../shared/tui-agent'
+import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
 
 type StartTaskInExistingWorkspaceArgs = {
   agent: TuiAgent | null

@@ -23,7 +23,7 @@ import { configureMacShipItScheduling } from '../mac-install/macos-shipit-schedu
 import { handleElectronUpdaterProxyLogin } from './electron-updater-proxy-session'
 import { resolveWindowsUpdateInstallDirectory } from './windows-update-install-directory'
 import type { PreQuitCleanupFailureMode, UpdateInstallMode } from './updater-state'
-import { LATEST_RELEASE_DOWNLOAD_URL } from './update-release-repo'
+import { LATEST_RELEASE_DOWNLOAD_URL } from '../update-release-repo'
 
 export type UpdaterSetupOptions = {
   getMainWindow?: () => BrowserWindow | null

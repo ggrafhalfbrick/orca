@@ -14,14 +14,10 @@ import { PluginAutoUpdater } from '../plugins/catalog/plugin-auto-updater'
 import { PluginReleaseFirstSeenStore } from '../plugins/catalog/plugin-release-first-seen-store'
 import { PluginUpdateReviewNotices } from '../plugins/catalog/plugin-update-review-notices'
 import { isPluginAutoUpdateOn } from '../../shared/plugins/catalog/plugin-update-policy'
-import { PluginBundledBootstrapCoordinator } from '../plugins/plugin-bundled-bootstrap-coordinator'
+import { PluginBundledBootstrapCoordinator } from '../plugins/plugin-extra-bundled-bootstrap-coordinator'
 import { getPluginsDataDir } from '../plugins/plugin-discovery'
 import { bundledPluginRootForApp } from '../plugins/plugin-bundled-bootstrap'
 import { approveBundledPluginsFromStore } from '../plugins/plugin-bundled-approval'
-import {
-  bootstrapLaunchAndExtraPlugins,
-  resolveExtraBundledPluginRoot
-} from '../plugins/plugin-extra-bundled-bootstrap'
 import { resolvePluginHostEntryPath } from '../plugins/workers/plugin-host-process'
 import { applyPluginConsent, applyPluginEnablement } from '../plugins/plugin-enablement'
 import { clearRemovedPluginSettings } from '../plugins/plugin-removal-settings'
@@ -185,15 +181,8 @@ export async function initializeMainProcessPlugins(runtime: OrcaRuntimeService):
     cache: pluginImageCache,
     findValidPlugin: (pluginKey) => state.pluginService?.findValidPlugin(pluginKey) ?? null
   })
-  const bundleLocation = {
-    isPackaged: app.isPackaged,
-    resourcesPath: process.resourcesPath,
-    appPath: app.getAppPath()
-  }
-  const extraPluginRoot = resolveExtraBundledPluginRoot(bundleLocation)
   const bundledPluginBootstrap = new PluginBundledBootstrapCoordinator({
     root: bundledPluginRoot,
-    bootstrap: (request) => bootstrapLaunchAndExtraPlugins(request, extraPluginRoot),
     userDataPath: app.getPath('userData'),
     hostVersion: pluginHostVersion(app.getVersion()),
     isEnabled: () => state.store?.getSettings().pluginSystemEnabled === true,

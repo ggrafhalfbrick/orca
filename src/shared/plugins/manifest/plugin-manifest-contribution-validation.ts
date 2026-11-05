@@ -7,6 +7,7 @@ import {
 } from '../contributions/plugin-event-contribution'
 import type { PluginFileMatch } from '../contributions/plugin-file-match'
 import { validatePluginStatusBarItems } from '../contributions/plugin-status-bar-item-contribution'
+import { validateWorktreeBadges } from './plugin-worktree-badge-validation'
 
 type IdentifiedContribution = { id: string }
 type PathContribution = { path: string }
@@ -251,44 +252,6 @@ export function validatePluginManifestContributions(
     }
   }
   validateWorktreeBadges(manifest, ctx)
-}
-
-function validateWorktreeBadges(
-  manifest: ContributionValidationManifest,
-  ctx: RefinementCtx
-): void {
-  const badges = manifest.contributes.worktreeBadges
-  rejectDuplicateValues(
-    badges,
-    (entry) => (entry as IdentifiedContribution).id,
-    'worktreeBadges',
-    'worktreeBadges id',
-    ctx
-  )
-  const commands = new Map(manifest.contributes.commands.map((command) => [command.id, command]))
-  for (const [index, badge] of badges.entries()) {
-    for (const [commandIndex, commandId] of badge.commands.entries()) {
-      const command = commands.get(commandId)
-      if (!command || command.action !== undefined || command.when !== 'workspace') {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['contributes', 'worktreeBadges', index, 'commands', commandIndex],
-          message: `must name a contributed worker command with when "workspace": ${commandId}`
-        })
-      }
-    }
-  }
-  // Why: running a badge command hands the plugin the worktree's folder path.
-  if (
-    badges.length > 0 &&
-    !manifest.capabilities.some((capability) => capability.kind === 'workspace:read')
-  ) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['capabilities'],
-      message: 'workspace:read capability required when contributes.worktreeBadges is non-empty'
-    })
-  }
 }
 
 /** A replacement runs worker code in place of a built-in, so it cannot also be a built-in alias. */

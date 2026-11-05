@@ -1,7 +1,8 @@
 import { net } from 'electron'
 import { parse } from 'yaml'
 import { escapeRegex } from '../../../shared/string-utils'
-import { UPDATE_RELEASE_REPO } from '../update-release-repo'
+import { LATEST_RELEASE_DOWNLOAD_URL, UPDATE_RELEASE_REPO } from '../update-release-repo'
+import { MAIN_RELEASE_REPO } from '../../../shared/release-channel'
 
 const RELEASES_DOWNLOAD_BASE = `https://github.com/${UPDATE_RELEASE_REPO}/releases/download`
 const RELEASE_ASSET_URL_RE = new RegExp(`^${escapeRegex(RELEASES_DOWNLOAD_BASE)}/`, 'i')
@@ -9,6 +10,24 @@ export const FETCH_TIMEOUT_MS = 5000
 
 export function getReleaseDownloadUrl(tag: string): string {
   return `${RELEASES_DOWNLOAD_BASE}/${encodeURIComponent(tag)}`
+}
+
+/** Integration-only (AGENTS.md): fork release tags are prereleases, so the stable-tag lookup never
+ *  resolves for them; a fork build follows its own repo's latest release instead. */
+export function pinForkReleaseFeed(
+  autoUpdater: { setFeedURL(options: { provider: 'generic'; url: string }): void },
+  currentVersion: string,
+  includePrerelease: boolean
+): boolean {
+  if (UPDATE_RELEASE_REPO === MAIN_RELEASE_REPO) {
+    return false
+  }
+  const url = LATEST_RELEASE_DOWNLOAD_URL
+  console.info(
+    `[updater] release feed fallback: current=${currentVersion} includePrerelease=${includePrerelease} → ${url}`
+  )
+  autoUpdater.setFeedURL({ provider: 'generic', url })
+  return true
 }
 
 function getPlatformManifestName(): string {
@@ -108,9 +127,7 @@ async function getGitHubReleaseAssetReadiness(assetUrl: string): Promise<Release
 async function getReleaseAssetReadiness(tag: string, assetName: string): Promise<ReleaseReadiness> {
   const isRelativeAsset = !/^https?:\/\//i.test(assetName)
   const isGitHubReleaseAsset =
-    process.platform === 'win32' &&
-    (isRelativeAsset ||
-      RELEASE_ASSET_URL_RE.test(assetName))
+    process.platform === 'win32' && (isRelativeAsset || RELEASE_ASSET_URL_RE.test(assetName))
   const assetUrl = isRelativeAsset
     ? getReleaseAssetUrl(tag, assetName.split('/').findLast(Boolean) ?? assetName)
     : assetName

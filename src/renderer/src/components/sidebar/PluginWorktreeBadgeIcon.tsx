@@ -1,6 +1,6 @@
 import { createElement } from 'react'
 import type React from 'react'
-import { resolvePluginPanelIcon } from '@/components/right-sidebar/plugin-panel-activity-items'
+import { resolvePluginPanelIcon } from '@/components/right-sidebar/plugin-panels/plugin-panel-activity-items'
 import { cn } from '@/lib/utils'
 import type { PluginWorktreeBadgeIcon as BadgeIcon } from '../../../../shared/plugins/contributions/plugin-worktree-badge'
 

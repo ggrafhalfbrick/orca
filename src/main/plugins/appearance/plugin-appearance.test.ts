@@ -71,6 +71,7 @@ async function harness(options: { capability?: boolean; desktop?: boolean } = {}
           })
     })
     service.setRuntimeDelegate({
+      resolvePluginWorktreeContext: async () => null,
       resolveActiveWorktreeContext: async () => null,
       listTerminals: async () => ({ terminals: [] }),
       sendTerminal: async () => ({ accepted: false }),

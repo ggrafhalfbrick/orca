@@ -1,7 +1,7 @@
 import type React from 'react'
 import { toast } from 'sonner'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
-import { extractIpcErrorMessage } from '@/components/editor/rich-markdown-ipc-error-message'
+import { extractIpcErrorMessage } from '@/components/editor/rich-markdown/images/rich-markdown-ipc-error-message'
 import { translate } from '@/i18n/i18n'
 import { executePluginCommand } from '@/lib/plugin-command-execution'
 import { showPluginCommandMessage } from '@/lib/plugin-command-message'

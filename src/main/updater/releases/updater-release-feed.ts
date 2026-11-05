@@ -3,7 +3,7 @@ import {
   fetchLatestStableReleaseTag,
   fetchNewerReleaseTagsWithReadiness
 } from './updater-prerelease-feed'
-import { getReleaseDownloadUrl } from './updater-release-readiness'
+import { getReleaseDownloadUrl, pinForkReleaseFeed } from './updater-release-readiness'
 import { toDelayedUpdate } from './updater-release-delay'
 import { updateDelayDaysToMs } from '../../../shared/update-delay'
 import { isMissingUpdateManifestFailure, isPrereleaseVersion } from './updater-fallback'
@@ -11,8 +11,6 @@ import type { CheckFailureSource } from '../lifecycle/updater-state'
 import type { UpdateCheckVariant } from '../lifecycle/updater-types'
 import { ReleaseFeedPreflightError } from '../lifecycle/updater-state'
 import { UpdaterInstallExecution } from '../lifecycle/updater-install-execution'
-import { LATEST_RELEASE_DOWNLOAD_URL, UPDATE_RELEASE_REPO } from '../update-release-repo'
-import { MAIN_RELEASE_REPO } from '../../../shared/release-channel'
 
 export abstract class UpdaterReleaseFeed extends UpdaterInstallExecution {
   protected clearPrereleaseFallbackContextIfSettled(): void {
@@ -228,13 +226,7 @@ export abstract class UpdaterReleaseFeed extends UpdaterInstallExecution {
       )
       return 'not-available'
     }
-    if (UPDATE_RELEASE_REPO !== MAIN_RELEASE_REPO) {
-      // Integration-only (AGENTS.md): fork release tags are prereleases, so the stable-tag lookup below never resolves for them.
-      const url = LATEST_RELEASE_DOWNLOAD_URL
-      console.info(
-        `[updater] release feed fallback: current=${currentVersion} includePrerelease=${includePrerelease} → ${url}`
-      )
-      autoUpdater.setFeedURL({ provider: 'generic', url })
+    if (pinForkReleaseFeed(autoUpdater, currentVersion, includePrerelease)) {
       return 'ready'
     }
     const stableTag = await fetchLatestStableReleaseTag()

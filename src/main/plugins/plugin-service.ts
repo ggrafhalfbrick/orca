@@ -42,7 +42,8 @@ import { createPluginContentPacks } from './contributions/plugin-content-pack-re
 import type { PluginServiceOptions } from './plugin-service-options'
 import type { PluginChangeEvent } from '../../shared/plugins/events/plugin-change-event'
 import { waitForPluginRefreshSettlement } from './plugin-refresh-settlement'
-import { invokePluginWorktreeAwareCommand } from './plugin-command-invocation'
+// Integration-only alias: keeps the worktree-aware call on one line under max-lines.
+import { invokePluginWorktreeAwareCommand as runCommand } from './plugin-command-invocation'
 import { deliverPluginEvent, pluginWorkersWantEvent } from './plugin-event-delivery'
 import type { PluginEventDeliveryContext } from './plugin-event-delivery'
 import { PluginInstallationState } from './installation/plugin-installation-state'
@@ -278,16 +279,7 @@ export class PluginService {
 
   invokeCommand(pluginKey: string, commandId: string, args?: unknown, startBy?: number) {
     const [plugin, workers] = [this.findApprovedPlugin(pluginKey), this.workerController]
-    const worktrees = this.runtimeDelegate
-    return invokePluginWorktreeAwareCommand(
-      worktrees,
-      pluginKey,
-      plugin,
-      workers,
-      commandId,
-      args,
-      startBy
-    )
+    return runCommand(this.runtimeDelegate, pluginKey, plugin, workers, commandId, args, startBy)
   }
 
   wantsEvent(event: PluginEventName): boolean {
