@@ -18,6 +18,7 @@ export const PLUGIN_WORKTREE_BADGE_LIMIT = 16
 export const PLUGIN_WORKTREE_BADGE_PATH_LIMIT = 8
 export const PLUGIN_WORKTREE_BADGE_COMMAND_LIMIT = 8
 export const PLUGIN_WORKTREE_BADGE_SVG_MAX_BYTES = 32 * 1024
+export const PLUGIN_WORKTREE_BADGE_MAX_SEARCH_DEPTH = 3
 
 export function isPluginWorktreeBadgeSvgIcon(icon: string): boolean {
   return /\.svg$/i.test(icon)
@@ -45,6 +46,9 @@ export const pluginWorktreeBadgeContributionSchema = z.strictObject({
   when: z.strictObject({
     /** Matches when the worktree folder contains any of these relative paths. */
     pathExists: z.array(pluginRelativePathSchema).min(1).max(PLUGIN_WORKTREE_BADGE_PATH_LIMIT),
+    /** Also match subfolders this many levels down (0: the worktree folder only). Each matching
+     *  folder is listed in the badge menu, and its commands run on that folder. */
+    searchDepth: z.number().int().min(0).max(PLUGIN_WORKTREE_BADGE_MAX_SEARCH_DEPTH).default(0),
     /** `local` skips SSH and Orca-server worktrees, e.g. for commands that start a desktop app. */
     host: z.enum(['local', 'any']).default('any')
   }),
@@ -63,7 +67,7 @@ export type PluginWorktreeBadgeEntry = {
   id: string
   title: string
   icon: PluginWorktreeBadgeIcon
-  when: { pathExists: string[]; host: 'local' | 'any' }
+  when: { pathExists: string[]; searchDepth: number; host: 'local' | 'any' }
   commands: string[]
 }
 
@@ -72,7 +76,9 @@ export const pluginWorktreeCommandRequestSchema = z.object({
   worktreeId: z
     .string()
     .min(1)
-    .max(32 * 1024)
+    .max(32 * 1024),
+  /** Worktree subfolder a badge matched. Checked after parsing so a bad one fails, not passes through. */
+  folder: z.string().max(1024).optional()
 })
 
 /** The `args` a worker command with `context: "worktree"` receives when the user runs it on a
@@ -85,6 +91,13 @@ export type PluginWorktreeCommandArgs = {
     /** Empty for folder workspaces. */
     branch: string
     host: 'local' | 'ssh'
+  }
+  /** The worktree subfolder the user picked from a badge's list; absent for the worktree folder. */
+  folder?: {
+    /** Absolute folder path on the worktree's host. */
+    path: string
+    /** Relative to the worktree folder, with `/` separators. */
+    relativePath: string
   }
 }
 

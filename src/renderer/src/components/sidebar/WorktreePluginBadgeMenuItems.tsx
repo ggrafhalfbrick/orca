@@ -5,9 +5,11 @@ import { extractIpcErrorMessage } from '@/components/editor/rich-markdown-ipc-er
 import { translate } from '@/i18n/i18n'
 import { executePluginCommand } from '@/lib/plugin-command-execution'
 import { showPluginCommandMessage } from '@/lib/plugin-command-message'
-import { useMatchingPluginWorktreeBadges } from '@/lib/plugin-worktree-badge-match'
+import {
+  useMatchingPluginWorktreeBadges,
+  type PluginWorktreeBadgeMatch
+} from '@/lib/plugin-worktree-badge-match'
 import type { ActivePluginCommand } from '@/store/plugin-panels'
-import type { ActivePluginWorktreeBadge } from '@/store/plugin-worktree-badges'
 import { PluginWorktreeBadgeIcon } from './PluginWorktreeBadgeIcon'
 
 /** Workers report a failed command as its stack; users see only the message line. */
@@ -18,11 +20,15 @@ function pluginCommandErrorDetail(error: unknown): string {
 
 async function runPluginWorktreeCommand(
   command: ActivePluginCommand,
-  worktreeId: string
+  worktreeId: string,
+  folder: string
 ): Promise<void> {
   try {
     showPluginCommandMessage(
-      await executePluginCommand(command, 'plugin-worktree-menu', { worktreeId })
+      await executePluginCommand(command, 'plugin-worktree-menu', {
+        worktreeId,
+        ...(folder ? { folder } : {})
+      })
     )
   } catch (error) {
     const detail = pluginCommandErrorDetail(error)
@@ -39,28 +45,45 @@ async function runPluginWorktreeCommand(
   }
 }
 
-/** Commands of one badge, for the badge's own menu and the worktree context menu. */
+/** The badge menu's heading: the one command when its items name the matched folders. */
+export function pluginWorktreeBadgeMenuTitle({ badge, folders }: PluginWorktreeBadgeMatch): string {
+  const [onlyCommand] = badge.commands
+  return badge.commands.length === 1 && folders[0] !== '' ? onlyCommand.title : badge.title
+}
+
+/** One item per matched folder and command. `folderFirst` names the folder, under a heading that
+ *  names the command; otherwise the folder follows the command, as in the worktree context menu. */
 export function PluginWorktreeBadgeCommandItems({
-  badge,
+  match,
   worktreeId,
-  disabled
+  disabled,
+  folderFirst
 }: {
-  badge: ActivePluginWorktreeBadge
+  match: PluginWorktreeBadgeMatch
   worktreeId: string
   disabled?: boolean
+  folderFirst?: boolean
 }): React.JSX.Element {
+  const { badge, folders } = match
   return (
     <>
-      {badge.commands.map((command) => (
-        <DropdownMenuItem
-          key={command.id}
-          disabled={disabled}
-          onSelect={() => void runPluginWorktreeCommand(command, worktreeId)}
-        >
-          <PluginWorktreeBadgeIcon icon={badge.icon} className="size-3.5" />
-          {command.title}
-        </DropdownMenuItem>
-      ))}
+      {folders.flatMap((folder) =>
+        badge.commands.map((command) => (
+          <DropdownMenuItem
+            key={`${command.id}/${folder}`}
+            disabled={disabled}
+            onSelect={() => void runPluginWorktreeCommand(command, worktreeId, folder)}
+          >
+            <PluginWorktreeBadgeIcon icon={badge.icon} className="size-3.5" />
+            <span className="truncate">{folderFirst && folder ? folder : command.title}</span>
+            {folder && (!folderFirst || badge.commands.length > 1) ? (
+              <span className="ml-auto truncate pl-2 text-xs text-muted-foreground">
+                {folderFirst ? command.title : folder}
+              </span>
+            ) : null}
+          </DropdownMenuItem>
+        ))
+      )}
     </>
   )
 }
@@ -77,16 +100,16 @@ export function WorktreePluginBadgeMenuItems({
   connectionId: string | null
   disabled?: boolean
 }): React.JSX.Element | null {
-  const badges = useMatchingPluginWorktreeBadges({ path: worktreePath, connectionId })
-  if (badges.length === 0) {
+  const matches = useMatchingPluginWorktreeBadges({ path: worktreePath, connectionId })
+  if (matches.length === 0) {
     return null
   }
   return (
     <>
-      {badges.map((badge) => (
+      {matches.map((match) => (
         <PluginWorktreeBadgeCommandItems
-          key={badge.key}
-          badge={badge}
+          key={match.badge.key}
+          match={match}
           worktreeId={worktreeId}
           disabled={disabled}
         />

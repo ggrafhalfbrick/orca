@@ -29,7 +29,7 @@ vi.mock('@/components/ui/tooltip', () => ({
 
 const WORKTREE_ID = 'repo-1::/work/game'
 
-function enginePlugin(host: 'local' | 'any' = 'local'): PluginHostListEntry {
+function enginePlugin(host: 'local' | 'any' = 'local', searchDepth = 0): PluginHostListEntry {
   return {
     pluginKey: 'orca-samples.engine',
     consentFingerprint: 'fingerprint',
@@ -57,7 +57,7 @@ function enginePlugin(host: 'local' | 'any' = 'local'): PluginHostListEntry {
         id: 'engine-project',
         title: 'Engine project',
         icon: { kind: 'svg', markup: '<svg viewBox="0 0 16 16"></svg>' },
-        when: { pathExists: ['engine.project'], host },
+        when: { pathExists: ['engine.project'], searchDepth, host },
         commands: ['open-project']
       }
     ],
@@ -67,16 +67,18 @@ function enginePlugin(host: 'local' | 'any' = 'local'): PluginHostListEntry {
 }
 
 let pathExists: ReturnType<typeof vi.fn>
+let readDir: ReturnType<typeof vi.fn>
 let invokeCommand: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
   resetPluginWorktreeBadgeChecksForTests()
   pathExists = vi.fn().mockResolvedValue(true)
+  readDir = vi.fn().mockResolvedValue([])
   invokeCommand = vi.fn().mockResolvedValue({ message: 'Starting Engine…' })
   Object.defineProperty(window, 'api', {
     configurable: true,
     value: {
-      fs: { pathExists },
+      fs: { pathExists, readDir },
       plugins: { list: vi.fn().mockResolvedValue([]), onChanged: vi.fn(), invokeCommand }
     }
   })
@@ -119,6 +121,36 @@ describe('WorktreeCardPluginBadges', () => {
       })
     )
     expect(toastMocks).toHaveBeenCalledWith('Starting Engine…')
+  })
+
+  it('lists the subfolders holding the marker on hover and runs the command on the one picked', async () => {
+    usePluginPanelsStore.getState().setPlugins([enginePlugin('local', 1)])
+    pathExists.mockImplementation(async ({ filePath }: { filePath: string }) =>
+      ['/work/game/Racer/engine.project', '/work/game/Arena/engine.project'].includes(filePath)
+    )
+    readDir.mockResolvedValue([
+      { name: 'Racer', isDirectory: true, isSymlink: false },
+      { name: 'Arena', isDirectory: true, isSymlink: false },
+      { name: '.git', isDirectory: true, isSymlink: false },
+      { name: 'Docs', isDirectory: true, isSymlink: false },
+      { name: 'notes.txt', isDirectory: false, isSymlink: false }
+    ])
+    const user = userEvent.setup()
+    renderBadges()
+
+    await user.hover(await screen.findByRole('button', { name: 'Engine project' }))
+    const items = await screen.findAllByRole('menuitem')
+    expect(items.map((item) => item.textContent)).toEqual(['Arena', 'Racer'])
+    expect(pathExists).not.toHaveBeenCalledWith({ filePath: '/work/game/.git/engine.project' })
+
+    await user.click(items[1])
+    await waitFor(() =>
+      expect(invokeCommand).toHaveBeenCalledWith({
+        pluginKey: 'orca-samples.engine',
+        commandId: 'open-project',
+        args: { worktreeId: WORKTREE_ID, folder: 'Racer' }
+      })
+    )
   })
 
   it('stays hidden when the marker file is missing', async () => {

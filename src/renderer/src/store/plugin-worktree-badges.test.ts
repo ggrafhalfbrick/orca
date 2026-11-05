@@ -37,7 +37,7 @@ function plugin(overrides: Partial<PluginHostListEntry> = {}): PluginHostListEnt
         id: 'engine-project',
         title: 'Engine project',
         icon: { kind: 'lucide', name: 'gamepad-2' },
-        when: { pathExists: ['engine.project'], host: 'local' },
+        when: { pathExists: ['engine.project'], searchDepth: 0, host: 'local' },
         commands: ['open-project', 'refresh', 'missing']
       }
     ],

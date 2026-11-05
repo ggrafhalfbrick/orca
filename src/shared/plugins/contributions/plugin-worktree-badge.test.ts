@@ -35,11 +35,21 @@ function manifest(
 }
 
 describe('worktree badge contributions', () => {
-  it('accepts an SVG badge and defaults its host to any', () => {
+  it('accepts an SVG badge and defaults to any host and the worktree folder only', () => {
     const result = parsePluginManifest(manifest({}))
 
     expect(result.ok).toBe(true)
-    expect(result.ok && result.manifest.contributes.worktreeBadges[0]?.when.host).toBe('any')
+    expect(result.ok && result.manifest.contributes.worktreeBadges[0]?.when).toMatchObject({
+      host: 'any',
+      searchDepth: 0
+    })
+  })
+
+  it('bounds how deep a badge searches subfolders', () => {
+    const when = (searchDepth: number) => ({ pathExists: ['project.godot'], searchDepth })
+
+    expect(parsePluginManifest(manifest({ when: when(3) })).ok).toBe(true)
+    expect(parsePluginManifest(manifest({ when: when(4) })).ok).toBe(false)
   })
 
   it('accepts a Lucide icon name and a local-only host', () => {

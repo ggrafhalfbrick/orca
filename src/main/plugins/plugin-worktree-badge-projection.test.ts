@@ -65,7 +65,7 @@ describe('projectPluginWorktreeBadges', () => {
         id: 'badge-0',
         title: 'Engine project',
         icon: { kind: 'svg', markup },
-        when: { pathExists: ['engine.project'], host: 'local' },
+        when: { pathExists: ['engine.project'], searchDepth: 0, host: 'local' },
         commands: ['open-project']
       },
       expect.objectContaining({ id: 'badge-1', icon: { kind: 'lucide', name: 'gamepad-2' } })

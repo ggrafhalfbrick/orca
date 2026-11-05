@@ -3,11 +3,11 @@ import { isWorkspaceScopedPluginContext } from '../../../shared/plugins/contribu
 import { dispatchAppCommand, type AppCommandSource } from './app-command-dispatch'
 
 /** Resolves with whatever a worker handler returned; built-in actions return nothing. A workspace
- *  command gets `target`'s workspace as its `args`. */
+ *  command gets `target`'s workspace, and the badge folder picked in it, as its `args`. */
 export async function executePluginCommand(
   command: ActivePluginCommand,
   source: AppCommandSource,
-  target?: { worktreeId: string | null }
+  target?: { worktreeId: string | null; folder?: string }
 ): Promise<unknown> {
   if (command.handler.type === 'built-in') {
     if (!dispatchAppCommand(command.handler.action, source)) {
@@ -19,6 +19,8 @@ export async function executePluginCommand(
   return window.api.plugins.invokeCommand({
     pluginKey: command.pluginKey,
     commandId: command.id,
-    ...(worktreeId ? { args: { worktreeId } } : {})
+    ...(worktreeId
+      ? { args: { worktreeId, ...(target?.folder ? { folder: target.folder } : {}) } }
+      : {})
   })
 }

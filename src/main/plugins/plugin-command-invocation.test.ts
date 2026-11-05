@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { parsePluginManifest } from '../../shared/plugins/manifest/plugin-manifest'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
 import { prepareWorkerCommandArgs } from './plugin-command-invocation'
+import type { PluginWorktreeCommandArgs } from '../../shared/plugins/contributions/plugin-worktree-badge'
 
 function plugin(
   capabilities: { kind: string }[] = [{ kind: 'workspace:read' }]
@@ -44,7 +45,7 @@ const worktree = {
   host: 'local' as const
 }
 
-function resolver(result: typeof worktree | null = worktree) {
+function resolver(result: PluginWorktreeCommandArgs['worktree'] | null = worktree) {
   return { resolvePluginWorktreeContext: vi.fn().mockResolvedValue(result) }
 }
 
@@ -65,6 +66,29 @@ describe('prepareWorkerCommandArgs', () => {
       prepareWorkerCommandArgs(plugin(), 'open-project', { worktreeId: 'r::/work/game' }, worktrees)
     ).resolves.toEqual({ worktree })
     expect(worktrees.resolvePluginWorktreeContext).toHaveBeenCalledWith('r::/work/game')
+  })
+
+  it('resolves a badge subfolder on the worktree host and refuses one outside it', async () => {
+    const request = { worktreeId: 'r::/work/game', folder: String.raw`Games\Racer` }
+
+    await expect(
+      prepareWorkerCommandArgs(
+        plugin(),
+        'open-project',
+        request,
+        resolver({ ...worktree, host: 'ssh' })
+      )
+    ).resolves.toMatchObject({
+      folder: { path: '/work/game/Games/Racer', relativePath: 'Games/Racer' }
+    })
+    await expect(
+      prepareWorkerCommandArgs(
+        plugin(),
+        'open-project',
+        { ...request, folder: '../other' },
+        resolver()
+      )
+    ).rejects.toThrow('not inside this workspace')
   })
 
   it('never forwards the worktree id, which embeds its path', async () => {

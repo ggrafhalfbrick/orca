@@ -1,4 +1,6 @@
+import { join, posix } from 'node:path'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
+import { isSafePluginRelativePath } from '../../shared/plugins/installation/plugin-path-safety'
 import {
   pluginWorktreeCommandRequestSchema,
   type PluginWorktreeCommandArgs
@@ -47,5 +49,17 @@ export async function prepareWorkerCommandArgs(
   if (!worktree) {
     throw new Error('This workspace is not available on this computer.')
   }
-  return { worktree } satisfies PluginWorktreeCommandArgs
+  if (!request.data.folder) {
+    return { worktree } satisfies PluginWorktreeCommandArgs
+  }
+  if (!isSafePluginRelativePath(request.data.folder)) {
+    throw new Error('That folder is not inside this workspace.')
+  }
+  const relativePath = request.data.folder.replaceAll('\\', '/')
+  // Why: an SSH worktree's path is POSIX even when this computer is Windows.
+  const path =
+    worktree.host === 'ssh'
+      ? posix.join(worktree.path, relativePath)
+      : join(worktree.path, relativePath)
+  return { worktree, folder: { path, relativePath } } satisfies PluginWorktreeCommandArgs
 }
