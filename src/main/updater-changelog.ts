@@ -1,6 +1,8 @@
 import { net } from 'electron'
 import type { ChangelogData } from '../shared/update-status-types'
 import { compareVersions } from './updater-fallback'
+import { MAIN_RELEASE_REPO } from '../shared/release-channel'
+import { UPDATE_RELEASE_REPO } from './updater/update-release-repo'
 
 type ChangelogEntry = {
   version: string
@@ -29,6 +31,10 @@ export async function fetchChangelog(
   incomingVersion: string,
   localVersion: string
 ): Promise<ChangelogData | null> {
+  // Integration-only (AGENTS.md): upstream's highlights describe its releases, not a fork's.
+  if (UPDATE_RELEASE_REPO !== MAIN_RELEASE_REPO) {
+    return null
+  }
   const res = await net.fetch('https://onorca.dev/whats-new/changelog.json', {
     signal: AbortSignal.timeout(5000)
   })

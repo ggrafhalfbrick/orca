@@ -6,7 +6,7 @@ import {
   isWindowsSignatureCheckUnavailableFailure,
   isWindowsSignatureMismatchFailure
 } from '../../../../../shared/updater-windows-signature-check'
-import { getReleaseNotesUrlForVersion } from '../../../../../shared/release-channel'
+import { getUpdateReleaseNotesUrl } from '@/lib/update-release-notes-url'
 import { translate } from '@/i18n/i18n'
 import { updaterMessageText } from '@/lib/updater-message-copy'
 import { isHttp2ProtocolError } from './update-card-visibility'
@@ -45,7 +45,7 @@ export function buildUpdateCardErrorModel({
             'Could not restart to install the update.'
           ),
           detail: installError,
-          releaseUrl: getReleaseNotesUrlForVersion(cachedVersion),
+          releaseUrl: getUpdateReleaseNotesUrl(cachedVersion),
           primaryAction: {
             label: translate('auto.components.UpdateCard.2c2d3e03ca', 'Try Again'),
             onClick: onInstallRetry
@@ -79,7 +79,7 @@ export function buildUpdateCardErrorModel({
       title: translate('auto.components.UpdateCard.4cf109845a', 'Update Error'),
       summary: message,
       detail: message,
-      releaseUrl: getReleaseNotesUrlForVersion(cachedVersion),
+      releaseUrl: getUpdateReleaseNotesUrl(cachedVersion),
       primaryAction: {
         label: translate('auto.components.UpdateCard.2c2d3e03ca', 'Try Again'),
         onClick: onInstallRetry
@@ -120,7 +120,7 @@ export function buildUpdateCardErrorModel({
         'This turns on a process-wide Electron networking switch after restart. Use it for corporate VPNs or proxies that reject HTTP/2 update downloads.'
       ),
       detail: compatibilitySetupError ?? message,
-      releaseUrl: getReleaseNotesUrlForVersion(cachedVersion),
+      releaseUrl: getUpdateReleaseNotesUrl(cachedVersion),
       primaryAction: {
         label: translate('auto.components.UpdateCard.933c6fdf5b', 'Enable & Restart'),
         pendingLabel: translate('auto.components.UpdateCard.restarting', 'Restarting...'),
@@ -138,7 +138,7 @@ export function buildUpdateCardErrorModel({
         "The installer's publisher doesn't match Orca, so we stopped the update. Don't install this download; check official releases for a corrected version."
       ),
       detail: message,
-      releaseUrl: getReleaseNotesUrlForVersion(null),
+      releaseUrl: getUpdateReleaseNotesUrl(null),
       manualLabel: translate('auto.components.UpdateCard.c9ff9b9ec2', 'Check official releases')
     }
   }
@@ -150,7 +150,7 @@ export function buildUpdateCardErrorModel({
         "The signature check couldn't run — usually because antivirus software blocked it. Retry the download, or get the installer from our official releases."
       ),
       detail: message,
-      releaseUrl: getReleaseNotesUrlForVersion(cachedVersion),
+      releaseUrl: getUpdateReleaseNotesUrl(cachedVersion),
       primaryAction: {
         label: translate('auto.components.UpdateCard.48565a32bc', 'Retry Download'),
         onClick: onRetryDownload
@@ -171,7 +171,7 @@ export function buildUpdateCardErrorModel({
             )
           : translate('auto.components.UpdateCard.checkFailed', 'Could not check for updates.'),
     detail: message,
-    releaseUrl: getReleaseNotesUrlForVersion(cachedVersion),
+    releaseUrl: getUpdateReleaseNotesUrl(cachedVersion),
     primaryAction:
       cachedVersion && status.retryable !== false
         ? {

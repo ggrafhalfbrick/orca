@@ -4,7 +4,7 @@ import type {
   LinuxPackageInstallRecovery,
   UpdateStatus
 } from '../../../../../shared/update-status-types'
-import { getReleaseNotesUrlForVersion } from '../../../../../shared/release-channel'
+import { getUpdateReleaseNotesUrl } from '@/lib/update-release-notes-url'
 import { UpdateErrorCardContent, type UpdateErrorCardModel } from '../../UpdateErrorCardContent'
 import { LinuxPackageInstallRecoveryCard } from '../../LinuxPackageInstallRecoveryCard'
 import { translate } from '@/i18n/i18n'
@@ -74,9 +74,7 @@ export function UpdateCardStateContent({
         recovery={linuxPackageRecovery.recovery}
         diagnostic={linuxPackageRecovery.diagnostic}
         releaseUrl={
-          isLocalBuild
-            ? undefined
-            : getReleaseNotesUrlForVersion(linuxPackageRecovery.recovery.version)
+          isLocalBuild ? undefined : getUpdateReleaseNotesUrl(linuxPackageRecovery.recovery.version)
         }
         onClose={onCollapse}
       />
@@ -139,7 +137,7 @@ export function UpdateCardStateContent({
   }
   const releaseUrl = isLocalBuild
     ? undefined
-    : (status.releaseUrl ?? getReleaseNotesUrlForVersion(status.version))
+    : (status.releaseUrl ?? getUpdateReleaseNotesUrl(status.version))
   return changelog?.release ? (
     <UpdateAvailableRichContent
       release={changelog.release}

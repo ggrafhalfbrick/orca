@@ -12,7 +12,7 @@ import { updaterMessageText } from '@/lib/updater-message-copy'
 import { getUpdateCheckClickOptions, getUpdateCheckHint } from '@/lib/update-check-click-options'
 import { GeneralRemoteServerUpdates } from './GeneralRemoteServerUpdates'
 import { ReleaseChannelSection } from './ReleaseChannelSection'
-import { getReleaseNotesUrlForVersion } from '../../../../shared/release-channel'
+import { getUpdateReleaseNotesUrl } from '@/lib/update-release-notes-url'
 import { openAppHttpLinkFromAnchor } from '@/lib/app-http-link-open'
 
 export function GeneralUpdateSettingsSection(): React.JSX.Element {
@@ -187,9 +187,7 @@ export function GeneralUpdateSettingsSection(): React.JSX.Element {
                   )}{' '}
               {updateStatus.source !== 'local' && (
                 <a
-                  href={
-                    updateStatus.releaseUrl ?? getReleaseNotesUrlForVersion(updateStatus.version)
-                  }
+                  href={updateStatus.releaseUrl ?? getUpdateReleaseNotesUrl(updateStatus.version)}
                   target="_blank"
                   onClick={openAppHttpLinkFromAnchor}
                   rel="noopener noreferrer"
@@ -227,9 +225,7 @@ export function GeneralUpdateSettingsSection(): React.JSX.Element {
               )}{' '}
               {updateStatus.source !== 'local' && (
                 <a
-                  href={
-                    updateStatus.releaseUrl ?? getReleaseNotesUrlForVersion(updateStatus.version)
-                  }
+                  href={updateStatus.releaseUrl ?? getUpdateReleaseNotesUrl(updateStatus.version)}
                   target="_blank"
                   onClick={openAppHttpLinkFromAnchor}
                   rel="noopener noreferrer"

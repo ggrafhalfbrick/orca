@@ -1,6 +1,6 @@
 import { Minus } from 'lucide-react'
 import type { ChangelogData } from '../../../../../shared/update-status-types'
-import { getReleaseNotesUrlForVersion } from '../../../../../shared/release-channel'
+import { getUpdateReleaseNotesUrl } from '@/lib/update-release-notes-url'
 import { Button } from '../../ui/button'
 import { Progress } from '../../ui/progress'
 import { translate } from '@/i18n/i18n'
@@ -88,10 +88,9 @@ export function UpdateDownloadingContent({
           type="button"
           className="text-xs text-muted-foreground underline hover:text-foreground self-start"
           onClick={(event) =>
-            openAppHttpLink(
-              release ? release.releaseNotesUrl : getReleaseNotesUrlForVersion(version),
-              { event }
-            )
+            openAppHttpLink(release ? release.releaseNotesUrl : getUpdateReleaseNotesUrl(version), {
+              event
+            })
           }
         >
           {release
