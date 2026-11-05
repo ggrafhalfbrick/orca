@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import { openUnityProject } from '../src/open-project.mjs'
 
 const worktree = { path: '/work/game', displayName: 'game', branch: 'feature', host: 'local' }
+const args = { worktree }
 
 function deps(overrides = {}) {
   const launches = []
@@ -23,34 +24,46 @@ function deps(overrides = {}) {
 
 test('opens the project in the editor version it was saved with', async () => {
   const d = deps()
-  assert.deepEqual(await openUnityProject(worktree, d), {
+  assert.deepEqual(await openUnityProject(args, d), {
     message: 'Opening game in Unity 6000.0.23f1…'
   })
   assert.equal(d.launches[0][0], '/opt/Unity/6000.0.23f1/Editor/Unity')
   assert.equal(d.launches[0][1], '/work/game')
 })
 
+test('opens the subfolder project picked from the badge list', async () => {
+  const d = deps()
+  const folder = { path: '/work/game/Racer', relativePath: 'Racer' }
+  assert.deepEqual(await openUnityProject({ worktree, folder }, d), {
+    message: 'Opening Racer in Unity 6000.0.23f1…'
+  })
+  assert.equal(d.launches[0][1], '/work/game/Racer')
+})
+
 test('does not start a second editor on an open project', async () => {
   const d = deps({ isOpen: async () => true })
-  assert.deepEqual(await openUnityProject(worktree, d), { message: 'Unity already has game open.' })
+  assert.deepEqual(await openUnityProject(args, d), { message: 'Unity already has game open.' })
   assert.equal(d.launches.length, 0)
 })
 
 test('names the missing version and what is installed', async () => {
   const d = deps({ findEditor: async () => null, listVersions: async () => ['2022.3.1f1'] })
   await assert.rejects(
-    openUnityProject(worktree, d),
+    openUnityProject(args, d),
     /Unity 6000\.0\.23f1 is not installed\. Install it from Unity Hub, then try again\. Installed: 2022\.3\.1f1\./
   )
 })
 
 test('refuses remote worktrees and runs without a worktree', async () => {
-  await assert.rejects(openUnityProject({ ...worktree, host: 'ssh' }, deps()), /on this computer/)
+  await assert.rejects(
+    openUnityProject({ worktree: { ...worktree, host: 'ssh' } }, deps()),
+    /on this computer/
+  )
   await assert.rejects(openUnityProject(undefined, deps()), /on a worktree/)
 })
 
 test('explains a missing Linux display instead of starting a windowless editor', async () => {
   const d = deps({ env: {} })
-  await assert.rejects(openUnityProject(worktree, d), /display/)
+  await assert.rejects(openUnityProject(args, d), /display/)
   assert.equal(d.launches.length, 0)
 })

@@ -4,7 +4,7 @@
   "publisher": "earlgeorg",
   "name": "Unity",
   "version": "0.1.0",
-  "description": "Marks worktrees that are Unity projects and opens them in the Unity Editor version the project uses, without adding them to Unity Hub.",
+  "description": "Marks worktrees that are or hold Unity projects and opens them in the Unity Editor version the project uses, without adding them to Unity Hub.",
   "author": { "name": "earlgeorg" },
   "engines": { "orca": ">=1.4.214" },
   "pluginApi": 1,
@@ -16,7 +16,11 @@
         "id": "unity-project",
         "title": "Unity project",
         "icon": "icons/unity.svg",
-        "when": { "pathExists": ["ProjectSettings/ProjectVersion.txt"], "host": "local" },
+        "when": {
+          "pathExists": ["ProjectSettings/ProjectVersion.txt"],
+          "searchDepth": 2,
+          "host": "local"
+        },
         "commands": ["open-editor"]
       }
     ]

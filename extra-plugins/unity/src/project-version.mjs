@@ -16,7 +16,7 @@ export async function readProjectEditorVersion(projectPath, read = readFile) {
   } catch (error) {
     if (error?.code === 'ENOENT') {
       throw new Error(
-        'This worktree has no ProjectSettings/ProjectVersion.txt, so it is not a Unity project.'
+        'This folder has no ProjectSettings/ProjectVersion.txt, so it is not a Unity project.'
       )
     }
     throw error

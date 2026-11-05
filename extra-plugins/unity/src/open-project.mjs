@@ -14,11 +14,12 @@ const defaultDeps = {
 }
 
 /**
- * Opens a worktree's Unity project in the editor version it was saved with, unless an editor
- * already has it open. Returns `{ message }`, which Orca shows as a toast; throws with a
- * user-facing message when it cannot.
+ * Opens the Unity project in a worktree, or in the worktree subfolder picked from the badge's list
+ * (`args.folder`), in the editor version it was saved with, unless an editor already has it open.
+ * Returns `{ message }`, which Orca shows as a toast; throws with a user-facing message when it cannot.
  */
-export async function openUnityProject(worktree, deps = defaultDeps) {
+export async function openUnityProject(args, deps = defaultDeps) {
+  const worktree = args?.worktree
   if (!worktree?.path) {
     throw new Error(
       'Run "Open in Unity" on a worktree: use the Unity icon beside its name or right-click it.'
@@ -27,8 +28,8 @@ export async function openUnityProject(worktree, deps = defaultDeps) {
   if (worktree.host !== 'local') {
     throw new Error('Unity can only open projects that are on this computer.')
   }
-  const projectPath = worktree.path
-  const name = worktree.displayName || projectPath
+  const projectPath = args.folder?.path ?? worktree.path
+  const name = args.folder?.relativePath ?? (worktree.displayName || projectPath)
   const version = await deps.readVersion(projectPath)
   if (await deps.isOpen(projectPath, { platform: deps.platform })) {
     return { message: `Unity already has ${name} open.` }

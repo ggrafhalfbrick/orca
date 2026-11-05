@@ -1,10 +1,11 @@
 # Unity
 
 An Orca plugin for Unity projects. A worktree whose folder is a Unity project (it has
-`ProjectSettings/ProjectVersion.txt`) shows a Unity icon beside its name. Click the icon, or
-right-click the worktree, and choose **Open in Unity** to open that worktree in the Unity Editor
-version the project was saved with. Unity Hub is not involved, so worktrees never need to be added
-to Hub or removed from it afterwards.
+`ProjectSettings/ProjectVersion.txt`), or holds Unity projects in subfolders up to two levels
+down, shows a Unity icon beside its name. Hover or click the icon to list the projects it found,
+then pick one to open it in the Unity Editor version that project was saved with. Right-clicking
+the worktree lists the same projects under **Open in Unity**. Unity Hub is not involved, so
+worktrees never need to be added to Hub or removed from it afterwards.
 
 - If an editor already has the project open, Orca says so instead of starting a second one.
 - If the project's editor version is not installed, Orca names the missing version and the
@@ -30,13 +31,14 @@ editors' command lines.
 
 ## Requirements
 
-Orca with worktree badges (`contributes.worktreeBadges`, plugin branch `plugin-worktree-badges`).
-Orca builds without them reject this manifest. The plugin asks for `workspace:read`, which hands it
+Orca with worktree badges (`contributes.worktreeBadges`, plugin branch `plugin-worktree-badges`)
+that search subfolders (`when.searchDepth`). Orca builds without them reject this manifest. The plugin asks for `workspace:read`, which hands it
 the folder of a worktree when you run **Open in Unity** on it.
 
 ## Limits
 
-- The project must be the worktree's root folder. A Unity project in a subfolder gets no icon.
+- Projects deeper than two subfolders, inside hidden folders or `node_modules`, or inside another
+  Unity project are not listed. Orca stops after looking through 256 folders.
 - An editor that is already open is not brought to the front.
 
 ## Tests
