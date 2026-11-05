@@ -1,7 +1,8 @@
 import type { QuickCreationExecutionInput } from './composer-model'
 
+import { resolveQuickCreateLinkedWorkItemPrompt } from '@/lib/linked-work-item-context'
 import { useCallback } from 'react'
-import type { TuiAgent } from '../../../../shared/tui-agent'
+import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import type { WorktreeCreationRequest } from '@/lib/pending-worktree-creation'
 import { useAppStore } from '@/store'
 import { isWorkspaceStatusAllowedOnHost } from '@/store/host-workspace-status-columns'
@@ -90,30 +91,12 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         trimmedNote
       } = prepared
 
-      const {
-        startupPlan,
-        backendStartup,
-        telemetry: quickTelemetry,
-        prompt: quickPrompt,
-        draftPrompt: quickDraftPrompt
-      } = await prepareQuickComposerStartup({
-        agent,
-        linkedWorkItem: submitLinkedWorkItem,
-        note: trimmedNote,
-        settings,
-        launchHost: selectedRepoAgentLaunchFact,
-        shell: selectedRepoStartupShell,
-        isRemote: selectedRepoIsRemote,
-        telemetrySource,
-        repoId,
-        executionHostId: selectedRepoExecutionHostId,
-        // Why: without an agent there is nothing to type a plugin task's prompt into.
-        agentDraft: agent ? options?.agentDraft : null,
-        sessionOptionOverrides: options?.sessionOptions
-      })
-      if (isSubmissionCancelled()) {
-        return
-      }
+      const promptLinkedWorkItem = agent === null ? null : submitLinkedWorkItem
+      // Why: without an agent there is nothing to type a plugin task's prompt into.
+      const agentDraft = agent ? options?.agentDraft : null
+
+      const { prompt: quickPrompt, draftPrompt: quickDraftPrompt } =
+        resolveQuickCreateLinkedWorkItemPrompt(promptLinkedWorkItem, trimmedNote, agentDraft)
 
       const startupPolicySettlement = await settleComposerSubmit(
         persistSetupAgentStartupPolicy(),
@@ -168,6 +151,26 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
           }))
       const structuredLaunch = agentLaunchRoute === 'structured-native-chat'
 
+      const quickStartup = await prepareQuickComposerStartup({
+        agent,
+        linkedWorkItem: submitLinkedWorkItem,
+        note: trimmedNote,
+        repoId,
+        executionHostId: selectedRepoExecutionHostId,
+        settings,
+        launchHost: selectedRepoAgentLaunchFact,
+        shell: selectedRepoStartupShell,
+        isRemote: selectedRepoIsRemote,
+        telemetrySource,
+        route: agentLaunchRoute,
+        launchInputs: options?.launchInputs,
+        agentDraft,
+        sessionOptionOverrides: options?.sessionOptions
+      })
+
+      if (isSubmissionCancelled()) {
+        return
+      }
       const request = buildQuickCreationRequest({
         repoId,
         perforceCopy: await resolvePerforceCopyComposerChoice(repoId, selectedRepoExecutionHostId),
@@ -194,6 +197,7 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         pushTarget: submitPushTarget,
         agent,
         agentLaunchRoute,
+        launchInputs: options?.launchInputs,
         linkedLinearIssue,
         linkedLinearIssueWorkspaceId,
         linkedLinearIssueOrganizationUrlKey,
@@ -217,7 +221,7 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         linkedGitLabMR,
         linkedGitLabIssue,
         includeGitLabLinks: smartGitHubResolution.kind === 'none',
-        startup: structuredLaunch ? undefined : backendStartup,
+        startup: structuredLaunch ? undefined : quickStartup.backendStartup,
         hookPreparation: ephemeralVmRecipe
           ? {
               ...hookPreparation,
@@ -227,11 +231,11 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
           : hookPreparation,
         pendingFirstAgentMessageRename,
         note: trimmedNote,
-        startupPlan,
+        startupPlan: quickStartup.startupPlan,
         quickPrompt,
         launchDraftPrompt: quickDraftPrompt,
         promptDelivery,
-        quickTelemetry,
+        quickTelemetry: quickStartup.telemetry,
         suppressTerminalFocusOnCompletion: createMultiple,
         setupOnly: options?.setupOnly === true
       })

@@ -1,8 +1,8 @@
 import type { PluginCatalogType } from './catalog/plugin-catalog-types'
 import type { PluginExecutionProfile } from './contributions/plugin-execution-profile'
 import type { PluginHostImages } from './images/plugin-image-url'
-import type { PluginSettingContribution } from './contributions/plugin-settings-contribution'
 import type { PluginWorktreeBadgeEntry } from './contributions/plugin-worktree-badge'
+import type { PluginStatusBarItemContribution } from './contributions/plugin-status-bar-item-contribution'
 
 /** One installed plugin as main projects it for every client (preload IPC and the `plugins.list`
  *  RPC). Optional fields are absent on older hosts, so paired clients must tolerate them. */
@@ -33,6 +33,8 @@ export type PluginHostCustomEditor = {
   priority: 'default' | 'option'
   /** Absent on hosts that predate byte editors: text. */
   contentKind?: 'text' | 'bytes'
+  /** Absent on hosts that predate the field: `any`. */
+  frame?: 'any' | 'isolated'
   /** orca-plugin-image URL of the editor's tab icon; absent when it declares none. */
   icon?: string
 }
@@ -68,6 +70,9 @@ export type PluginHostListEntry = {
   needsReconsent: boolean
   error?: string
   isDev: boolean
+  /** Dev folders: file changes the host had seen when it last loaded the folder, so a client can
+   *  tell a reload happened. Absent on older hosts and installed plugins. */
+  devChangeCount?: number
   official: boolean
   bundled: boolean
   capabilities: { kind: string; description: string }[]
@@ -83,14 +88,21 @@ export type PluginHostListEntry = {
     context: 'global' | 'workspace' | 'worktree'
     handler: { type: 'built-in'; action: string } | { type: 'worker' }
     keybindings: { key: string; when: 'global' | 'workspace' | 'worktree' }[]
+    /** The built-in action it runs in place of; absent on older hosts. */
+    replaces?: string
+    /** Another plugin, installed earlier, replaces the same action, so this one does not. */
+    replacedBy?: string
   }[]
   /** Absent on hosts that predate workspace badges. */
   worktreeBadges?: PluginWorktreeBadgeEntry[]
+  /** The manifest's status bar items; a worker's changes arrive separately. Absent on older hosts. */
+  statusBarItems?: PluginStatusBarItemContribution[]
+  /** The hooks its manifest lists, so a window can skip asking when none applies. Absent on older
+   *  hosts. */
+  hooks?: string[]
   hasWorker: boolean
   /** Absent on hosts that predate plugin task sources. */
   taskSources?: { id: string; title: string; icon?: string }[]
-  /** Absent on hosts that predate plugin settings contributions. */
-  settings?: PluginSettingContribution[]
   vmRecipes?: {
     id: string
     name: string

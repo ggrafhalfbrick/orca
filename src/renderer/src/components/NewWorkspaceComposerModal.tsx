@@ -1,3 +1,10 @@
+import type {
+  AgentPickerDraft,
+  AgentPickerEntry
+} from '../../../shared/agent-launch/picker/agent-launch-picker'
+import { quickPickerLaunchInputs } from './new-workspace/quick-picker-launch-inputs'
+import { DirectWorkItemSetupDialog } from './new-workspace/DirectWorkItemSetupDialog'
+import type { DirectWorkItemSetupRequest } from '@/lib/direct-work-item-setup'
 import { agentChoicePending } from '@/lib/host-chat-program'
 import type { AgentLaunchSurface } from '@/lib/agent-session-launch-plan'
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -11,10 +18,10 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import NewWorkspaceComposerCard from '@/components/NewWorkspaceComposerCard'
-import { NewWorkspaceComposerExistingWorkspaceField } from '@/components/new-workspace/NewWorkspaceComposerExistingWorkspaceField'
-import { startTaskInExistingWorkspace } from '@/lib/plugin-task-existing-workspace-start'
-import AgentSettingsDialog from '@/components/agent/AgentSettingsDialog'
-import type { AddRepoDialogHostedController } from '@/components/sidebar/use-add-repo-hosted-controller'
+import AgentSettingsDialog, {
+  restoreAgentSettingsInvoker
+} from '@/components/agent/AgentSettingsDialog'
+import type { AddRepoDialogHostedController } from '@/components/sidebar/project-admission/host-selection/use-add-repo-hosted-controller'
 import { useComposerState } from '@/hooks/useComposerState'
 import {
   composerLaunchWorkspace,
@@ -26,26 +33,30 @@ import { useAgentsOfferedForLaunch } from '@/lib/host-chat-program-acquisition'
 import { shouldAllowComposerEnterSubmitTarget } from '@/lib/new-workspace-enter-guard'
 import { isScreenSubmitShortcut } from '@/lib/screen-submit-shortcut'
 import type { GitHubWorkItem } from '../../../shared/github/work-item-types'
-import type { TuiAgent } from '../../../shared/tui-agent'
+import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
 import type { WorkspaceSource as WorkspaceCreateTelemetrySource } from '../../../shared/workspace-source'
 import type { WorkspaceStatus } from '../../../shared/worktree/types'
 import type { TaskSourceContext } from '../../../shared/task-source-context'
-import type { LinkedPluginTask } from '../../../shared/plugins/tasks/plugin-task-link'
-import type { PluginTaskSessionOptions } from '@/lib/plugin-task-session-options'
-import { usePluginTaskComposerDraft } from '@/components/new-workspace/use-plugin-task-composer-draft'
+import { usePluginTaskLaunch, type PluginTaskLaunch } from './new-workspace/use-plugin-task-launch'
+import { usePluginTaskExistingWorkspace } from './new-workspace/use-plugin-task-existing-workspace'
 import { translate } from '@/i18n/i18n'
 import { getWorkspaceComposerInitialFocusTarget } from '@/lib/workspace-composer-initial-focus'
-import { getFolderWorkspacePrimaryActionLabel } from '@/components/sidebar/folder-workspace-composer-helpers'
+import '@/components/sidebar/workspace-creation/folder/folder-workspace-source-repos'
+import { getFolderWorkspacePrimaryActionLabel } from '@/components/sidebar/workspace-creation/folder/folder-workspace-source-selection'
 import type { WorkspaceCreationTargetHint } from '@/lib/project-host-workspace-target'
 import { useAgentMenuObservation } from '@/components/tab-bar/use-new-tab-agent-menu-rows'
 import { addAppKeyListener, removeAppKeyListener } from '@/lib/app-keyboard-router'
 
 // Keep Add Project’s clone/SSH machinery outside the composer entry render, matching App loading.
-const HostedAddRepoDialog = lazyWithRetry(() => import('@/components/sidebar/AddRepoDialog'), {
-  reloadKey: 'composer-add-repo'
-})
+const HostedAddRepoDialog = lazyWithRetry(
+  () => import('@/components/sidebar/project-admission/dialog/AddRepoDialog'),
+  {
+    reloadKey: 'composer-add-repo'
+  }
+)
 
 type ComposerModalData = {
+  directSetup?: DirectWorkItemSetupRequest
   prefilledName?: string
   initialRepoId?: string
   initialEphemeralVmRecipeId?: string
@@ -55,19 +66,13 @@ type ComposerModalData = {
   taskSourceContext?: TaskSourceContext | null
   initialWorkspaceTarget?: WorkspaceCreationTargetHint | null
   initialBaseBranch?: string
-  /** Editable draft typed into the agent after launch (e.g. a plugin task's prompt). */
-  initialAgentDraft?: string
-  /** Per-launch agent session options (e.g. model, effort) from the opener. */
-  initialAgentSessionOptions?: PluginTaskSessionOptions
-  /** Plugin task the new workspace links back to. */
-  linkedPluginTask?: LinkedPluginTask
   initialWorkspaceStatus?: WorkspaceStatus
   enableIssueAutomation?: boolean
   /** Creation-surface telemetry; each opener supplies it, otherwise use unknown. */
   telemetrySource?: WorkspaceCreateTelemetrySource
   contextualTourSource?: string
   setupGuideTourRequestId?: string
-}
+} & PluginTaskLaunch
 
 export default function NewWorkspaceComposerModal(): React.JSX.Element | null {
   const visible = useAppStore((s) => s.activeModal === 'new-workspace-composer')
@@ -76,6 +81,12 @@ export default function NewWorkspaceComposerModal(): React.JSX.Element | null {
 
   if (!visible) {
     return null
+  }
+
+  if (modalData?.directSetup) {
+    return (
+      <DirectWorkItemSetupDialog key={modalData.directSetup.id} request={modalData.directSetup} />
+    )
   }
 
   return <ComposerModalBody modalData={modalData ?? {}} onClose={closeModal} />
@@ -166,6 +177,7 @@ function QuickTabBody({
   })
   // Layer agent settings over the composer so edits retain the typed workspace/repo selection.
   const [agentSettingsOpen, setAgentSettingsOpen] = useState(false)
+  const agentSettingsInvoker = useRef<HTMLButtonElement | null>(null)
   // User picks outrank newly detected preferences. Derive from an override so detection stays current without an effect-driven extra commit.
   const [quickAgentOverride, setQuickAgentOverride] = useState<TuiAgent | null | undefined>(
     undefined
@@ -202,37 +214,42 @@ function QuickTabBody({
   const chipAgentIds =
     offeredAgentIds &&
     new Set([...offeredAgentIds, ...(quickAgent && choicePending(quickAgent) ? [quickAgent] : [])])
-  const [quickSelectionCleared, setQuickSelectionCleared] = useState(false)
-  const quickSetupOnly = quickAgent === null && quickSelectionCleared
-
   // Why keyed by agent: a pick repaired to another agent must not carry the old one's surface.
   const [quickAgentPick, setQuickAgentPick] = useState<{
     agent: TuiAgent | null
     surface?: AgentLaunchSurface
+    draft?: AgentPickerDraft
+    entry?: AgentPickerEntry
+    contextKey?: string
   }>({ agent: null })
-  const quickAgentSurface = quickAgentPick.agent === quickAgent ? quickAgentPick.surface : undefined
   const observation = useAgentMenuObservation(
     cardProps.agentRows?.target ?? null,
     active && Boolean(cardProps.agentRows),
     cardProps.agentRows?.detectionTarget,
     { wakeOnOpen: true }
   )
+  const pickerDraft =
+    quickAgentPick.agent === quickAgent && quickAgentPick.contextKey === observation.contextKey
+      ? quickAgentPick.draft
+      : undefined
+  const quickAgentSurface = quickAgentPick.agent === quickAgent ? quickAgentPick.surface : undefined
   const launchSelection = observation.selectionFor(quickAgent, quickAgentSurface)
   const createDisabled = formDisabled || !launchSelection.ready
 
   const handleQuickAgentChange = useCallback(
-    (agent: TuiAgent | null, surface?: AgentLaunchSurface) => {
+    (
+      agent: TuiAgent | null,
+      surface?: AgentLaunchSurface,
+      draft?: AgentPickerDraft,
+      entry?: AgentPickerEntry
+    ) => {
       setQuickAgentOverride(agent)
-      setQuickAgentPick({ agent, surface })
-      setQuickSelectionCleared(false)
+      setQuickAgentPick({ agent, surface, draft, entry, contextKey: observation.contextKey })
     },
-    []
+    [observation.contextKey]
   )
 
-  const handleQuickSetupOnlySelect = useCallback(() => {
-    setQuickAgentOverride(null)
-    setQuickSelectionCleared(true)
-  }, [])
+  const pluginTask = usePluginTaskLaunch(modalData, quickAgent)
   // Layer Add Project without replacing the composer. Retain it for close animation and clone/scan cancellation; folder/non-Git navigation still tears down the modal.
   const [addProjectOpen, setAddProjectOpen] = useState(false)
   const [addProjectMounted, setAddProjectMounted] = useState(false)
@@ -269,58 +286,44 @@ function QuickTabBody({
     (option) => option.id === cardProps.selectedProjectId
   )
   const isFolderWorkspaceTarget = selectedProjectOption?.kind === 'project-group'
-  const { linkedPluginTask } = modalData
-  const pluginTaskDraft = usePluginTaskComposerDraft({
-    initialAgentDraft: modalData.initialAgentDraft,
-    initialAgentSessionOptions: modalData.initialAgentSessionOptions,
-    linkedPluginTask,
+  const { initialAgentDraft } = modalData
+  const existingWorkspace = usePluginTaskExistingWorkspace({
+    initialAgentDraft,
     quickAgent,
-    isFolderWorkspaceTarget,
-    repoId: cardProps.repoId
+    cardProps,
+    pluginTask,
+    onStarted: onClose
   })
-  const { agentDraft, existingWorktreeId, launchSessionOptions } = pluginTaskDraft
-  const primaryActionLabel = existingWorktreeId
-    ? translate('auto.components.NewWorkspaceComposerCard.startInWorkspace', 'Start in workspace')
-    : isFolderWorkspaceTarget
-      ? getFolderWorkspacePrimaryActionLabel()
-      : cardProps.selectedRepoIsGit
-        ? translate('auto.components.NewWorkspaceComposerModal.createWorktree', 'Create worktree')
-        : translate('auto.components.NewWorkspaceComposerModal.createWorkspace', 'Create workspace')
+  const primaryActionLabel = isFolderWorkspaceTarget
+    ? getFolderWorkspacePrimaryActionLabel()
+    : cardProps.selectedRepoIsGit
+      ? translate('auto.components.NewWorkspaceComposerModal.createWorktree', 'Create worktree')
+      : translate('auto.components.NewWorkspaceComposerModal.createWorkspace', 'Create workspace')
 
   const handleCreate = useCallback(async (): Promise<void> => {
     if (createDisabled) {
       return
     }
-    if (existingWorktreeId) {
-      const started = startTaskInExistingWorkspace({
-        agent: quickAgent,
-        worktreeId: existingWorktreeId,
-        prompt: agentDraft ?? '',
-        ...(linkedPluginTask ? { link: linkedPluginTask } : {}),
-        ...(launchSessionOptions ? { sessionOptions: launchSessionOptions } : {})
-      })
-      if (started) {
-        onClose()
-      }
+    if (existingWorkspace.startInExisting()) {
       return
     }
+    const launchInputs = quickPickerLaunchInputs(pickerDraft, quickAgentPick.entry)
     await submitQuick(quickAgent, {
-      setupOnly: quickSetupOnly,
+      // Blank Terminal is the setup-only create: no agent, and no extra shell beside setup.
+      setupOnly: quickAgent === null,
       launchChoice: launchSelection.choice,
-      ...pluginTaskDraft.submitOptions
+      ...(launchInputs ? { launchInputs } : {}),
+      ...pluginTask.submitOptions
     })
   }, [
-    agentDraft,
+    pluginTask.submitOptions,
     createDisabled,
-    existingWorktreeId,
-    launchSelection.choice,
-    launchSessionOptions,
-    linkedPluginTask,
-    onClose,
-    pluginTaskDraft.submitOptions,
+    existingWorkspace,
     quickAgent,
-    quickSetupOnly,
-    submitQuick
+    launchSelection.choice,
+    submitQuick,
+    pickerDraft,
+    quickAgentPick.entry
   ])
 
   // Let Radix own Escape for the topmost layer. This dialog auto-focuses input, so page-style blur-first handling swallowed its first Escape.
@@ -361,7 +364,7 @@ function QuickTabBody({
                 'auto.components.sidebar.FolderWorkspaceComposerDialog.title',
                 'Create Folder Workspace'
               )
-            : primaryActionLabel}
+            : (existingWorkspace.cardProps.primaryActionLabel ?? primaryActionLabel)}
         </DialogTitle>
         <DialogDescription className="sr-only">
           {translate(
@@ -379,25 +382,13 @@ function QuickTabBody({
         onComposerNodeChange={onComposerNodeChange}
         nameInputRef={nameInputRef}
         quickAgent={quickAgent}
-        onQuickAgentChange={handleQuickAgentChange}
-        agentDraft={agentDraft}
-        onAgentDraftChange={pluginTaskDraft.setAgentDraft}
-        agentDraftUnavailableReason={pluginTaskDraft.agentDraftUnavailableReason}
-        agentSessionNote={pluginTaskDraft.agentSessionNote}
-        quickSetupOnly={quickSetupOnly}
-        onQuickSetupOnlySelect={handleQuickSetupOnlySelect}
-        existingWorkspaceField={
-          pluginTaskDraft.offersExistingWorkspace ? (
-            <NewWorkspaceComposerExistingWorkspaceField
-              repoId={cardProps.repoId}
-              executionHostId={cardProps.selectedRepoExecutionHostId}
-              value={existingWorktreeId}
-              onChange={pluginTaskDraft.selectExistingWorkspace}
-              unavailableReason={pluginTaskDraft.agentDraftUnavailableReason}
-            />
-          ) : undefined
+        agentPickerDraft={pickerDraft}
+        agentSetupDisabled={
+          observation.model.state !== 'settled' ||
+          observation.model.pickerContext?.executionHostId !== 'local'
         }
-        startsInExistingWorkspace={existingWorktreeId !== null}
+        onQuickAgentChange={handleQuickAgentChange}
+        {...pluginTask.cardProps(isFolderWorkspaceTarget)}
         {...cardProps}
         // Chips list offered agents, keeping a pick whose chat is still being learned.
         detectedAgentIds={chipAgentIds}
@@ -414,12 +405,24 @@ function QuickTabBody({
             : undefined
         }
         primaryActionLabel={primaryActionLabel}
-        onOpenAgentSettings={() => setAgentSettingsOpen(true)}
+        {...existingWorkspace.cardProps}
+        onOpenAgentSettings={(invoker) => {
+          agentSettingsInvoker.current = invoker
+          setAgentSettingsOpen(true)
+        }}
         onCreate={() => void handleCreate()}
         onAddProjectOverride={handleOpenAddProject}
         onNestedDialogOpenChange={setSetLocationOpen}
       />
-      <AgentSettingsDialog open={agentSettingsOpen} onOpenChange={setAgentSettingsOpen} />
+      <AgentSettingsDialog
+        open={agentSettingsOpen}
+        onOpenChange={setAgentSettingsOpen}
+        onCloseAutoFocus={(event) => {
+          const invoker = agentSettingsInvoker.current
+          agentSettingsInvoker.current = null
+          restoreAgentSettingsInvoker(event, invoker)
+        }}
+      />
       {addProjectMounted ? (
         <Suspense fallback={null}>
           <HostedAddRepoDialog hosted={addProjectController} />

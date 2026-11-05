@@ -72,6 +72,18 @@ export function resolveBundledPluginRoot(options: {
     : join(options.appPath, 'resources', 'plugins', 'launch')
 }
 
+/** The running app's bundled plugin root. */
+export function bundledPluginRootForApp(app: {
+  isPackaged: boolean
+  getAppPath(): string
+}): string {
+  return resolveBundledPluginRoot({
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    appPath: app.getAppPath()
+  })
+}
+
 async function readBundledPluginIndex(
   root: string
 ): Promise<z.infer<typeof bundledPluginIndexSchema>> {
@@ -81,6 +93,15 @@ async function readBundledPluginIndex(
     throw new Error(`bundled plugin index exceeds ${BUNDLED_PLUGIN_INDEX_MAX_BYTES} bytes`)
   }
   return bundledPluginIndexSchema.parse(JSON.parse(await readFile(indexPath, 'utf8')))
+}
+
+/** Whether this release ships the plugin; false when the index can't be read. */
+export async function isBundledPluginKey(root: string, pluginKey: string): Promise<boolean> {
+  if (!hasOfficialPluginPublisher(pluginKey)) {
+    return false
+  }
+  const index = await readBundledPluginIndex(root).catch(() => null)
+  return index?.plugins.some((entry) => entry.pluginKey === pluginKey) ?? false
 }
 
 async function resolveBundlePath(root: string, path: string): Promise<string> {
@@ -113,6 +134,10 @@ export async function bootstrapBundledPlugins(options: {
   userDataPath: string
   hostVersion: string
   blockedPluginReason?: (pluginKey: string) => string | null
+  /** Runs before a retired plugin's files are deleted, e.g. to revoke its consent. */
+  beforeRetire?: (pluginKey: string) => void | Promise<void>
+  /** Runs after a retired plugin's files are gone, e.g. to clear its frame storage. */
+  afterRetire?: (pluginKey: string) => void | Promise<void>
 }): Promise<PluginBundledBootstrapResult> {
   const index = await readBundledPluginIndex(options.root)
   const pluginsDir = getUserPluginsDir(options.userDataPath)
@@ -125,6 +150,10 @@ export async function bootstrapBundledPlugins(options: {
   }
   for (const entry of index.plugins) {
     const locked = lock.plugins[entry.pluginKey]
+    // Why: a catalog install or update of the same plugin is the user's choice; never downgrade it.
+    if (locked && locked.source.kind !== 'bundled') {
+      continue
+    }
     if (
       locked?.source.kind === 'bundled' &&
       locked.source.bundleId === entry.pluginKey &&
@@ -180,10 +209,12 @@ export async function bootstrapBundledPlugins(options: {
       const retired = await retireBundledPlugin({
         pluginsDir,
         pluginsDataDir: getPluginsDataDir(options.userDataPath),
-        pluginKey
+        pluginKey,
+        beforeRemove: () => options.beforeRetire?.(pluginKey)
       })
       if (retired) {
         result.retired.push(pluginKey)
+        await options.afterRetire?.(pluginKey)
       }
     } catch (error) {
       result.errors.push({

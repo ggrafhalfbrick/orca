@@ -301,6 +301,12 @@ export function PluginDetailPage({
           {plugin && controls?.kind !== 'review' ? (
             <PluginAccessSection capabilities={plugin.capabilities} trust={model.trust} />
           ) : null}
+          {plugin ? (
+            <PluginSettingsSection
+              pluginKey={plugin.pluginKey}
+              revision={`${plugin.version}:${plugin.consentFingerprint ?? ''}`}
+            />
+          ) : null}
           <PluginReleaseNotes entry={entry} />
           {plugin?.hasWorker ? <PluginLogsSection state={logsState} /> : null}
         </div>

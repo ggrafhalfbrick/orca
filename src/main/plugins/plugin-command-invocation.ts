@@ -1,5 +1,6 @@
 import { join, posix } from 'node:path'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
+import type { PluginWorkerController } from './workers/plugin-worker-controller'
 import { isSafePluginRelativePath } from '../../shared/plugins/installation/plugin-path-safety'
 import {
   pluginWorktreeCommandRequestSchema,
@@ -62,4 +63,39 @@ export async function prepareWorkerCommandArgs(
       ? posix.join(worktree.path, relativePath)
       : join(worktree.path, relativePath)
   return { worktree, folder: { path, relativePath } } satisfies PluginWorktreeCommandArgs
+}
+
+/** `plugin` is the approved plugin (null when it is not): a palette or CLI run of its command. */
+export async function invokePluginWorkerCommand(
+  pluginKey: string,
+  plugin: ValidDiscoveredPlugin | null,
+  workers: Pick<PluginWorkerController, 'ensure'>,
+  commandId: string,
+  args?: unknown,
+  /** Epoch ms past which the caller stopped waiting, so a slow start must not run it late. */
+  startBy?: number
+): Promise<unknown> {
+  if (!plugin) {
+    throw new Error(`plugin ${pluginKey} is not enabled`)
+  }
+  assertPluginWorkerCommand(plugin, commandId)
+  const handle = await workers.ensure(plugin)
+  if (!handle.commands.includes(commandId)) {
+    throw new Error(`plugin ${pluginKey} registered no handler for ${commandId}`)
+  }
+  if (startBy !== undefined && Date.now() > startBy) {
+    throw new Error(`plugin ${pluginKey} started too late to run ${commandId}`)
+  }
+  return handle.invokeCommand(commandId, args)
+}
+
+/** Integration-only (worktree badges): resolves a worktree command's folder before the worker runs it. */
+export async function invokePluginWorktreeAwareCommand(
+  worktrees: PluginWorktreeContextResolver | null,
+  ...[pluginKey, plugin, workers, commandId, args, startBy]: Parameters<
+    typeof invokePluginWorkerCommand
+  >
+): Promise<unknown> {
+  const input = plugin ? await prepareWorkerCommandArgs(plugin, commandId, args, worktrees) : args
+  return invokePluginWorkerCommand(pluginKey, plugin, workers, commandId, input, startBy)
 }
