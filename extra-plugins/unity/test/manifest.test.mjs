@@ -11,6 +11,7 @@ test('the Unity badge opens a worker command that runs on a worktree', () => {
   assert.equal(command?.action, undefined)
   assert.deepEqual(badge.when, {
     pathExists: ['ProjectSettings/ProjectVersion.txt'],
+    searchDepth: 2,
     host: 'local'
   })
   assert.ok(manifest.capabilities.some((capability) => capability.kind === 'workspace:read'))
