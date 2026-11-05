@@ -294,9 +294,6 @@ export function PluginDetailPage({
             types={entry.types}
             onOpenShortcuts={onOpenShortcuts}
           />
-          {plugin && controls?.kind !== 'review' && (plugin.settings?.length ?? 0) > 0 ? (
-            <PluginSettingsSection key={plugin.pluginKey} plugin={plugin} />
-          ) : null}
           {/* Why installed only: before install, and while it waits for review, the consent above says this. */}
           {plugin && controls?.kind !== 'review' ? (
             <PluginAccessSection capabilities={plugin.capabilities} trust={model.trust} />
