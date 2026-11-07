@@ -40,6 +40,8 @@ import {
 import { OrcadTerminalCensusParamsSchema } from '../orcad-terminal-census'
 import { CrewSubscribeParams } from '../orchestration-crew'
 import { RegisterDeviceKeyParamsSchema } from '../remote-runtime/pairing/device-key-registration-contract'
+import { PairingCreateOfferParamsSchema } from '../remote-runtime/pairing/pairing-create-offer-contract'
+import { ExchangePairingTicketParamsSchema } from '../remote-runtime/pairing/ticket-exchange-contract'
 import {
   PairingGetEndpointsParamsSchema,
   PairingProvisionRelayParamsSchema
@@ -87,6 +89,7 @@ import {
 import {
   AntigravityAccountMutationParams,
   AntigravityAccountTargetParams,
+  AntigravityChatAuthConfigSchema,
   AntigravityChatSignInCompleteParams,
   AntigravityChatSignInFlowParams
 } from './antigravity-accounts-params'
@@ -154,7 +157,7 @@ import {
   Viewport,
   Wait
 } from './browser-params'
-import { ScreencastUnsubscribe } from './browser-screencast-params'
+import { ScreencastAck, ScreencastUnsubscribe } from './browser-screencast-params'
 import { BrowserOpenUrlParams, BrowserTabCreateParams } from './browser-tab-create-params'
 import { ClientEventsSubscribeParams, ClientEventsUnsubscribeParams } from './client-events-params'
 import {
@@ -283,6 +286,7 @@ import {
   GitHistory,
   GitPush,
   GitRebaseFromBase,
+  GitRefs,
   GitRemoteCommitUrl,
   GitRemoteFileUrl,
   GitResolveConflict,
@@ -292,6 +296,7 @@ import {
   WorktreeSelector as WorktreeSelectorOfGitParams
 } from './git-params'
 import { BindableAccounts, ValidateAccountBinding } from './github-account-binding-params'
+import { UploadGitHubAttachment } from './github-attachment-params'
 import { CreateIssue, Issue, IssueComment, UpdateIssue } from './github-issue-params'
 import {
   ClearProjectItemField,
@@ -515,34 +520,16 @@ import {
 import { WorkerStartParams } from './orchestration-worker-start-params'
 import { WorkerDispatchParams as WorkerDispatchParamsOfOrchestrationWorkerStopParams } from './orchestration-worker-stop-params'
 import {
-  PerforceChangelist,
-  PerforceChangelistFiles,
-  PerforceCopy,
-  PerforceCopyUp,
-  PerforceCreateChangelist,
-  PerforceDiscard,
-  PerforceEditDescription,
-  PerforceFile,
-  PerforceFiles,
-  PerforceGenerateDescription,
-  PerforceHistory,
-  PerforceMoveToChangelist,
-  PerforceProject,
-  PerforceRemoveCopy,
-  PerforceShelvedFiles,
-  PerforceSubmit,
-  PerforceUnshelveFrom,
-  PerforceWorktree
-} from './perforce-params'
-import {
+  PluginCatalogAddParams,
+  PluginCatalogRemoveParams,
   PluginDevEmitParams,
   PluginDevInspectParams,
   PluginDevLoadParams,
   PluginDevRequestParams,
   PluginDevUnloadParams,
   PluginGetLogsParams,
+  PluginInstallParams,
   PluginInvokeCommandParams,
-  PluginInvokeTaskSourceParams,
   PluginOpenParams,
   PluginReadPanelEntryParams,
   PluginRestartParams,
@@ -553,6 +540,8 @@ import {
   PluginShotEditorParams,
   PluginShotParams,
   PluginShotReplayParams,
+  PluginUninstallParams,
+  PluginUpdateParams,
   PluginsPanelActionParams
 } from './plugins-params'
 import {
@@ -675,6 +664,7 @@ import { TerminalLimitUpdateParams } from './terminal-limit-params'
 import { TerminalAdoptOrphans } from './terminal-orphan-params'
 import { TerminalQuickCommandsUpdate } from './terminal-quick-command-params'
 import {
+  TerminalAckOutput,
   TerminalMultiplex,
   TerminalResizeForClient,
   TerminalSubscribe
@@ -743,6 +733,7 @@ import {
   WorktreeResolveCallerParent,
   WorktreeResolveMrBase,
   WorktreeResolvePrBase,
+  WorktreeRunApprovedSetup,
   WorktreeSelector as WorktreeSelectorOfWorktreeParams,
   WorktreeSet,
   WorktreeSleepParams,
@@ -773,6 +764,8 @@ export const RPC_PARAMS_BY_METHOD = {
   'accounts.addCodexFromHome': AddCodexFromHomeParams,
   'accounts.addDataFromHome': AddDataAccountParams,
   'accounts.antigravityAddCurrent': AntigravityAccountTargetParams,
+  'accounts.antigravityChatAuthApply': AntigravityChatAuthConfigSchema,
+  'accounts.antigravityChatAuthGet': null,
   'accounts.antigravityChatSignInCancel': AntigravityChatSignInFlowParams,
   'accounts.antigravityChatSignInComplete': AntigravityChatSignInCompleteParams,
   'accounts.antigravityChatSignInStart': null,
@@ -950,6 +943,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'browser.profileList': null,
   'browser.reload': ExpectUrlBrowserTarget,
   'browser.screencast': Screencast,
+  'browser.screencast.ack': ScreencastAck,
   'browser.screencast.unsubscribe': ScreencastUnsubscribe,
   'browser.screenshot': Screenshot,
   'browser.scroll': Scroll,
@@ -1107,6 +1101,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'git.pull': GitTargetedRemote,
   'git.push': GitPush,
   'git.rebaseFromBase': GitRebaseFromBase,
+  'git.refs': GitRefs,
   'git.remoteCommitUrl': GitRemoteCommitUrl,
   'git.remoteFileUrl': GitRemoteFileUrl,
   'git.resolveConflict': GitResolveConflict,
@@ -1164,6 +1159,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'github.updatePR': UpdatePr,
   'github.updatePRState': UpdatePrState,
   'github.updatePRTitle': UpdatePrTitle,
+  'github.uploadAttachment': UploadGitHubAttachment,
   'github.validateAccountBinding': ValidateAccountBinding,
   'github.workItem': WorkItem,
   'github.workItemByOwnerRepo': WorkItemByOwnerRepo,
@@ -1366,44 +1362,15 @@ export const RPC_PARAMS_BY_METHOD = {
   'orchestration.workerStart': WorkerStartParams,
   'orchestration.workerStop': WorkerDispatchParamsOfOrchestrationWorkerStopParams,
   'orchestration.workerTerminalUserInput': OrchestrationWorkerSubjectParams,
+  'pairing.createOffer': PairingCreateOfferParamsSchema,
   'pairing.delegatedMobileDevice.sync': DelegatedMobileDeviceSyncParamsSchema,
+  'pairing.exchangeTicket': ExchangePairingTicketParamsSchema,
   'pairing.getEndpoints': PairingGetEndpointsParamsSchema,
   'pairing.provisionRelay': PairingProvisionRelayParamsSchema,
   'pairing.registerDeviceKey': RegisterDeviceKeyParamsSchema,
-  'perforce.checkoutIfReadOnly': PerforceFile,
-  'perforce.close': PerforceFiles,
-  'perforce.copyReadiness': PerforceProject,
-  'perforce.copyUp': PerforceCopyUp,
-  'perforce.createChangelist': PerforceCreateChangelist,
-  'perforce.deleteChangelist': PerforceChangelist,
-  'perforce.deleteChangelistWithFiles': PerforceChangelist,
-  'perforce.deleteShelf': PerforceChangelist,
-  'perforce.detect': PerforceWorktree,
-  'perforce.detectProject': PerforceProject,
-  'perforce.diff': PerforceFile,
-  'perforce.diffText': PerforceFiles,
-  'perforce.discard': PerforceDiscard,
-  'perforce.edit': PerforceFiles,
-  'perforce.editDescription': PerforceEditDescription,
-  'perforce.generateDescription': PerforceGenerateDescription,
-  'perforce.history': PerforceHistory,
-  'perforce.info': PerforceWorktree,
-  'perforce.isReadOnlyFile': PerforceFile,
-  'perforce.listCopyStreams': PerforceProject,
-  'perforce.moveToChangelist': PerforceMoveToChangelist,
-  'perforce.open': PerforceFiles,
-  'perforce.previewCopyRemoval': PerforceCopy,
-  'perforce.previewCopyUp': PerforceCopy,
-  'perforce.removeCopy': PerforceRemoveCopy,
-  'perforce.shelve': PerforceChangelist,
-  'perforce.shelveAndRevertFiles': PerforceChangelistFiles,
-  'perforce.status': PerforceWorktree,
-  'perforce.submit': PerforceSubmit,
-  'perforce.sync': PerforceWorktree,
-  'perforce.syncCopies': PerforceProject,
-  'perforce.unshelve': PerforceChangelist,
-  'perforce.unshelveFiles': PerforceShelvedFiles,
-  'perforce.unshelveFrom': PerforceUnshelveFrom,
+  'plugins.catalogAdd': PluginCatalogAddParams,
+  'plugins.catalogList': null,
+  'plugins.catalogRemove': PluginCatalogRemoveParams,
   'plugins.consent': PluginRpcConsentParams,
   'plugins.devEmit': PluginDevEmitParams,
   'plugins.devHook': PluginDevEmitParams,
@@ -1412,8 +1379,8 @@ export const RPC_PARAMS_BY_METHOD = {
   'plugins.devRequest': PluginDevRequestParams,
   'plugins.devUnload': PluginDevUnloadParams,
   'plugins.getLogs': PluginGetLogsParams,
+  'plugins.install': PluginInstallParams,
   'plugins.invokeCommand': PluginInvokeCommandParams,
-  'plugins.invokeTaskSource': PluginInvokeTaskSourceParams,
   'plugins.list': null,
   'plugins.open': PluginOpenParams,
   'plugins.panelAction': PluginsPanelActionParams,
@@ -1426,6 +1393,8 @@ export const RPC_PARAMS_BY_METHOD = {
   'plugins.shotChrome': PluginShotChromeParams,
   'plugins.shotEditor': PluginShotEditorParams,
   'plugins.shotReplay': PluginShotReplayParams,
+  'plugins.uninstall': PluginUninstallParams,
+  'plugins.update': PluginUpdateParams,
   'preflight.check': PreflightCheck,
   'preflight.detectAgents': PreflightProjectAgentDetection,
   'preflight.detectRemoteAgents': PreflightDetectRemoteAgents,
@@ -1550,6 +1519,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'ssh.updateTarget': SshTargetUpdate,
   'stats.summary': null,
   'status.get': StatusGetParams,
+  'terminal.ackOutput': TerminalAckOutput,
   'terminal.adoptOrphans': TerminalAdoptOrphans,
   'terminal.agentStatus': TerminalHandle,
   'terminal.clearBuffer': TerminalHandle,
@@ -1630,6 +1600,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'worktree.resolveMrBase': WorktreeResolveMrBase,
   'worktree.resolvePrBase': WorktreeResolvePrBase,
   'worktree.rm': WorktreeRemove,
+  'worktree.runApprovedSetup': WorktreeRunApprovedSetup,
   'worktree.set': WorktreeSet,
   'worktree.show': WorktreeSelectorOfWorktreeParams,
   'worktree.sleep': WorktreeSleepParams,

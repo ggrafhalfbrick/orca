@@ -6,6 +6,7 @@ import {
   pluginWorktreeCommandRequestSchema,
   type PluginWorktreeCommandArgs
 } from '../../shared/plugins/contributions/plugin-worktree-badge'
+import { runPluginReplacementWithinDeadline } from './plugin-command-replacement-deadline'
 
 export type PluginWorktreeContextResolver = {
   resolvePluginWorktreeContext(
@@ -13,7 +14,10 @@ export type PluginWorktreeContextResolver = {
   ): Promise<PluginWorktreeCommandArgs['worktree'] | null>
 }
 
-export function assertPluginWorkerCommand(plugin: ValidDiscoveredPlugin, commandId: string): void {
+export function assertPluginWorkerCommand(
+  plugin: ValidDiscoveredPlugin,
+  commandId: string
+): ValidDiscoveredPlugin['manifest']['contributes']['commands'][number] {
   const command = plugin.manifest.contributes.commands.find((entry) => entry.id === commandId)
   if (!command) {
     throw new Error(`plugin ${plugin.pluginKey} does not contribute command ${commandId}`)
@@ -22,6 +26,7 @@ export function assertPluginWorkerCommand(plugin: ValidDiscoveredPlugin, command
   if (command.action !== undefined) {
     throw new Error(`plugin ${plugin.pluginKey} command ${commandId} is a built-in action alias`)
   }
+  return command
 }
 
 /** Asserts the command is a worker command and returns the args its handler receives. Callers
@@ -78,13 +83,20 @@ export async function invokePluginWorkerCommand(
   if (!plugin) {
     throw new Error(`plugin ${pluginKey} is not enabled`)
   }
-  assertPluginWorkerCommand(plugin, commandId)
+  const command = assertPluginWorkerCommand(plugin, commandId)
   const handle = await workers.ensure(plugin)
   if (!handle.commands.includes(commandId)) {
     throw new Error(`plugin ${pluginKey} registered no handler for ${commandId}`)
   }
   if (startBy !== undefined && Date.now() > startBy) {
     throw new Error(`plugin ${pluginKey} started too late to run ${commandId}`)
+  }
+  if (startBy !== undefined && command.replaces !== undefined) {
+    // Why: past startBy the renderer runs Orca's own action, so a handler that finishes later
+    // must not run it again through commands.run.
+    return runPluginReplacementWithinDeadline(pluginKey, command.replaces, startBy, () =>
+      handle.invokeCommand(commandId, args)
+    )
   }
   return handle.invokeCommand(commandId, args)
 }

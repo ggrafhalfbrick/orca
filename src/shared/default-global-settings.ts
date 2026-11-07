@@ -258,6 +258,7 @@ export function buildDefaultSettings(args: {
     agentStatusHooksEnabled: true,
     claudeSubagentNavigationEnabled: true,
     agentWorkspaceTrustEnabled: true,
+    agentWorkspaceTrustExistingReposMigrated: true,
     codexTerminalServerIsolation: true,
     codexSharedServerWarning: true,
     tabAutoGenerateTitle: false,
