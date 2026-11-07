@@ -303,10 +303,7 @@ function QuickTabBody({
       : translate('auto.components.NewWorkspaceComposerModal.createWorkspace', 'Create workspace')
 
   const handleCreate = useCallback(async (): Promise<void> => {
-    if (createDisabled) {
-      return
-    }
-    if (existingWorkspace.startInExisting()) {
+    if (createDisabled || existingWorkspace.startInExisting()) {
       return
     }
     const launchInputs = quickPickerLaunchInputs(pickerDraft, quickAgentPick.entry)
