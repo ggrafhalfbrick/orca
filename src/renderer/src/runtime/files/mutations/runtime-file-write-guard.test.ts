@@ -3,7 +3,7 @@ import { setRuntimeFileWriteGuard, writeRuntimeFile } from './runtime-file-mutat
 import {
   fsWriteFile,
   installRuntimeFileClientEnvironment
-} from './runtime-file-client-test-harness'
+} from '../runtime-file-client-test-harness'
 
 installRuntimeFileClientEnvironment()
 

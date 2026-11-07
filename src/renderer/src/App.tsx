@@ -44,7 +44,7 @@ import { PlainSshTerminalPanels } from './components/plain-ssh-terminal/PlainSsh
 import { PluginShotReplayMount } from './components/plugins/view/PluginShotReplayMount'
 import { AddToChatPointMenuHost } from './components/native-chat/AddToChatMenu'
 import { installActiveWorktreeRemovalSuccessor } from './lib/active-worktree-removal-successor'
-import { setRuntimeFileWriteGuard } from './runtime/runtime-file-mutation-client'
+import { setRuntimeFileWriteGuard } from './runtime/files/mutations/runtime-file-mutation-client'
 import { checkoutPerforceFileBeforeWrite } from './lib/perforce-checkout-before-write'
 
 // Both the desktop and the web entry load App, so every save in either one passes this guard.
