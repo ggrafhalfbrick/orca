@@ -61,8 +61,8 @@ export type NewWorkspaceComposerCardProps = {
   /** Session options the opener pinned; described under the agent prompt. */
   agentSessionOptions?: PluginTaskSessionOptions
   /** Rendered under the agent prompt, e.g. a choice of where the agent runs. */
-  existingWorkspaceField?: React.ReactNode
-  /** The agent starts in a workspace that already exists, so the fields that shape a new one are left out. */
+  existingWorkspaceField?: (quickAgent: TuiAgent | null) => React.ReactNode
+  /** A workspace that already exists is picked; with an agent, the fields that shape a new one are left out. */
   startsInExistingWorkspace?: boolean
   eligibleRepos: readonly RepoOption[]
   selectedRepo?: RepoOption | null

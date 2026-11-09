@@ -1,7 +1,7 @@
 import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
-import { resolveRepoWorktreeLaunchPlatform } from '@/lib/execution-host-facts'
+import { resolveRepoWorktreeLaunchPlatform } from '@/runtime/hosts/platform/execution-host-facts'
 import { focusTerminalTabSurface } from '@/lib/focus-terminal-tab-surface'
 import { launchAgentInNewTab } from '@/lib/agent-session/launch/new-tab/launch-agent-in-new-tab'
 import { newAgentLaunchRequestId } from '@/lib/agent-session/launch/routing/agent-launch-request-id'
@@ -73,6 +73,10 @@ export function startTaskInExistingWorkspace(args: StartTaskInExistingWorkspaceA
             'Could not build the agent launch command.'
           )
     )
+    return false
+  }
+  // Why: a refused launch has already shown its own reason.
+  if ('refused' in result) {
     return false
   }
   if (result.surface.kind === 'local-terminal') {

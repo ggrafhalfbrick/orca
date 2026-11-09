@@ -1,5 +1,5 @@
 import type { AppState } from '@/store/types'
-import { getIndexedAllWorktrees } from '@/store/worktree-repo-index'
+import { getIndexedAllWorktrees } from '@/store/slices/worktrees/listing/worktree-catalog-index'
 import { compareWorktreeDisplayName } from '@/lib/worktree-display-name-order'
 import { sharesWorktreeLineageBoundary } from '../../../shared/resolved-worktree-lineage'
 import type { ExecutionHostId } from '../../../shared/execution-host'

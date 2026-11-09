@@ -6,7 +6,7 @@ import {
   ensurePluginPanelsLoaded,
   usePluginPanelsStore,
   type ActivePluginCommand
-} from './plugin-panels'
+} from './plugins/catalog/plugin-contribution-catalog'
 
 /** A worktree badge of an enabled plugin, with its command ids resolved to runnable commands. */
 export type ActivePluginWorktreeBadge = Omit<PluginWorktreeBadgeEntry, 'commands'> & {

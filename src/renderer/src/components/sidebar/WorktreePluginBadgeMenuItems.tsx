@@ -9,7 +9,7 @@ import {
   useMatchingPluginWorktreeBadges,
   type PluginWorktreeBadgeMatch
 } from '@/lib/plugin-worktree-badge-match'
-import type { ActivePluginCommand } from '@/store/plugin-panels'
+import type { ActivePluginCommand } from '@/store/plugins/catalog/plugin-contribution-catalog'
 import { PluginWorktreeBadgeIcon } from './PluginWorktreeBadgeIcon'
 
 /** Workers report a failed command as its stack; users see only the message line. */

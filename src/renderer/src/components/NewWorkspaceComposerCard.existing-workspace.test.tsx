@@ -39,7 +39,7 @@ vi.mock('@/components/agent/AgentCombobox', () => ({
   default: () => <button type="button">Agent picker</button>
 }))
 
-vi.mock('@/components/sidebar/AddRemoteHostDialog', () => ({
+vi.mock('@/components/sidebar/host-admission/ssh/AddRemoteHostDialog', () => ({
   AddRemoteHostDialog: () => null
 }))
 
@@ -90,7 +90,7 @@ function cardElement(overrides: Partial<CardProps>): React.JSX.Element {
       selectedRepoIsGit
       onRepoChange={() => {}}
       onProjectChange={() => {}}
-      primaryActionLabel="Start in workspace"
+      primaryActionLabel="Create worktree"
       name=""
       onNameValueChange={() => {}}
       onSmartGitHubItemSelect={() => {}}
@@ -175,7 +175,11 @@ describe('NewWorkspaceComposerCard starting in an existing workspace', () => {
     expect(buttonWithText(container, 'Advanced')).toBeDefined()
     expect(buttonWithText(container, 'Create more')).toBeDefined()
 
-    rerenderCard({ showCreateMultiple: true, startsInExistingWorkspace: true })
+    rerenderCard({
+      showCreateMultiple: true,
+      startsInExistingWorkspace: true,
+      quickAgent: 'claude'
+    })
 
     expect(container.querySelector('[aria-label="workspace name"]')).toBeNull()
     expect(buttonWithText(container, 'Advanced')).toBeUndefined()
@@ -188,7 +192,7 @@ describe('NewWorkspaceComposerCard starting in an existing workspace', () => {
     act(() => buttonWithText(container, 'Begin preset')?.click())
     expect(container.textContent).not.toContain('Start in workspace')
 
-    rerenderCard({ startsInExistingWorkspace: true })
+    rerenderCard({ startsInExistingWorkspace: true, quickAgent: 'claude' })
 
     expect(container.textContent).toContain('Start in workspace')
     expect(container.querySelector('[data-sparse-preset-editing]')).toBeNull()

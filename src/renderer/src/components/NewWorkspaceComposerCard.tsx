@@ -106,8 +106,9 @@ export default function NewWorkspaceComposerCard(
   const branchNameInputId = React.useId()
   const projectDescriptionId = React.useId()
   const [sparseEditing, setSparseEditing] = React.useState(false)
+  const startsInExisting = Boolean(props.startsInExistingWorkspace) && props.quickAgent !== null
   // Why: Advanced is left out for an existing workspace, so its preset editor must not hold the form.
-  const sparseEditingActive = sparseEditing && !props.startsInExistingWorkspace
+  const sparseEditingActive = sparseEditing && !startsInExisting
   const [addRemoteHostMode, setAddRemoteHostMode] = React.useState<AddRemoteHostMode | null>(null)
   const [setLocationOption, setSetLocationOption] = React.useState<NeedsProjectHostOption | null>(
     null
@@ -312,7 +313,7 @@ export default function NewWorkspaceComposerCard(
           connectButtonLabel={connectButtonLabel}
           selectedProjectName={selectedProjectName}
         />
-        {props.startsInExistingWorkspace ? null : (
+        {startsInExisting ? null : (
           <>
             <NewWorkspaceComposerNameSection {...props} onNamePlainEnter={handleNamePlainEnter} />
             <PerforceCopyComposerOption
@@ -325,18 +326,18 @@ export default function NewWorkspaceComposerCard(
           {...props}
           createDisabled={props.createDisabled || sparseEditingActive}
           advancedLocked={sparseEditingActive}
-          showAdvancedToggle={!props.startsInExistingWorkspace}
+          showAdvancedToggle={!startsInExisting}
           visibleQuickAgents={visibleQuickAgents}
           defaultTuiAgent={defaultTuiAgent}
           handleSetDefaultAgent={handleSetDefaultAgent}
           agentDraftSection={
             <>
               <NewWorkspaceComposerAgentDraftSection {...props} />
-              {props.agentDraft != null ? props.existingWorkspaceField : null}
+              {props.agentDraft != null ? props.existingWorkspaceField?.(props.quickAgent) : null}
             </>
           }
         />
-        {props.startsInExistingWorkspace ? null : (
+        {startsInExisting ? null : (
           <NewWorkspaceComposerAdvancedSection
             {...props}
             onSparseEditingChange={setSparseEditing}
@@ -355,7 +356,15 @@ export default function NewWorkspaceComposerCard(
         <div className="shrink-0 space-y-1">
           <NewWorkspaceComposerFooter
             {...props}
-            showCreateMultiple={props.showCreateMultiple && !props.startsInExistingWorkspace}
+            showCreateMultiple={props.showCreateMultiple && !startsInExisting}
+            primaryActionLabel={
+              startsInExisting
+                ? t(
+                    'auto.components.NewWorkspaceComposerCard.startInWorkspace',
+                    'Start in workspace'
+                  )
+                : props.primaryActionLabel
+            }
             submitShortcutModifierLabel={getScreenSubmitModifierLabel()}
           />
         </div>

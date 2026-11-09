@@ -33,7 +33,7 @@ vi.mock('@/i18n/i18n', () => ({
   translate: (_key: string, fallback: string) => fallback
 }))
 
-vi.mock('@/lib/execution-host-facts', () => ({
+vi.mock('@/runtime/hosts/platform/execution-host-facts', () => ({
   resolveRepoWorktreeLaunchPlatform: mocks.resolveRepoWorktreeLaunchPlatform
 }))
 
@@ -41,7 +41,7 @@ vi.mock('@/lib/focus-terminal-tab-surface', () => ({
   focusTerminalTabSurface: mocks.focusTerminalTabSurface
 }))
 
-vi.mock('@/lib/launch-agent-in-new-tab', () => ({
+vi.mock('@/lib/agent-session/launch/new-tab/launch-agent-in-new-tab', () => ({
   launchAgentInNewTab: mocks.launchAgentInNewTab
 }))
 
@@ -49,7 +49,7 @@ vi.mock('@/lib/plugin-task-workspace-link', () => ({
   persistCreatedWorkspacePluginTaskLink: mocks.persistCreatedWorkspacePluginTaskLink
 }))
 
-vi.mock('@/lib/worktree-activation', () => ({
+vi.mock('@/lib/workspace/activation/worktree-activation', () => ({
   activateAndRevealWorktree: mocks.activateAndRevealWorktree
 }))
 

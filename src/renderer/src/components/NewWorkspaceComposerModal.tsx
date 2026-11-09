@@ -26,7 +26,7 @@ import AgentSettingsDialog, {
   restoreAgentSettingsInvoker
 } from '@/components/agent/AgentSettingsDialog'
 import type { AddRepoDialogHostedController } from '@/components/sidebar/project-admission/host-selection/use-add-repo-hosted-controller'
-import { usePluginTaskComposerState } from './new-workspace/use-plugin-task-launch'
+import { usePluginTaskWorkspaceComposerState } from './new-workspace/use-plugin-task-existing-workspace'
 import {
   composerLaunchWorkspace,
   quickWorkspacePickerInputs,
@@ -136,7 +136,7 @@ function QuickTabBody({
     createDisabled: formDisabled,
     selectAddedProjectRepo,
     selectAddedProjectGroup
-  } = usePluginTaskComposerState(modalData, {
+  } = usePluginTaskWorkspaceComposerState(modalData, {
     initialName: modalData.prefilledName ?? '',
     // Quick create ignores legacy prompt-prefill payloads.
     initialPrompt: '',
