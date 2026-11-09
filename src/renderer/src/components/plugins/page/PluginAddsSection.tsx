@@ -49,8 +49,8 @@ import {
 } from './plugin-contribution-action-availability'
 import { shadowedKeybindingTitles } from '../presentation/plugin-keybinding-conflicts'
 import type { PluginContributionSummaryItem } from '../../../../../shared/plugins/contributions/plugin-contribution-summary'
+import { describePluginContributionsWithTaskSources } from '../presentation/plugin-task-source-contribution-rows'
 import {
-  describePluginContributions,
   summaryContributionSource,
   EMPTY_CONTRIBUTION_SOURCE,
   manifestContributionSource,
@@ -324,7 +324,7 @@ export function PluginAddsSection({
           )
       : previewCommands) ??
     []
-  const rows = describePluginContributions(source, t, intlLocale)
+  const rows = describePluginContributionsWithTaskSources(source, t, intlLocale)
   // Why: a fetched manifest or a catalog summary is exact, so its types add nothing.
   const fallbackTypes =
     (preview || summary) && !plugin ? [] : uncoveredCatalogTypes(types, rows, commands.length > 0)
