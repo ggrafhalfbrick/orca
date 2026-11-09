@@ -1,4 +1,4 @@
-import type { ActivePluginCommand } from '@/store/plugin-panels'
+import type { ActivePluginCommand } from '@/store/plugins/catalog/plugin-contribution-catalog'
 import { isWorkspaceScopedPluginContext } from '../../../shared/plugins/contributions/plugin-command-contribution'
 import { dispatchAppCommand, type AppCommandSource } from './app-command-dispatch'
 

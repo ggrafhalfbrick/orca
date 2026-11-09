@@ -5,7 +5,7 @@ import { useCallback } from 'react'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import type { WorktreeCreationRequest } from '@/lib/workspace/creation/pending-worktree-creation'
 import { useAppStore } from '@/store'
-import { isWorkspaceStatusAllowedOnHost } from '@/store/host-workspace-status-columns'
+import { isWorkspaceStatusAllowedOnHost } from '@/store/workspaces/status/host-workspace-status-columns'
 import { settleComposerSubmit } from '@/lib/composer-submit-cancellation'
 import { runBackgroundWorktreeCreation } from '@/lib/workspace/creation/worktree-creation-flow'
 import type { ComposerCreateHandoff } from '@/lib/composer-create-handoff'
@@ -164,12 +164,18 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         telemetrySource,
         route: agentLaunchRoute,
         launchInputs: options?.launchInputs,
+        legacyLaunchInputs: options?.legacyLaunchInputs,
+        ephemeralVm: Boolean(ephemeralVmRecipe),
         agentDraft,
         sessionOptionOverrides: options?.sessionOptions
       })
 
       if (isSubmissionCancelled()) {
         return
+      }
+      if (quickStartup.creationStartup) {
+        quickStartup.creationStartup.onLegacyPreparationFailure =
+          options?.onLegacyPreparationFailure
       }
       const request = buildQuickCreationRequest({
         repoId,
@@ -198,6 +204,8 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
         agent,
         agentLaunchRoute,
         launchInputs: options?.launchInputs,
+        legacyLaunchInputs: options?.legacyLaunchInputs,
+        creationStartup: quickStartup.creationStartup,
         linkedLinearIssue,
         linkedLinearIssueWorkspaceId,
         linkedLinearIssueOrganizationUrlKey,

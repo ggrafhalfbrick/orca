@@ -36,7 +36,7 @@ vi.mock('@/runtime/source-control/git/runtime-git-client-context', () => ({
   getRuntimeGitScope: vi.fn(() => null)
 }))
 
-vi.mock('@/lib/connection-context', () => ({
+vi.mock('@/lib/workspace/ownership/connection-context', () => ({
   getConnectionId: vi.fn(),
   getConnectionIdForFile: vi.fn(),
   isWorktreeConnectionResolved: vi.fn(() => true)
@@ -60,7 +60,7 @@ vi.mock('@/store', () => ({
 
 import { ORCA_EDITOR_EXTERNAL_FILE_CHANGE_EVENT } from './autosave/editor-autosave'
 import { useEditorPanelContentState } from './useEditorPanelContentState'
-import { createTestStore } from '@/store/slices/store-test-helpers'
+import { createTestStore } from '@/store/testing/app-store-test-fixture'
 
 type Deferred<T> = {
   promise: Promise<T>
