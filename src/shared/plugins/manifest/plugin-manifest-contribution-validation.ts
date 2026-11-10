@@ -7,7 +7,7 @@ import {
 } from '../contributions/plugin-event-contribution'
 import type { PluginFileMatch } from '../contributions/plugin-file-match'
 import { validatePluginStatusBarItems } from '../contributions/plugin-status-bar-item-contribution'
-import { validateWorktreeBadges } from './plugin-worktree-badge-validation'
+import { validatePluginWorktreeBadges } from '../contributions/plugin-worktree-badge-contribution'
 
 type IdentifiedContribution = { id: string }
 type PathContribution = { path: string }
@@ -36,7 +36,7 @@ type ContributionValidationManifest = {
     settings: { key: string }[]
     statusBarItems: { id: string; command?: string }[]
     taskSources: IdentifiedContribution[]
-    worktreeBadges: (IdentifiedContribution & { commands: string[] })[]
+    worktreeBadges: { id: string; commands: string[] }[]
   }
   capabilities: { kind: string }[]
 }
@@ -169,6 +169,7 @@ export function validatePluginManifestContributions(
   }
 
   validatePluginStatusBarItems(manifest.contributes, ctx)
+  validatePluginWorktreeBadges(manifest, ctx)
   const commands = new Map(manifest.contributes.commands.map((command) => [command.id, command]))
   for (const [index, command] of manifest.contributes.commands.entries()) {
     if (command.action !== undefined && !isPluginCommandAliasActionId(command.action)) {
@@ -262,7 +263,6 @@ export function validatePluginManifestContributions(
       })
     }
   }
-  validateWorktreeBadges(manifest, ctx)
 }
 
 /** A replacement runs worker code in place of a built-in, so it cannot also be a built-in alias. */

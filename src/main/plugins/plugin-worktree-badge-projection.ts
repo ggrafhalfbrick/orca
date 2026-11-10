@@ -1,14 +1,15 @@
-import { readContainedPluginArtifactText } from './plugin-artifact-validation'
+import { readContainedPluginArtifactText } from './plugin-contained-artifact'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
 import {
   isPluginWorktreeBadgeSvgIcon,
   PLUGIN_WORKTREE_BADGE_SVG_MAX_BYTES,
   type PluginWorktreeBadgeEntry,
   type PluginWorktreeBadgeIcon
-} from '../../shared/plugins/contributions/plugin-worktree-badge'
+} from '../../shared/plugins/contributions/plugin-worktree-badge-contribution'
 
-const FALLBACK_BADGE_ICON: PluginWorktreeBadgeIcon = { kind: 'lucide', name: 'puzzle' }
+const FALLBACK_BADGE_ICON: PluginWorktreeBadgeIcon = { kind: 'named', name: 'puzzle' }
 
+/** The plugin's badges for clients, with each SVG icon read inline. */
 export async function projectPluginWorktreeBadges(
   plugin: ValidDiscoveredPlugin
 ): Promise<PluginWorktreeBadgeEntry[]> {
@@ -29,7 +30,7 @@ export async function projectPluginWorktreeBadges(
 
 async function resolveBadgeIcon(rootDir: string, icon: string): Promise<PluginWorktreeBadgeIcon> {
   if (!isPluginWorktreeBadgeSvgIcon(icon)) {
-    return { kind: 'lucide', name: icon }
+    return { kind: 'named', name: icon }
   }
   try {
     const markup = await readContainedPluginArtifactText(

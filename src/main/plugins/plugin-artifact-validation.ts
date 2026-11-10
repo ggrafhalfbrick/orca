@@ -11,11 +11,11 @@ import { PLUGIN_NEW_FILE_TEMPLATE_MAX_BYTES } from '../../shared/plugins/contrib
 import { validatePluginImageArtifacts } from './plugin-image-artifact-validation'
 import { validatePluginFontArtifacts } from './plugin-font-files'
 import { PLUGIN_FONT_FILE_MAX_BYTES } from '../../shared/plugins/contributions/plugin-font-contribution'
+import { PLUGIN_PANEL_ENTRY_MAX_BYTES } from '../../shared/plugins/frames/plugin-frame-entry-limits'
 import {
   isPluginWorktreeBadgeSvgIcon,
   PLUGIN_WORKTREE_BADGE_SVG_MAX_BYTES
-} from '../../shared/plugins/contributions/plugin-worktree-badge'
-import { PLUGIN_PANEL_ENTRY_MAX_BYTES } from '../../shared/plugins/frames/plugin-frame-entry-limits'
+} from '../../shared/plugins/contributions/plugin-worktree-badge-contribution'
 import {
   PLUGIN_WORKER_ENTRY_MAX_BYTES,
   readContainedPluginArtifactBytes,
@@ -124,7 +124,7 @@ function declaredArtifactPaths(manifest: PluginManifest): DeclaredArtifact[] {
       .filter((badge) => isPluginWorktreeBadgeSvgIcon(badge.icon))
       .flatMap((badge) =>
         declaredFile(
-          `workspace badge "${badge.id}" icon`,
+          `worktree badge "${badge.id}" icon`,
           badge.icon,
           PLUGIN_WORKTREE_BADGE_SVG_MAX_BYTES
         )

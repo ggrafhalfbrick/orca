@@ -3,6 +3,7 @@ import type { PluginExecutionProfile } from './contributions/plugin-execution-pr
 import type { PluginHostImages } from './images/plugin-image-url'
 import type { PluginWorktreeBadgeEntry } from './contributions/plugin-worktree-badge'
 import type { PluginStatusBarItemContribution } from './contributions/plugin-status-bar-item-contribution'
+import type { PluginWorktreeBadgeEntry } from './contributions/plugin-worktree-badge-contribution'
 
 /** One installed plugin as main projects it for every client (preload IPC and the `plugins.list`
  *  RPC). Optional fields are absent on older hosts, so paired clients must tolerate them. */
@@ -110,6 +111,8 @@ export type PluginHostListEntry = {
   worktreeBadges?: PluginWorktreeBadgeEntry[]
   /** The manifest's status bar items; a worker's changes arrive separately. Absent on older hosts. */
   statusBarItems?: PluginStatusBarItemContribution[]
+  /** Absent on hosts that predate worktree badges. */
+  worktreeBadges?: PluginWorktreeBadgeEntry[]
   /** The hooks its manifest lists, so a window can skip asking when none applies. Absent on older
    *  hosts. */
   hooks?: string[]

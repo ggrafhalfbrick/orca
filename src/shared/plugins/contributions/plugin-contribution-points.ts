@@ -39,10 +39,6 @@ import {
 } from './plugin-new-file-contribution'
 import { PLUGIN_PANEL_LIMIT, pluginPanelContributionSchema } from './plugin-panel-contribution'
 import {
-  PLUGIN_WORKTREE_BADGE_LIMIT,
-  pluginWorktreeBadgeContributionSchema
-} from './plugin-worktree-badge'
-import {
   PLUGIN_TASK_SOURCE_LIMIT,
   pluginTaskSourceContributionSchema
 } from '../tasks/plugin-task-source'
@@ -62,6 +58,11 @@ import {
   PLUGIN_SETTING_LIMIT,
   pluginSettingContributionSchema
 } from './plugin-settings-contribution'
+import {
+  PLUGIN_WORKTREE_BADGE_LIMIT,
+  PLUGIN_WORKTREE_BADGES_SINCE,
+  pluginWorktreeBadgeContributionSchema
+} from './plugin-worktree-badge-contribution'
 
 /** Every `contributes` key, in manifest order. Adding a point starts here. */
 export const PLUGIN_CONTRIBUTION_POINTS = [
@@ -251,8 +252,8 @@ export const pluginContributesFields = {
   worktreeBadges: contributionList(
     pluginWorktreeBadgeContributionSchema,
     PLUGIN_WORKTREE_BADGE_LIMIT,
-    'Icons beside a workspace whose folder holds a marker file; they open workspace commands.',
-    NEXT
+    "Icons beside each workspace whose folder holds a marker path; each opens the plugin's workspace commands for that workspace.",
+    PLUGIN_WORKTREE_BADGES_SINCE
   )
 } satisfies Record<PluginContributionPoint, z.ZodType>
 
@@ -304,6 +305,6 @@ export const PLUGIN_CONTRIBUTION_POINT_POLICY: Record<
   statusBarItems: { execution: 'declarative', catalogType: null, bindsContent: false },
   // Why no catalog type: a task source needs a worker, which `main` already declares.
   taskSources: { execution: 'trusted-worker', catalogType: null, bindsContent: false },
-  // Why bound: a badge's icon and command list act later under the user's click.
-  worktreeBadges: { execution: 'declarative', catalogType: null, bindsContent: true }
+  // Why declarative: a badge only names the plugin's own workspace commands, which need a worker.
+  worktreeBadges: { execution: 'declarative', catalogType: null, bindsContent: false }
 }

@@ -1,26 +1,22 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parsePluginManifest } from '../../shared/plugins/manifest/plugin-manifest'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
-import { prepareWorkerCommandArgs } from './plugin-command-invocation'
-import type { PluginWorktreeCommandArgs } from '../../shared/plugins/contributions/plugin-worktree-badge'
+import { assertPluginWorkerCommand, workerCommandArgs } from './plugin-command-invocation'
+import type { PluginWorkspaceCommandArgs } from '../../shared/plugins/contributions/plugin-workspace-command-args'
 
-function plugin(
-  capabilities: { kind: string }[] = [{ kind: 'workspace:read' }]
-): ValidDiscoveredPlugin {
+function plugin(capabilities = [{ kind: 'workspace:read' }]): ValidDiscoveredPlugin {
   const parsed = parsePluginManifest({
-    manifestVersion: 1,
+    manifestVersion: 2,
+    execution: 'trusted-worker',
     id: 'engine',
-    publisher: 'orca-samples',
     name: 'Engine',
     version: '1.0.0',
-    engines: { orca: '>=1.0.0' },
-    pluginApi: 1,
+    engines: { orca: '>=1.4.246' },
     main: 'main.mjs',
     contributes: {
       commands: [
-        { id: 'open-project', title: 'Open project', context: 'worktree' },
-        { id: 'refresh', title: 'Refresh' },
-        { id: 'tasks', title: 'Tasks', action: 'view.tasks' }
+        { id: 'open-project', title: 'Open project', when: 'workspace' },
+        { id: 'refresh', title: 'Refresh' }
       ]
     },
     capabilities
@@ -38,87 +34,63 @@ function plugin(
   }
 }
 
-const worktree = {
+type Workspace = PluginWorkspaceCommandArgs['worktree']
+
+const worktree: Workspace = {
   path: '/work/game',
   displayName: 'game',
   branch: 'feature',
-  host: 'local' as const
+  host: 'local'
 }
 
-function resolver(result: PluginWorktreeCommandArgs['worktree'] | null = worktree) {
-  return { resolvePluginWorktreeContext: vi.fn().mockResolvedValue(result) }
+async function argsFor(
+  commandId: string,
+  args: unknown,
+  resolved: Workspace | null = worktree,
+  target = plugin()
+) {
+  const resolve = vi.fn(async () => resolved)
+  const command = assertPluginWorkerCommand(target, commandId)
+  return { result: workerCommandArgs(target, command, args, resolve), resolve }
 }
 
-describe('prepareWorkerCommandArgs', () => {
-  it('passes args without a worktree request through unchanged', async () => {
-    const worktrees = resolver()
-
-    await expect(
-      prepareWorkerCommandArgs(plugin(), 'refresh', { page: 2 }, worktrees)
-    ).resolves.toEqual({ page: 2 })
-    expect(worktrees.resolvePluginWorktreeContext).not.toHaveBeenCalled()
+describe('worker command args', () => {
+  it('passes other args through unchanged', async () => {
+    const { result, resolve } = await argsFor('refresh', { page: 2 })
+    await expect(result).resolves.toEqual({ page: 2 })
+    expect(resolve).not.toHaveBeenCalled()
   })
 
-  it('replaces a worktree id with the resolved worktree context', async () => {
-    const worktrees = resolver()
-
-    await expect(
-      prepareWorkerCommandArgs(plugin(), 'open-project', { worktreeId: 'r::/work/game' }, worktrees)
-    ).resolves.toEqual({ worktree })
-    expect(worktrees.resolvePluginWorktreeContext).toHaveBeenCalledWith('r::/work/game')
+  it('hands a workspace command the workspace a worktree id names', async () => {
+    const { result, resolve } = await argsFor('open-project', { worktreeId: 'r::/work/game' })
+    await expect(result).resolves.toEqual({ worktree })
+    expect(resolve).toHaveBeenCalledWith('r::/work/game')
   })
 
-  it('resolves a badge subfolder on the worktree host and refuses one outside it', async () => {
-    const request = { worktreeId: 'r::/work/game', folder: String.raw`Games\Racer` }
-
-    await expect(
-      prepareWorkerCommandArgs(
-        plugin(),
-        'open-project',
-        request,
-        resolver({ ...worktree, host: 'ssh' })
-      )
-    ).resolves.toMatchObject({
+  it('resolves a badge subfolder on the workspace host and refuses one outside it', async () => {
+    const request = { worktreeId: 'r::/work/game', folder: 'Games\\Racer' }
+    const ssh = await argsFor('open-project', request, { ...worktree, host: 'ssh' })
+    await expect(ssh.result).resolves.toMatchObject({
       folder: { path: '/work/game/Games/Racer', relativePath: 'Games/Racer' }
     })
-    await expect(
-      prepareWorkerCommandArgs(
-        plugin(),
-        'open-project',
-        { ...request, folder: '../other' },
-        resolver()
-      )
-    ).rejects.toThrow('not inside this workspace')
+    const outside = await argsFor('open-project', { ...request, folder: '../other' })
+    await expect(outside.result).rejects.toThrow('That folder is not inside this workspace.')
   })
 
-  it('never forwards the worktree id, which embeds its path', async () => {
-    const worktrees = resolver()
+  it('never forwards the worktree id, which embeds the folder path', async () => {
     const request = { worktreeId: 'r::/work/game' }
-
+    await expect((await argsFor('refresh', request)).result).resolves.toBeUndefined()
     await expect(
-      prepareWorkerCommandArgs(plugin([]), 'open-project', request, worktrees)
+      (await argsFor('open-project', request, worktree, plugin([]))).result
     ).resolves.toBeUndefined()
-    await expect(
-      prepareWorkerCommandArgs(plugin(), 'refresh', request, worktrees)
-    ).resolves.toBeUndefined()
-    expect(worktrees.resolvePluginWorktreeContext).not.toHaveBeenCalled()
+    const malformed = { ...request, folder: 'x'.repeat(2000) }
+    await expect((await argsFor('open-project', malformed)).result).rejects.toThrow(
+      'Invalid workspace command request.'
+    )
   })
 
-  it('fails when the worktree cannot be resolved on this host', async () => {
-    await expect(
-      prepareWorkerCommandArgs(plugin(), 'open-project', { worktreeId: 'gone' }, resolver(null))
-    ).rejects.toThrow('not available')
-    await expect(
-      prepareWorkerCommandArgs(plugin(), 'open-project', { worktreeId: 'gone' }, null)
-    ).rejects.toThrow('not available')
-  })
-
-  it('still refuses built-in aliases and unknown commands', async () => {
-    await expect(prepareWorkerCommandArgs(plugin(), 'tasks', undefined, null)).rejects.toThrow(
-      'built-in action alias'
-    )
-    await expect(prepareWorkerCommandArgs(plugin(), 'missing', undefined, null)).rejects.toThrow(
-      'does not contribute'
-    )
+  it('fails when the workspace is not reachable from this computer', async () => {
+    const { result } = await argsFor('open-project', { worktreeId: 'gone' }, null)
+    await expect(result).rejects.toThrow('This workspace is not available on this computer.')
   })
 })

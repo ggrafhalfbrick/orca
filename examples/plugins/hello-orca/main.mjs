@@ -8,9 +8,9 @@ export default function activate(orca) {
     return count === 1 ? 'Pong! First ping.' : `Pong! ${count} pings so far.`
   })
 
-  // Workspace commands get `args.worktree` (path, displayName, branch, host) when run from a
-  // workspace badge, the workspace context menu, or the palette; `message` is shown as a toast.
-  orca.commands.register('hello-worktree', async (args) => ({
+  // A workspace command run from a badge, the workspace menu, the palette or a shortcut gets the
+  // workspace in `args.worktree`; a `message` it returns is shown as a toast.
+  orca.commands.register('hello-folder', async (args) => ({
     message: args?.worktree
       ? `${args.worktree.displayName} is at ${args.worktree.path}`
       : 'Run this command on a workspace.'

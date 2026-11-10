@@ -15,10 +15,10 @@ import { PluginKvStore } from '../plugin-storage-store'
 import type { TerminalInputKind } from '../../../shared/terminal/input/terminal-input-kind'
 import { pluginTerminalTitle, type PluginAgentStatusRow } from './plugin-workspace-projection'
 import type { PluginAppearanceService } from '../appearance/plugin-appearance-service'
-import type { PluginWorktreeContextResolver } from '../plugin-command-invocation'
+import type { PluginCommandWorkspaceResolver } from '../plugin-command-invocation'
 import type { PluginEditorTypographySource } from '../appearance/plugin-editor-typography'
 
-export type PluginRuntimeDelegate = PluginWorktreeContextResolver & {
+export type PluginRuntimeDelegate = {
   resolveActiveWorktreeContext(): Promise<{
     worktreeId: string
     path: string
@@ -52,6 +52,8 @@ export type PluginRuntimeDelegate = PluginWorktreeContextResolver & {
   listAgentStatuses?(): readonly PluginAgentStatusRow[]
   /** The runtime RPC the `orca` CLI calls, in process; absent where none is bound. */
   callRuntime?: PluginRuntimeRpc
+  /** The workspace a user ran a workspace command on; absent where no runtime is bound. */
+  resolveCommandWorkspace?: PluginCommandWorkspaceResolver
 }
 
 export function bindPluginHostServices(input: {

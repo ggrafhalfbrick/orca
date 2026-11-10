@@ -3,7 +3,8 @@ import { isWorkspaceScopedPluginContext } from '../../../shared/plugins/contribu
 import { dispatchAppCommand, type AppCommandSource } from './app-commands/app-command-dispatch'
 
 /** Resolves with whatever a worker handler returned; built-in actions return nothing. A workspace
- *  command gets `target`'s workspace, and the badge folder picked in it, as its `args`. */
+ *  command runs on `target`'s workspace (and badge folder), which main hands the worker as
+ *  `args.worktree` (and `args.folder`). */
 export async function executePluginCommand(
   command: ActivePluginCommand,
   source: AppCommandSource,

@@ -4,6 +4,7 @@ import { pluginPanelTabKey } from '../../shared/plugins/manifest/plugin-manifest
 import type { PluginLockfile } from '../../shared/plugins/installation/plugin-install-lockfile'
 import { isInvalidDiscoveredPlugin, type DiscoveredPlugin } from './plugin-discovery'
 import { pluginFontSlot } from '../../shared/plugins/contributions/plugin-font-contribution'
+import { projectPluginWorktreeBadges } from './plugin-worktree-badge-projection'
 import {
   pluginInstalledImageUrl,
   type PluginHostImages
@@ -238,6 +239,7 @@ export async function buildPluginList(
         })),
         worktreeBadges: await projectPluginWorktreeBadges(plugin),
         statusBarItems: plugin.manifest.contributes.statusBarItems,
+        worktreeBadges: await projectPluginWorktreeBadges(plugin),
         hooks: plugin.manifest.contributes.hooks.map((hook) => hook.event),
         hasWorker: Boolean(plugin.manifest.main),
         taskSources: plugin.manifest.contributes.taskSources.map((source) => ({
