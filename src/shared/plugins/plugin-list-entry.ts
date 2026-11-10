@@ -1,7 +1,6 @@
 import type { PluginCatalogType } from './catalog/plugin-catalog-types'
 import type { PluginExecutionProfile } from './contributions/plugin-execution-profile'
 import type { PluginHostImages } from './images/plugin-image-url'
-import type { PluginWorktreeBadgeEntry } from './contributions/plugin-worktree-badge'
 import type { PluginStatusBarItemContribution } from './contributions/plugin-status-bar-item-contribution'
 import type { PluginWorktreeBadgeEntry } from './contributions/plugin-worktree-badge-contribution'
 
@@ -107,8 +106,6 @@ export type PluginHostListEntry = {
     /** Another plugin, installed earlier, replaces the same action, so this one does not. */
     replacedBy?: string
   }[]
-  /** Absent on hosts that predate workspace badges. */
-  worktreeBadges?: PluginWorktreeBadgeEntry[]
   /** The manifest's status bar items; a worker's changes arrive separately. Absent on older hosts. */
   statusBarItems?: PluginStatusBarItemContribution[]
   /** Absent on hosts that predate worktree badges. */

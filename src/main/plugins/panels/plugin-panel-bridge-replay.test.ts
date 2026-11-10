@@ -9,7 +9,6 @@ const LEAF = '11111111-1111-4111-8111-111111111111'
 function setup(capabilities: PluginCapabilityKind[] = ['workspace:read']) {
   let active: string | null = 'repo::/w'
   const delegate: PluginRuntimeDelegate = {
-    resolvePluginWorktreeContext: async () => null,
     resolveActiveWorktreeContext: async () =>
       active
         ? { worktreeId: active, path: '/w', branch: 'refs/heads/main', displayName: 'w' }

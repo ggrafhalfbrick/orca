@@ -1,6 +1,6 @@
 import { terminalLaunchFacts } from '../../../../shared/agent-session/lifecycle/agent-session-resume'
 import type { OrcaRuntimeWithCreateTerminal } from '../launch/terminal-create'
-import { OrcaRuntimeWithPluginWorktreeContext } from '../../plugin-worktree-context'
+import { OrcaRuntimeWithRestoredHandlePaneStart } from '../surface/restored-handle-pane-start'
 import type {
   RuntimeTerminalRead,
   RuntimeTerminalResolvePane,
@@ -26,7 +26,7 @@ import { readStructuredWorkerTerminal } from '../../orchestration/terminal-autho
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../../shared/layout-owner-switch'
 import { workspaceSessionListsTerminalTab } from '../../../../shared/workspace-session/workspace-session-terminal-tab-close'
 
-export abstract class OrcaRuntimeWithResolveTerminalPane extends OrcaRuntimeWithPluginWorktreeContext {
+export abstract class OrcaRuntimeWithResolveTerminalPane extends OrcaRuntimeWithRestoredHandlePaneStart {
   protected abstract assertLiveTerminalHandleTargetsPty(handle: string, expectedPtyId: string): void
   abstract createTerminal(
     ...args: Parameters<OrcaRuntimeWithCreateTerminal['createTerminal']>

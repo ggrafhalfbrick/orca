@@ -16,7 +16,6 @@ function unused(): never {
 }
 
 const delegate: PluginRuntimeDelegate = {
-  resolvePluginWorktreeContext: async () => null,
   resolveActiveWorktreeContext: unused,
   listTerminals: unused,
   sendTerminal: unused,

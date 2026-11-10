@@ -29,8 +29,6 @@ import {
 } from '../../shared/plugins/contributions/plugin-custom-editor-contribution'
 import { pluginExecutionProfile } from '../../shared/plugins/contributions/plugin-execution-profile'
 
-import { projectPluginWorktreeBadges } from './plugin-worktree-badge-projection'
-
 const PLUGIN_LIST_PROJECTION_CONCURRENCY = 4
 
 type PluginLockEntry = PluginLockfile['plugins'][string]
@@ -120,7 +118,6 @@ export async function buildPluginList(
           customEditors: [],
           newFiles: [],
           commands: [],
-          worktreeBadges: [],
           hasWorker: false,
           taskSources: [],
           vmRecipes: [],
@@ -237,7 +234,6 @@ export async function buildPluginList(
           keybindings: command.keybindings,
           ...(command.replaces ? { replaces: command.replaces } : {})
         })),
-        worktreeBadges: await projectPluginWorktreeBadges(plugin),
         statusBarItems: plugin.manifest.contributes.statusBarItems,
         worktreeBadges: await projectPluginWorktreeBadges(plugin),
         hooks: plugin.manifest.contributes.hooks.map((hook) => hook.event),

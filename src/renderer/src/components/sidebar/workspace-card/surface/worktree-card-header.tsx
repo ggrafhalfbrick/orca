@@ -12,7 +12,6 @@ import {
   WorktreeCardSparseBadge
 } from '../identity/worktree-card-header-items'
 import { WorktreeCardSshHostControl } from '../host/WorktreeCardSshHostControl'
-import { WorktreeCardPluginBadges } from '../../WorktreeCardPluginBadges'
 import { WorktreeTitleInlineRename } from '../identity/WorktreeTitleInlineRename'
 import type { WorktreeCardController } from '../controller/use-worktree-card-controller'
 
@@ -48,7 +47,6 @@ export function WorktreeCardHeader({
     titleRenaming,
     handleOpenRenameErrorDialog,
     isFolder,
-    isActive,
     handleWorkspaceQuickAction
   } = card
   const {
@@ -105,16 +103,6 @@ export function WorktreeCardHeader({
           }
           onBeginEditingConsumed={affiliateListMode ? undefined : () => setRenamingWorktreeId(null)}
         />
-
-        {!titleRenaming && !affiliateListMode && !isDeleting && (
-          <WorktreeCardPluginBadges
-            worktreeId={worktree.id}
-            worktreePath={worktree.path}
-            connectionId={repo?.connectionId ?? null}
-            isActive={isActive}
-            onPointerDown={stopQuickActionPointerPropagation}
-          />
-        )}
 
         {typeof worktree.firstAgentMessageRenameError === 'string' &&
         worktree.firstAgentMessageRenameError.length > 0 &&

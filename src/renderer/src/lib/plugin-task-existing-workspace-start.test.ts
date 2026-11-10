@@ -37,7 +37,7 @@ vi.mock('@/runtime/hosts/platform/execution-host-facts', () => ({
   resolveRepoWorktreeLaunchPlatform: mocks.resolveRepoWorktreeLaunchPlatform
 }))
 
-vi.mock('@/lib/focus-terminal-tab-surface', () => ({
+vi.mock('@/components/terminal-pane/input/focus/focus-terminal-tab-surface', () => ({
   focusTerminalTabSurface: mocks.focusTerminalTabSurface
 }))
 

@@ -52,7 +52,6 @@ export function pluginRuntimeDelegate(
         }
       : {}),
     resolveActiveWorktreeContext: () => runtime.resolveActiveWorktreeContext(),
-    resolvePluginWorktreeContext: (worktreeId) => runtime.resolvePluginWorktreeContext(worktreeId),
     listTerminals: (...args) => runtime.listTerminals(...args),
     sendTerminal: (...args) => runtime.sendTerminal(...args),
     dispatchPluginNotification: (input) => runtime.dispatchPluginNotification(input),

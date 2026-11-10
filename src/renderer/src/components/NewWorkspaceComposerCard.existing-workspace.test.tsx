@@ -4,7 +4,7 @@ import React, { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import NewWorkspaceComposerCard from './NewWorkspaceComposerCard'
-import type { NewWorkspaceProjectOption } from '@/lib/new-workspace-project-options'
+import type { NewWorkspaceProjectOption } from '@/lib/workspace/creation/new-workspace-project-options'
 
 vi.mock('@/store', () => ({
   useAppStore: Object.assign(
@@ -119,6 +119,8 @@ function cardElement(overrides: Partial<CardProps>): React.JSX.Element {
       onNoteChange={() => {}}
       setupConfig={null}
       requiresExplicitSetupChoice={false}
+      setupChoiceRevealRequest={0}
+      onSetupChoiceRevealed={() => {}}
       setupDecision={null}
       onSetupDecisionChange={() => {}}
       setupAgentStartupPolicy="start-immediately"
