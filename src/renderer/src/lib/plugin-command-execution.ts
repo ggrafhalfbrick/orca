@@ -1,6 +1,6 @@
 import type { ActivePluginCommand } from '@/store/plugins/catalog/plugin-contribution-catalog'
 import { isWorkspaceScopedPluginContext } from '../../../shared/plugins/contributions/plugin-command-contribution'
-import { dispatchAppCommand, type AppCommandSource } from './app-command-dispatch'
+import { dispatchAppCommand, type AppCommandSource } from './app-commands/app-command-dispatch'
 
 /** Resolves with whatever a worker handler returned; built-in actions return nothing. A workspace
  *  command gets `target`'s workspace, and the badge folder picked in it, as its `args`. */

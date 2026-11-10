@@ -16,6 +16,7 @@ import type { TerminalInputKind } from '../../../shared/terminal/input/terminal-
 import { pluginTerminalTitle, type PluginAgentStatusRow } from './plugin-workspace-projection'
 import type { PluginAppearanceService } from '../appearance/plugin-appearance-service'
 import type { PluginWorktreeContextResolver } from '../plugin-command-invocation'
+import type { PluginEditorTypographySource } from '../appearance/plugin-editor-typography'
 
 export type PluginRuntimeDelegate = PluginWorktreeContextResolver & {
   resolveActiveWorktreeContext(): Promise<{
@@ -63,6 +64,7 @@ export function bindPluginHostServices(input: {
   declaredSettings?: readonly PluginSettingContribution[]
   statusBar?: PluginStatusBarState | null
   appearance?: PluginAppearanceService | null
+  editorTypography?: PluginEditorTypographySource | null
   /** Ids of the calling plugin's `contributes.statusBarItems`, and its install's revision. */
   declaredStatusBarItemIds?: readonly string[]
   statusBarRevision?: string
@@ -71,6 +73,7 @@ export function bindPluginHostServices(input: {
   const { delegate, pluginsDataDir } = input
   return {
     appearance: input.appearance ?? null,
+    editorTypography: input.editorTypography ?? null,
     desktop: input.desktop ?? null,
     panels: input.panels ?? null,
     statusBar: input.statusBar
