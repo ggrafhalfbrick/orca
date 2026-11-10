@@ -49,7 +49,7 @@ jobs:
         with:
           sparse-checkout: |
             /package.json
-            /config/scripts/dev-channel-base-version.mjs
+            /config/scripts/release/versioning/dev-channel-base-version.mjs
           sparse-checkout-cone-mode: false
           persist-credentials: false
 
@@ -69,7 +69,7 @@ jobs:
           )"
           base="$(ORCA_PUBLISHED_VERSIONS="$published" node --input-type=module -e "
             import { readFileSync } from 'node:fs'
-            import { readPublishedVersionsFromEnv, resolveDevChannelBaseVersion } from './config/scripts/dev-channel-base-version.mjs'
+            import { readPublishedVersionsFromEnv, resolveDevChannelBaseVersion } from './config/scripts/release/versioning/dev-channel-base-version.mjs'
             const { version } = JSON.parse(readFileSync('package.json', 'utf8'))
             console.log(resolveDevChannelBaseVersion(version, readPublishedVersionsFromEnv()))
           ")"
@@ -188,7 +188,7 @@ jobs:
           # beforePack and afterPack fail the package when the template is absent.
           ORCA_REQUIRE_ORCAD_TEMPLATE: ${{ inputs.orcad_template && '1' || '' }}
         run: |
-          node config/scripts/ensure-native-runtime.mjs --runtime=electron
+          node config/scripts/native-build/node-addons/ensure-native-runtime.mjs --runtime=electron
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           pnpm exec electron-builder --config config/electron-builder.config.cjs --win --publish never
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
