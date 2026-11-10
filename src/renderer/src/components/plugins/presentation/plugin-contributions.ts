@@ -17,6 +17,7 @@ import {
   statusBarItemTitles,
   withMode
 } from './plugin-contribution-row-labels'
+import * as extraTitles from './plugin-extra-contribution-titles'
 
 /** The manifest points shown as named rows; commands, shortcuts, events and settings have their
  *  own lists, and hooks show as the trusted-worker access they need. */
@@ -61,9 +62,7 @@ export type PluginContributionSource = {
   vmRecipes: readonly string[]
   newFiles: readonly { title: string; extension: string }[]
   statusBarItems: readonly string[]
-  taskSources?: readonly string[]
-  worktreeBadges: readonly string[]
-}
+} & extraTitles.Titles
 
 export const EMPTY_CONTRIBUTION_SOURCE: PluginContributionSource = {
   themes: [],
@@ -113,8 +112,7 @@ export function manifestContributionSource(manifest: PluginManifest): PluginCont
     vmRecipes: contributes.vmRecipes.map((recipe) => nameFromContributionPath(recipe.path)),
     newFiles: contributes.newFiles,
     statusBarItems: statusBarItemTitles(contributes.statusBarItems),
-    taskSources: contributes.taskSources.map((source) => source.title),
-    worktreeBadges: contributes.worktreeBadges.map((badge) => badge.title)
+    ...extraTitles.fromManifest(contributes)
   }
 }
 
@@ -155,8 +153,7 @@ export function summaryContributionSource(
     vmRecipes: of('vmRecipes').map((item) => nameFromContributionPath(item.name)),
     newFiles: of('newFiles').map((item) => ({ title: item.name, extension: item.detail ?? '' })),
     statusBarItems: of('statusBarItems').map((item) => item.name),
-    taskSources: of('taskSources').map((item) => item.name),
-    worktreeBadges: of('worktreeBadges').map((item) => item.name)
+    ...extraTitles.fromSummary(summary)
   }
 }
 
