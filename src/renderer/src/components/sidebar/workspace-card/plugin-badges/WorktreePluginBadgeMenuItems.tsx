@@ -3,8 +3,8 @@ import { toast } from 'sonner'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { translate } from '@/i18n/i18n'
 import { extractIpcErrorMessage } from '@/runtime/errors/ipc-error'
-import { executePluginCommand } from '@/lib/plugin-command-execution'
-import { showPluginCommandMessage } from '@/lib/plugin-command-message'
+import { executePluginCommand } from '@/lib/plugins/commands/plugin-command-execution'
+import { showPluginCommandMessage } from '@/lib/plugins/commands/plugin-command-message'
 import type { ActivePluginCommand } from '@/store/plugins/catalog/plugin-contribution-catalog'
 import { PluginWorktreeBadgeIcon } from './PluginWorktreeBadgeIcon'
 import {
@@ -14,6 +14,8 @@ import {
   type PluginWorktreeBadgeMatch
 } from './use-matching-plugin-worktree-badges'
 
+/** Runs `command` on the workspace (and `folder`, unless it is the workspace's own `''`), showing
+ *  its message, or a toast when it fails. */
 async function runPluginWorktreeCommand(
   command: ActivePluginCommand,
   worktreeId: string,

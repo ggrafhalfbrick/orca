@@ -15,6 +15,7 @@ vi.mock('sonner', () => ({ toast: toastMocks }))
 
 vi.mock('@/i18n/i18n', () => ({
   getIntlLocale: () => 'en-US',
+  /** Returns the English fallback with `{{value0}}` filled in. */
   translate: (_key: string, fallback: string, values?: Record<string, string>) =>
     fallback.replace('{{value0}}', values?.value0 ?? '')
 }))
@@ -88,7 +89,8 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-// Why a path per test: path checks are cached for the session, like the sidebar's.
+/** Renders the badges of a workspace at `path`, on the SSH target `connectionId` names. Each test
+ *  uses its own path, since path checks are cached for the session, like the sidebar's. */
 function renderBadges(path: string, connectionId: string | null = null) {
   return render(
     <WorktreeCardPluginBadges

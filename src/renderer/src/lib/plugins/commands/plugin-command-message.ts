@@ -1,5 +1,5 @@
 import { toast } from 'sonner'
-import { pluginCommandResultMessageSchema } from '../../../shared/plugins/contributions/plugin-workspace-command-args'
+import { pluginCommandResultMessageSchema } from '../../../../../shared/plugins/contributions/plugin-workspace-command-args'
 
 /** Shows a worker command's `{ message }` answer as a toast. */
 export function showPluginCommandMessage(result: unknown): void {

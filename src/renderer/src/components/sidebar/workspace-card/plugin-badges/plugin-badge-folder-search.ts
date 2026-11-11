@@ -10,10 +10,12 @@ export type PluginBadgeSearchRoot = { path: string; connectionId: string | null 
 
 const SKIPPED_FOLDER_RE = /^(?:\..*|node_modules)$/
 
+/** The `connectionId` an fs call needs to reach the root, or nothing for a local root. */
 function connectionArgs(root: PluginBadgeSearchRoot): { connectionId?: string } {
   return root.connectionId ? { connectionId: root.connectionId } : {}
 }
 
+/** `name` inside the relative `folder`, with `/` separators; `''` is the root. */
 function childPath(folder: string, name: string): string {
   return folder ? `${folder}/${name}` : name
 }
@@ -43,6 +45,8 @@ async function pathsExist(
   )
 }
 
+/** The searchable subfolders of the relative `folder`, skipping hidden folders, `node_modules`
+ *  and symbolic links; an unreadable folder has none. */
 async function listSubfolders(root: PluginBadgeSearchRoot, folder: string): Promise<string[]> {
   const entries = await window.api.fs
     .readDir({ dirPath: joinPath(root.path, folder), ...connectionArgs(root) })
