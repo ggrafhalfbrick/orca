@@ -7,7 +7,6 @@ import { shouldSeedWorktreePrimaryTerminal } from '../../../../shared/worktree-f
 import { randomUUID } from 'node:crypto'
 import { getProjectHostSetupWorktreeMeta } from '../../../../shared/project-host-setup-lookup'
 import { resolveWorktreeCreateDisplayNameRequest } from '../../../ipc/worktree-display-name'
-import type { RuntimeTerminalCreate } from '../../../../shared/runtime-terminal-create-contract'
 import type { CreateWorktreeResult } from '../../../../shared/worktree/create-types'
 import type { Repo } from '../../../../shared/repo-types'
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
@@ -18,30 +17,26 @@ import {
   mergeRuntimeFolderWorkspace
 } from '../catalog/runtime-folder-workspace'
 import type { RuntimeManagedWorktreeCreateArgs } from './runtime-managed-worktree-create-types'
-import { createRuntimePerforceCopy } from '../../runtime-perforce-copy-commands'
-import { invalidateAuthorizedRootsCache } from '../../../ipc/worktrees/removal/registered-worktree-roots-cache'
+import { createRuntimeFolderPerforceCopy } from './runtime-folder-perforce-copy'
 import type { RuntimeStore } from '../../construction/runtime-store-contract'
-import type { TerminalCreateOptions } from '../../terminal/launch/terminal-create-options'
 import type {
   WorktreeStartupDraftPaste,
   WorktreeStartupFollowup
 } from '../startup/runtime-worktree-agent-startup'
 import { hostWorktreeTargetForRepo } from '../../../persistence/host-qualified-worktree-meta'
+import type { RuntimeLocalWorktreeTerminalPorts } from '../startup/runtime-local-worktree-terminal-startup'
+import {
+  isPreparedFolderSetup,
+  prepareFolderWorktreeSetup,
+  startRuntimeFolderWorktreeSetupTerminals,
+  type RuntimeFolderWorktreeSetupDeps
+} from './runtime-folder-worktree-setup'
+import { buildRuntimeSetupReceipt } from './runtime-local-worktree-setup'
 
 type RuntimeFolderWorktreeCreateDeps = {
   store: RuntimeStore
-  ptySpawnAvailable: boolean
-  provisionInBackground?: () => boolean
-  createTerminal: (
-    selector: string,
-    options: TerminalCreateOptions
-  ) => Promise<RuntimeTerminalCreate>
-  pasteDraft: (handle: string, draft: WorktreeStartupDraftPaste) => void
-  sendFollowup: (
-    handle: string,
-    followup: WorktreeStartupFollowup,
-    terminal: RuntimeTerminalCreate
-  ) => void
+  /** The same terminal operations a worktree create uses; folder startup and setup share them. */
+  terminals: RuntimeLocalWorktreeTerminalPorts
   invalidateResolvedWorktrees: () => void
   notifyWorktreesChanged: (repoId: string) => void
   emitCreated: (event: {
@@ -57,6 +52,8 @@ type RuntimeFolderWorktreeCreateDeps = {
     startup?: WorktreeStartupLaunch,
     providesInitialSurface?: boolean
   ) => void
+  /** Absent where this host can't run the folder's setup script. */
+  setup?: RuntimeFolderWorktreeSetupDeps
 }
 
 export async function createRuntimeFolderWorktree(args: {
@@ -83,14 +80,7 @@ export async function createRuntimeFolderWorktree(args: {
   const now = Date.now()
   const settings = deps.store.getSettings()
   const instanceId = randomUUID()
-  // "Create workspace" in a Perforce project makes a copy on its own stream instead of sharing the folder.
-  const copy = request.perforceCopy
-    ? await createRuntimePerforceCopy(
-        repo,
-        { workspaceName: request.name, ...request.perforceCopy },
-        deps.store.getSettings()
-      )
-    : null
+  const copy = await createRuntimeFolderPerforceCopy(repo, request, settings)
   const worktreeId = copy?.worktreeId ?? getRuntimeFolderWorkspaceInstanceId(repo, instanceId)
   const displayNameRequest = resolveWorktreeCreateDisplayNameRequest(
     request.displayName,
@@ -149,12 +139,9 @@ export async function createRuntimeFolderWorktree(args: {
     ...(request.comment !== undefined ? { comment: request.comment } : {}),
     ...(request.manualOrder !== undefined ? { manualOrder: request.manualOrder } : {}),
     ...(request.workspaceStatus !== undefined ? { workspaceStatus: request.workspaceStatus } : {}),
-    ...(copy ? { perforceStream: copy.summary.stream } : {})
+    ...copy?.meta
   })
-  if (copy) {
-    // Why after the meta write: a copy's folder is an authorized root only once it is recorded.
-    invalidateAuthorizedRootsCache()
-  }
+  copy?.recorded()
   args.onWorkspaceCreated?.(worktreeId)
   const worktree = mergeRuntimeFolderWorkspace(repo, worktreeId, meta)
   deps.invalidateResolvedWorktrees()
@@ -165,18 +152,47 @@ export async function createRuntimeFolderWorktree(args: {
     path: worktree.path,
     branch: worktree.branch
   })
+  const setupResult = deps.setup
+    ? await prepareFolderWorktreeSetup({
+        request,
+        repo,
+        worktree,
+        settings,
+        runtimeTarget: deps.setup.runtimeTarget,
+        shouldUseSetupRunner: deps.setup.shouldUseSetupRunner
+      })
+    : undefined
+  const preparedSetup = isPreparedFolderSetup(setupResult) ? setupResult : undefined
+  if (preparedSetup?.setup && deps.setup) {
+    return {
+      worktree: folderCreateResultWorktree(worktree),
+      ...(await startRuntimeFolderWorktreeSetupTerminals({
+        request,
+        repo,
+        worktree,
+        prepared: preparedSetup,
+        startup: args.startup,
+        startupFollowup: args.startupFollowup,
+        startupLaunchRuntime: args.startupLaunchRuntime,
+        createdWithAgent: args.createdWithAgent,
+        promisedAgentChat: args.promisedAgentChat,
+        draftPaste: args.draftPaste,
+        terminals: deps.terminals
+      }))
+    }
+  }
   const shouldActivate = request.activate === true || request.runHooks === true
-  let warning: string | undefined
+  let warning: string | undefined = setupResult?.warning
   let didSpawnStartup = false
   let startupTerminal: CreateWorktreeResult['startupTerminal']
   // Main owns failed agent startup too, so its pane can show the reason without a terminal service.
-  if (args.startup && (deps.ptySpawnAvailable || ORCA_LAYOUT_OWNER_IS_MAIN)) {
+  if (args.startup && (deps.terminals.canSpawn || ORCA_LAYOUT_OWNER_IS_MAIN)) {
     try {
       const launchRuntime = args.startupLaunchRuntime
       if (launchRuntime instanceof Error && !ORCA_LAYOUT_OWNER_IS_MAIN) {
         throw launchRuntime
       }
-      const terminal = await deps.createTerminal(`id:${worktree.id}`, {
+      const terminal = await deps.terminals.createTerminal(`id:${worktree.id}`, {
         command: args.startup.command,
         ...(request.startupCwd ? { cwd: request.startupCwd } : {}),
         ...paneIdentity(request.startupPaneKey),
@@ -197,10 +213,10 @@ export async function createRuntimeFolderWorktree(args: {
       })
       request.onStartupTerminalCreated?.(terminal)
       if (args.draftPaste) {
-        deps.pasteDraft(terminal.handle, args.draftPaste)
+        deps.terminals.pasteDraft(terminal.handle, args.draftPaste)
       }
       if (args.startupFollowup) {
-        deps.sendFollowup(terminal.handle, args.startupFollowup, terminal)
+        deps.terminals.sendFollowup(terminal.handle, args.startupFollowup, terminal)
       }
       didSpawnStartup = true
       startupTerminal = {
@@ -235,8 +251,8 @@ export async function createRuntimeFolderWorktree(args: {
     )
   }
   if (
-    (!shouldActivate || deps.provisionInBackground?.() === true) &&
-    deps.ptySpawnAvailable &&
+    (!shouldActivate || deps.terminals.provisionInBackground?.() === true) &&
+    deps.terminals.canSpawn &&
     shouldSeedWorktreePrimaryTerminal({
       // Failed agents retain their panes; do not seed a shell beside them.
       hasPrimarySurface: didSpawnStartup || (ORCA_LAYOUT_OWNER_IS_MAIN && Boolean(args.startup)),
@@ -245,7 +261,7 @@ export async function createRuntimeFolderWorktree(args: {
     })
   ) {
     try {
-      await deps.createTerminal(`id:${worktree.id}`, { surfaceOwner: false })
+      await deps.terminals.createTerminal(`id:${worktree.id}`, { surfaceOwner: false })
     } catch (error) {
       const message = readableWslDistroHoldText(
         formatTerminalStartFailure(error) ??
@@ -259,21 +275,34 @@ export async function createRuntimeFolderWorktree(args: {
     }
   }
   return {
-    worktree: {
-      ...worktree,
-      parentWorktreeId: null,
-      childWorktreeIds: [],
-      lineage: null,
-      git: {
-        path: worktree.path,
-        head: worktree.head,
-        branch: worktree.branch,
-        isBare: worktree.isBare,
-        isMainWorktree: worktree.isMainWorktree
-      }
-    },
+    worktree: folderCreateResultWorktree(worktree),
     ...(startupTerminal ? { startupTerminal } : {}),
+    ...(preparedSetup && request.awaitTerminalProvisioning
+      ? { setupReceipt: buildRuntimeSetupReceipt(preparedSetup, false, null) }
+      : {}),
+    // The window re-asks with this content, then runs the approved setup.
+    ...(preparedSetup?.setupTrustMismatch
+      ? { setupTrustMismatch: preparedSetup.setupTrustMismatch }
+      : {}),
     ...(warning ? { warning } : {}),
-    ...(copy ? { perforceCopy: copy.summary } : {})
+    ...copy?.result
+  }
+}
+
+function folderCreateResultWorktree(
+  worktree: ReturnType<typeof mergeRuntimeFolderWorkspace>
+): CreateWorktreeResult['worktree'] {
+  return {
+    ...worktree,
+    parentWorktreeId: null,
+    childWorktreeIds: [],
+    lineage: null,
+    git: {
+      path: worktree.path,
+      head: worktree.head,
+      branch: worktree.branch,
+      isBare: worktree.isBare,
+      isMainWorktree: worktree.isMainWorktree
+    }
   }
 }
