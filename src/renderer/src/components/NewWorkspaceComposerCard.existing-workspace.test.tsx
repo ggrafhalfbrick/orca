@@ -164,6 +164,11 @@ function buttonWithText(container: HTMLElement, text: string): HTMLButtonElement
   return [...container.querySelectorAll('button')].find((node) => node.textContent?.includes(text))
 }
 
+// The footer's primary button shows "Create" and names its action in aria-label.
+function startButton(container: HTMLElement): HTMLButtonElement | null {
+  return container.querySelector('button[aria-label="Start in workspace"]')
+}
+
 describe('NewWorkspaceComposerCard starting in an existing workspace', () => {
   afterEach(() => {
     act(() => current?.root.unmount())
@@ -186,17 +191,17 @@ describe('NewWorkspaceComposerCard starting in an existing workspace', () => {
     expect(container.querySelector('[aria-label="workspace name"]')).toBeNull()
     expect(buttonWithText(container, 'Advanced')).toBeUndefined()
     expect(buttonWithText(container, 'Create more')).toBeUndefined()
-    expect(container.textContent).toContain('Start in workspace')
+    expect(startButton(container)).not.toBeNull()
   })
 
   it('keeps the start button when an existing workspace is picked during a preset edit', () => {
     const container = renderCard()
     act(() => buttonWithText(container, 'Begin preset')?.click())
-    expect(container.textContent).not.toContain('Start in workspace')
+    expect(startButton(container)).toBeNull()
 
     rerenderCard({ startsInExistingWorkspace: true, quickAgent: 'claude' })
 
-    expect(container.textContent).toContain('Start in workspace')
+    expect(startButton(container)).not.toBeNull()
     expect(container.querySelector('[data-sparse-preset-editing]')).toBeNull()
   })
 })
