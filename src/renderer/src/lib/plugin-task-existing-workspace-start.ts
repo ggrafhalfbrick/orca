@@ -3,8 +3,8 @@ import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { resolveRepoWorktreeLaunchPlatform } from '@/runtime/hosts/platform/execution-host-facts'
 import { focusTerminalTabSurface } from '@/components/terminal-pane/input/focus/focus-terminal-tab-surface'
-import { launchAgentInNewTab } from '@/lib/agent-session/launch/new-tab/launch-agent-in-new-tab'
-import { newAgentLaunchRequestId } from '@/lib/agent-session/launch/routing/agent-launch-request-id'
+import { launchAgentInNewTabWithOutcome } from '@/lib/agent-session/launch/new-tab/launch-agent-in-new-tab'
+import { createNonSecureContextUuid } from '../../../shared/non-secure-context-uuid'
 import { persistCreatedWorkspacePluginTaskLink } from '@/lib/plugin-task-workspace-link'
 import { activateAndRevealWorktree } from '@/lib/workspace/activation/worktree-activation'
 import type { LinkedPluginTask } from '../../../shared/plugins/tasks/plugin-task-link'
@@ -45,8 +45,8 @@ export function startTaskInExistingWorkspace(args: StartTaskInExistingWorkspaceA
   // Why: undefined lets the launch resolve the host itself and tell the user why it stopped.
   const launchPlatform = repo ? resolveRepoWorktreeLaunchPlatform(store, repo, worktree) : undefined
   let revealFailed = false
-  const result = launchAgentInNewTab({
-    requestId: newAgentLaunchRequestId(),
+  const result = launchAgentInNewTabWithOutcome({
+    requestId: createNonSecureContextUuid(),
     agent,
     worktreeId,
     prompt: args.prompt,

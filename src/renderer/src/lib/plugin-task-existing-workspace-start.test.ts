@@ -42,7 +42,7 @@ vi.mock('@/components/terminal-pane/input/focus/focus-terminal-tab-surface', () 
 }))
 
 vi.mock('@/lib/agent-session/launch/new-tab/launch-agent-in-new-tab', () => ({
-  launchAgentInNewTab: mocks.launchAgentInNewTab
+  launchAgentInNewTabWithOutcome: mocks.launchAgentInNewTab
 }))
 
 vi.mock('@/lib/plugin-task-workspace-link', () => ({
