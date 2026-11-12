@@ -1,17 +1,17 @@
 import {
   pluginWorkerInvokeTaskSourceParamsSchema,
   WORKER_METHODS
-} from '../../../shared/plugins/workers/plugin-host-protocol'
-import type { PluginWorkerOrcaApi as SharedPluginWorkerOrcaApi } from '../../../shared/plugins/workers/plugin-worker-orca-api'
+} from '../../../../shared/plugins/workers/plugin-host-protocol'
+import type { PluginWorkerOrcaApi as SharedPluginWorkerOrcaApi } from '../../../../shared/plugins/workers/plugin-worker-orca-api'
 import {
   pluginError,
   pluginFailure,
   pluginResult,
   type PluginEnvelope,
   type PluginRequest
-} from '../../../shared/plugins/frames/plugin-protocol'
+} from '../../../../shared/plugins/frames/plugin-protocol'
 
-export type { PluginDisposable } from '../../../shared/plugins/workers/plugin-worker-orca-api'
+export type { PluginDisposable } from '../../../../shared/plugins/workers/plugin-worker-orca-api'
 
 export type PluginWorkerHandlerContext = { signal: AbortSignal }
 

@@ -1,5 +1,5 @@
-import { PLUGIN_TASK_SOURCE_INVOKE_TIMEOUT_MS } from '../../../shared/plugins/tasks/plugin-task-source'
-import { WORKER_METHODS } from '../../../shared/plugins/workers/plugin-host-protocol'
+import { PLUGIN_TASK_SOURCE_INVOKE_TIMEOUT_MS } from '../../../../shared/plugins/tasks/plugin-task-source'
+import { WORKER_METHODS } from '../../../../shared/plugins/workers/plugin-host-protocol'
 import type { PluginWorkerHandle } from './plugin-host-process-types'
 import { sendPluginWorkerRequest, type PluginWorkerRequestChannel } from './plugin-worker-requests'
 
