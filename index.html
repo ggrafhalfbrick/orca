@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Orca for Perforce and Unity: AI coding agents for game development</title>
+<meta name="description" content="Orca for Perforce and Unity runs Claude Code, Codex and other AI coding agents in parallel on Perforce (Helix Core) workspaces, each in its own workspace copy, and opens Unity projects in the right Unity Editor version. Free Windows download." />
+<link rel="canonical" href="https://ggrafhalfbrick.github.io/orca/" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Orca for Perforce and Unity" />
+<meta property="og:description" content="Run AI coding agents in parallel on Perforce workspaces, each in its own copy, and open Unity projects in the right editor." />
+<meta property="og:url" content="https://ggrafhalfbrick.github.io/orca/" />
+<meta property="og:image" content="https://ggrafhalfbrick.github.io/orca/images/social-preview.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Orca for Perforce and Unity",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Windows",
+  "description": "A community build of Orca that runs AI coding agents on Perforce (Helix Core) workspaces, with a copy of the workspace per agent, and opens Unity projects in the Unity Editor version they were saved with.",
+  "url": "https://ggrafhalfbrick.github.io/orca/",
+  "downloadUrl": "https://github.com/ggrafhalfbrick/orca/releases/latest",
+  "license": "https://opensource.org/licenses/MIT",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+<style>
+  :root { --bg: #0b0b0c; --surface: #151517; --line: rgb(255 255 255 / 0.09); --text: #e8e8e8; --muted: #a3a3a3; --accent: #e8e8e8; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font: 17px/1.6 -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  header { padding: 72px 0 40px; background: radial-gradient(900px 500px at 85% 0%, #23262b 0%, transparent 70%); }
+  .kicker { color: var(--muted); font-size: 15px; letter-spacing: 0.02em; margin-bottom: 14px; }
+  h1 { font-size: clamp(38px, 6vw, 64px); line-height: 1.05; letter-spacing: -0.03em; font-weight: 700; max-width: 14ch; }
+  h1 span { color: #7d7d7d; font-weight: 600; }
+  .lede { margin-top: 20px; font-size: 20px; color: #c2c2c2; max-width: 46ch; }
+  .actions { margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { display: inline-block; padding: 11px 18px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 16px; border: 1px solid var(--line); }
+  .btn.primary { background: var(--accent); color: #111; border-color: var(--accent); }
+  .hero-img { margin-top: 32px; width: 100%; height: auto; border-radius: 16px; border: 1px solid var(--line); display: block; }
+  section { padding: 56px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: clamp(26px, 3.4vw, 34px); letter-spacing: -0.02em; margin-bottom: 14px; }
+  section > .wrap > p { color: #c2c2c2; max-width: 62ch; }
+  ul { margin: 18px 0 0 20px; color: #cfcfcf; max-width: 70ch; }
+  li { margin: 8px 0; }
+  li b { color: var(--text); }
+  .shots { margin-top: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: start; }
+  figure { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  figure img { width: 100%; display: block; border-radius: 6px; }
+  figcaption { color: var(--muted); font-size: 14px; margin-top: 8px; }
+  code { font-family: 'Cascadia Mono', Consolas, monospace; font-size: 0.92em; background: #1d1d20; padding: 1px 5px; border-radius: 4px; }
+  ol { margin: 18px 0 0 22px; color: #cfcfcf; max-width: 70ch; }
+  ol li { margin: 10px 0; }
+  .note { margin-top: 18px; color: var(--muted); font-size: 15px; max-width: 70ch; }
+  footer { padding: 40px 0 60px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  footer p + p { margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="kicker">Community build of Orca · free · Windows</div>
+    <h1>Orca for Perforce <span>and Unity</span></h1>
+    <p class="lede">Run Claude Code, Codex and other AI coding agents side by side on Perforce (Helix Core) workspaces, each in its own copy, and open Unity projects in the exact Unity Editor version they need.</p>
+    <div class="actions">
+      <a class="btn primary" href="https://github.com/ggrafhalfbrick/orca/releases/latest">Download for Windows</a>
+      <a class="btn" href="https://github.com/ggrafhalfbrick/orca">Source on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<section id="perforce">
+  <div class="wrap">
+    <h2>Orca Perforce support</h2>
+    <p><a href="https://github.com/stablyai/orca">Orca</a> gives every coding agent its own workspace, built on Git worktrees. This build does the same for Perforce: open a folder inside a Perforce client workspace and Orca treats it like a Git project.</p>
+    <ul>
+      <li><b>Source Control panel for Perforce:</b> default and numbered changelists, files modified but not opened, new files, diffs against <code>#have</code>, shelves, submit, sync, moving files between changelists and AI-drafted changelist descriptions. Read-only files are opened for edit when you save them.</li>
+      <li><b>A Perforce copy per agent:</b> Create workspace gives each agent its own copy of the workspace, with its own folder, its own client and, by default, its own stream. You can also start on an existing stream, for example to continue a teammate's work.</li>
+      <li><b>Copies that cost almost nothing:</b> copies are block-cloned on a Windows 11 Dev Drive or cloned on macOS APFS, so an 80 GB Unity workspace takes about 1 GB until files change.</li>
+      <li><b>Local, SSH or a paired Orca server:</b> <code>p4</code> only needs to be installed where the workspace is.</li>
+    </ul>
+    <div class="shots">
+      <figure><img src="images/perforce-source-control.png" alt="Orca's Perforce Source Control panel with changelists and Submit Change" /><figcaption>Changelists, opened files and submit</figcaption></figure>
+      <figure><img src="images/perforce-create-workspace.png" alt="Creating an Orca workspace from a Perforce stream" /><figcaption>A new workspace from a Perforce stream</figcaption></figure>
+      <figure><img src="images/perforce-copies.png" alt="Managing Perforce workspace copies in Orca" /><figcaption>Managing Perforce copies</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="unity">
+  <div class="wrap">
+    <h2>Orca Unity integration</h2>
+    <p>The bundled <b>Unity Launcher</b> plugin marks every workspace that holds a Unity project. Pick a project from the Unity icon, or right-click the workspace and choose Open in Unity, and it opens in the Unity Editor version that project was saved with.</p>
+    <ul>
+      <li><b>No Unity Hub juggling:</b> agent workspaces are never added to Hub, so they come and go without cleanup.</li>
+      <li><b>Several projects per workspace:</b> finds Unity projects in subfolders such as <code>Game/</code> and <code>Tools/LevelEditor/</code>, and lists each one.</li>
+      <li><b>The right editor, every time:</b> it never opens a project with another editor version, which would start an upgrade. If the version isn't installed, it says which versions you have.</li>
+      <li><b>Hub's environment on Windows:</b> the editor gets the same environment variables Unity Hub gives it.</li>
+    </ul>
+    <img class="hero-img" src="images/unity-launcher.png" width="1600" height="1000" alt="Orca's sidebar with Unity icons on workspaces that hold Unity projects, and the Open in Unity menu" />
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2>Install</h2>
+    <ol>
+      <li>Download <code>orca-windows-setup.exe</code> from the <a href="https://github.com/ggrafhalfbrick/orca/releases/latest">latest release</a> and run it. The installer is unsigned, so the first time Windows SmartScreen warns about an unknown publisher: choose More info, then Run anyway.</li>
+      <li>For Perforce, install the <a href="https://www.perforce.com/downloads/helix-command-line-client-p4">Helix Core command-line client (p4)</a> and sign in with <code>p4 login</code>. Keep workspaces on a Dev Drive for Perforce copies.</li>
+      <li>Orca offers each later release of this build as an in-app update.</li>
+    </ol>
+    <p class="note">These features are proposed to upstream Orca (<a href="https://github.com/stablyai/orca/pull/26298">Perforce</a>, <a href="https://github.com/stablyai/orca/pull/40557">worktree badges for Unity Launcher</a>). Once they land there, official Orca is the better choice.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>An unofficial community build of <a href="https://github.com/stablyai/orca">Orca</a>, MIT-licensed. Not affiliated with stablyai, Perforce Software or Unity Technologies.</p>
+    <p>Perforce and Helix Core are trademarks of Perforce Software, Inc. Unity is a trademark of Unity Technologies.</p>
+  </div>
+</footer>
+</body>
+</html>
