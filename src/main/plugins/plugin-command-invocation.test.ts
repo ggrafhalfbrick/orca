@@ -44,6 +44,7 @@ const worktree: Workspace = {
   host: 'local'
 }
 
+/** The args `commandId` of `target` would run with, given what the workspace resolver returns. */
 async function argsFor(
   commandId: string,
   args: unknown,
@@ -90,8 +91,10 @@ describe('worker command args', () => {
     )
   })
 
-  it('fails when the workspace is not reachable from this computer', async () => {
-    const { result } = await argsFor('open-project', { worktreeId: 'gone' }, null)
-    await expect(result).rejects.toThrow('This workspace is not available on this computer.')
+  it('runs without args on an unreachable workspace unless a badge named a folder', async () => {
+    const { result } = await argsFor('open-project', { worktreeId: 'paired' }, null)
+    await expect(result).resolves.toBeUndefined()
+    const badge = await argsFor('open-project', { worktreeId: 'paired', folder: 'Games' }, null)
+    await expect(badge.result).rejects.toThrow('This workspace is not available on this computer.')
   })
 })
