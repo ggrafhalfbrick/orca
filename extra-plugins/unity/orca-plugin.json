@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "unity",
   "publisher": "earlgeorg",
-  "name": "Unity",
+  "name": "Unity Launcher",
   "version": "0.1.0",
   "description": "Marks worktrees that are or hold Unity projects and opens them in the Unity Editor version the project uses, without adding them to Unity Hub.",
   "author": { "name": "earlgeorg" },

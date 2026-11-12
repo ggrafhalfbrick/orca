@@ -236,6 +236,7 @@ jobs:
             if [[ -n "$NOTES" ]]; then
               printf '%s\n\n' "$NOTES"
             fi
+            printf '%s\n\n' 'Orca for Perforce and Unity: a Windows build of Orca with Perforce (Helix Core) source control and workspace copies, and the Unity Launcher plugin. See the [README](https://github.com/ggrafhalfbrick/orca#readme).'
             printf 'Windows build of `integration` at [`%s`](https://github.com/%s/commit/%s).' \
               "${GITHUB_SHA:0:12}" "$REPO" "$GITHUB_SHA"
             if [[ -n "$previous" ]]; then
@@ -253,7 +254,7 @@ jobs:
             dist/orca-windows-setup.exe dist/orca-windows-setup.exe.blockmap dist/latest.yml \
             --repo "$REPO" \
             --target "$GITHUB_SHA" \
-            --title "Orca $VERSION" \
+            --title "Orca $VERSION: Perforce and Unity build" \
             --notes-file "$notes_file" \
             --latest
           assets="$(gh release view "$TAG" --repo "$REPO" --json assets --jq '.assets[].name')"

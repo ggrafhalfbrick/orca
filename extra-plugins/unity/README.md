@@ -1,4 +1,4 @@
-# Unity
+# Unity Launcher
 
 An Orca plugin for Unity projects. A worktree whose folder is a Unity project (it has
 `ProjectSettings/ProjectVersion.txt`), or holds Unity projects in subfolders up to two levels
