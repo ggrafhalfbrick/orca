@@ -42,6 +42,7 @@ import { getSshStatusLabel } from './new-workspace/new-workspace-composer-ssh-st
 import { useNewWorkspaceComposerFileDrop } from './new-workspace/use-new-workspace-composer-file-drop'
 import { useComposerFileDragOver } from './new-workspace/use-composer-file-drag-over'
 import { PerforceCopyComposerOption } from './perforce-copies/PerforceCopyComposerOption'
+import { useComposerExistingWorkspace } from './new-workspace/use-composer-existing-workspace'
 import { buildDefaultAgentSettingsUpdate } from '../../../shared/agent-launch/choices/default-agent-settings'
 
 // Lazy-load the project-location browser outside boot; warming shares this module entry with the click.
@@ -108,9 +109,10 @@ export default function NewWorkspaceComposerCard(
   const branchNameInputId = React.useId()
   const projectDescriptionId = React.useId()
   const [sparseEditing, setSparseEditing] = React.useState(false)
-  const startsInExisting = Boolean(props.startsInExistingWorkspace) && props.quickAgent !== null
-  // Why: Advanced is left out for an existing workspace, so its preset editor must not hold the form.
-  const sparseEditingActive = sparseEditing && !startsInExisting
+  const { startsInExisting, sparseEditingActive, footerOverrides } = useComposerExistingWorkspace(
+    props,
+    sparseEditing
+  )
   const [addRemoteHostMode, setAddRemoteHostMode] = React.useState<AddRemoteHostMode | null>(null)
   const remoteHostDialogOpenRef = React.useRef(false)
   const handleRemoteHostModeChange = React.useCallback(
@@ -382,15 +384,7 @@ export default function NewWorkspaceComposerCard(
         <div className="shrink-0 space-y-1">
           <NewWorkspaceComposerFooter
             {...props}
-            showCreateMultiple={props.showCreateMultiple && !startsInExisting}
-            primaryActionLabel={
-              startsInExisting
-                ? t(
-                    'auto.components.NewWorkspaceComposerCard.startInWorkspace',
-                    'Start in workspace'
-                  )
-                : props.primaryActionLabel
-            }
+            {...footerOverrides}
             submitShortcutModifierLabel={getScreenSubmitModifierLabel()}
           />
         </div>
