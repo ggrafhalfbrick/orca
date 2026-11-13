@@ -43,7 +43,7 @@ vi.mock('@/components/sidebar/host-admission/ssh/AddRemoteHostDialog', () => ({
   AddRemoteHostDialog: () => null
 }))
 
-vi.mock('@/components/new-workspace/SetProjectLocationDialog', () => ({
+vi.mock('@/components/new-workspace/project-location/SetProjectLocationDialog', () => ({
   SetProjectLocationDialog: () => null
 }))
 
@@ -59,7 +59,7 @@ vi.mock('@/components/new-workspace/SmartWorkspaceNameField', () => ({
   default: () => <input aria-label="workspace name" />
 }))
 
-vi.mock('@/components/new-workspace/ProjectCombobox', () => ({
+vi.mock('@/components/new-workspace/project-selection/ProjectCombobox', () => ({
   default: () => <div data-testid="project-combobox" />
 }))
 
