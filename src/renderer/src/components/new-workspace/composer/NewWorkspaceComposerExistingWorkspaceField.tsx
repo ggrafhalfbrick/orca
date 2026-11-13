@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/select'
 import { getComposerWorktreeCandidates } from '@/lib/composer-worktree-candidates'
 import { translate } from '@/i18n/i18n'
-import type { ExecutionHostId } from '../../../../shared/execution-host'
+import type { ExecutionHostId } from '../../../../../shared/execution-host'
 
 // Why: Radix Select reserves the empty string, and worktree ids never take this form.
 const NEW_WORKSPACE_VALUE = 'new-workspace'

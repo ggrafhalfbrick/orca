@@ -3,7 +3,7 @@
 import type React from 'react'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Worktree } from '../../../../shared/worktree/types'
+import type { Worktree } from '../../../../../shared/worktree/types'
 
 type FakeStoreState = { worktreesByRepo: Record<string, Worktree[]> }
 

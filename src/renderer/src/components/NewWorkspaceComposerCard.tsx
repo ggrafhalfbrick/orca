@@ -42,6 +42,7 @@ import { getSshStatusLabel } from './new-workspace/composer/new-workspace-compos
 import { useNewWorkspaceComposerFileDrop } from './new-workspace/composer/use-new-workspace-composer-file-drop'
 import { useComposerFileDragOver } from './new-workspace/composer/use-composer-file-drag-over'
 import { PerforceCopyComposerOption } from './perforce-copies/PerforceCopyComposerOption'
+import { useComposerExistingWorkspace } from './new-workspace/composer/use-composer-existing-workspace'
 import { buildDefaultAgentSettingsUpdate } from '../../../shared/agent-launch/choices/default-agent-settings'
 
 // Lazy-load the project-location browser outside boot; warming shares this module entry with the click.
@@ -108,6 +109,10 @@ export default function NewWorkspaceComposerCard(
   const branchNameInputId = React.useId()
   const projectDescriptionId = React.useId()
   const [sparseEditing, setSparseEditing] = React.useState(false)
+  const { startsInExisting, sparseEditingActive, footerOverrides } = useComposerExistingWorkspace(
+    props,
+    sparseEditing
+  )
   const [addRemoteHostMode, setAddRemoteHostMode] = React.useState<AddRemoteHostMode | null>(null)
   const remoteHostDialogOpenRef = React.useRef(false)
   const handleRemoteHostModeChange = React.useCallback(
@@ -300,7 +305,7 @@ export default function NewWorkspaceComposerCard(
     <div
       ref={setComposerNode}
       data-workspace-composer-root="true"
-      data-sparse-preset-editing={sparseEditing ? 'true' : undefined}
+      data-sparse-preset-editing={sparseEditingActive ? 'true' : undefined}
       onDragEnter={dragHandlers.onDragEnter}
       onDragLeave={dragHandlers.onDragLeave}
       className={cn(
@@ -316,7 +321,7 @@ export default function NewWorkspaceComposerCard(
       <div className={cn('min-h-0 min-w-0 space-y-4 pt-3', contentClassName)}>
         <NewWorkspaceComposerProjectSection
           {...props}
-          disabled={sparseEditing}
+          disabled={sparseEditingActive}
           projectOptions={projectOptions}
           projectHostSetupOptions={projectHostSetupOptions}
           ephemeralVmRecipes={ephemeralVmRecipes}
@@ -335,34 +340,50 @@ export default function NewWorkspaceComposerCard(
           connectButtonLabel={connectButtonLabel}
           selectedProjectName={selectedProjectName}
         />
-        <NewWorkspaceComposerNameSection {...props} onNamePlainEnter={handleNamePlainEnter} />
-        <PerforceCopyComposerOption repoId={props.repoId} hostId={selectedRepoExecutionHostId} />
+        {startsInExisting ? null : (
+          <>
+            <NewWorkspaceComposerNameSection {...props} onNamePlainEnter={handleNamePlainEnter} />
+            <PerforceCopyComposerOption
+              repoId={props.repoId}
+              hostId={selectedRepoExecutionHostId}
+            />
+          </>
+        )}
         <NewWorkspaceComposerAgentSection
           {...props}
-          createDisabled={props.createDisabled || sparseEditing}
-          advancedLocked={sparseEditing}
+          createDisabled={props.createDisabled || sparseEditingActive}
+          advancedLocked={sparseEditingActive}
+          showAdvancedToggle={!startsInExisting}
           visibleQuickAgents={visibleQuickAgents}
           defaultTuiAgent={defaultTuiAgent}
           handleSetDefaultAgent={handleSetDefaultAgent}
-          agentDraftSection={<NewWorkspaceComposerAgentDraftSection {...props} />}
+          agentDraftSection={
+            <>
+              <NewWorkspaceComposerAgentDraftSection {...props} />
+              {props.agentDraft != null ? props.existingWorkspaceField?.(props.quickAgent) : null}
+            </>
+          }
         />
-        <NewWorkspaceComposerAdvancedSection
-          {...props}
-          onSparseEditingChange={setSparseEditing}
-          sparseEditing={sparseEditing}
-          branchNameInputId={branchNameInputId}
-          showSetupAgentStartupPolicy={showSetupAgentStartupPolicy}
-          parentWorktreeId={parentWorktreeId}
-          onParentWorktreeIdChange={onParentWorktreeIdChange}
-          selectedRepoExecutionHostId={selectedRepoExecutionHostId}
-          selectedRepoProjectId={selectedRepoProjectId}
-          activeFolderWorkspaceId={activeFolderWorkspaceId}
-        />
+        {startsInExisting ? null : (
+          <NewWorkspaceComposerAdvancedSection
+            {...props}
+            onSparseEditingChange={setSparseEditing}
+            sparseEditing={sparseEditing}
+            branchNameInputId={branchNameInputId}
+            showSetupAgentStartupPolicy={showSetupAgentStartupPolicy}
+            parentWorktreeId={parentWorktreeId}
+            onParentWorktreeIdChange={onParentWorktreeIdChange}
+            selectedRepoExecutionHostId={selectedRepoExecutionHostId}
+            selectedRepoProjectId={selectedRepoProjectId}
+            activeFolderWorkspaceId={activeFolderWorkspaceId}
+          />
+        )}
       </div>
-      {!sparseEditing ? (
+      {!sparseEditingActive ? (
         <div className="shrink-0 space-y-1">
           <NewWorkspaceComposerFooter
             {...props}
+            {...footerOverrides}
             submitShortcutModifierLabel={getScreenSubmitModifierLabel()}
           />
         </div>
