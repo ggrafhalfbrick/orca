@@ -500,6 +500,7 @@ import {
   PluginGetLogsParams,
   PluginInstallParams,
   PluginInvokeCommandParams,
+  PluginInvokeTaskSourceParams,
   PluginOpenParams,
   PluginReadPanelEntryParams,
   PluginRestartParams,

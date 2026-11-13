@@ -8,7 +8,7 @@ import {
   sessionOptionsForAgent,
   type PluginTaskSessionOptions
 } from '@/lib/plugin-task-session-options'
-import type { LinkedPluginTask } from '../../../../shared/plugins/tasks/plugin-task-link'
+import type { LinkedPluginTask } from '../../../../../shared/plugins/tasks/plugin-task-link'
 import type { NewWorkspaceComposerCardProps } from './new-workspace-composer-card-props'
 
 /** What a composer opener (a plugin task's start recipe) prefills for the agent launch. */
