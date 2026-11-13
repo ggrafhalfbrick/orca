@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type { PreloadApi } from '../api-types'
+import type { PreloadApi } from '../../api-types'
 
 export const perforceApi = {
   run: (operation, args) => ipcRenderer.invoke('perforce:run', operation, args),

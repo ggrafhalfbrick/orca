@@ -2,13 +2,13 @@ import type {
   PerforceOperationName,
   PerforceOperationParams,
   PerforceOperationResult
-} from '../../shared/perforce/perforce-operations'
+} from '../../../shared/perforce/perforce-operations'
 import type {
   PerforceCopyOperationName,
   PerforceCopyOperationParams,
   PerforceCopyOperationResult
-} from '../../shared/perforce/workspace-copy/workspace-copy-operations'
-import type { WorkspaceCopyIpcResult } from '../../shared/perforce/workspace-copy/workspace-copy-types'
+} from '../../../shared/perforce/workspace-copy/workspace-copy-operations'
+import type { WorkspaceCopyIpcResult } from '../../../shared/perforce/workspace-copy/workspace-copy-types'
 
 /** The workspace a request runs in: a local folder, or one on SSH host `connectionId`. */
 export type PerforceWorktreeArgs = { worktreePath: string; connectionId?: string }

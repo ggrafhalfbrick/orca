@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { WorktreeSelector } from './git-params'
-import { OptionalTuiAgent } from './worktree-params'
+import { OptionalTuiAgent } from '../workspaces/worktree-params'
 
 // Shapes only: the host re-validates every path and changelist before it reaches a p4 argv.
 
