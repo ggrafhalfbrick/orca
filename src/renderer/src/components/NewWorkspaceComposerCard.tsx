@@ -12,7 +12,7 @@ import {
   type AddRemoteHostMode
 } from '@/components/sidebar/host-admission/ssh/AddRemoteHostDialog'
 import { lazyWithRetry } from '@/app-shell/startup/lazy-with-retry'
-import type * as SetProjectLocationDialogModule from '@/components/new-workspace/SetProjectLocationDialog'
+import type * as SetProjectLocationDialogModule from '@/components/new-workspace/project-location/SetProjectLocationDialog'
 import { unwrapRuntimeRpcResult } from '@/runtime/rpc/calls/runtime-rpc-result'
 import { withUiConnectTimeout } from '@/ssh/ssh-connect-ui-timeout'
 import { isSshConnectInFlight, trackSshConnect } from '@/ssh/ssh-connect-in-flight'
@@ -25,29 +25,28 @@ import {
 import type { RuntimeStatus } from '../../../shared/runtime-session-contracts'
 import type { AddRepoDialogEntryRequest } from '@/components/sidebar/project-admission/dialog/add-repo-dialog-types'
 import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
-import { NewWorkspaceComposerAdvancedSection } from './new-workspace/NewWorkspaceComposerAdvancedSection'
-import { NewWorkspaceComposerAgentSection } from './new-workspace/NewWorkspaceComposerAgentSection'
-import { NewWorkspaceComposerAgentDraftSection } from './new-workspace/NewWorkspaceComposerAgentDraftSection'
-import { NewWorkspaceComposerFooter } from './new-workspace/NewWorkspaceComposerFooter'
-import { NewWorkspaceComposerNameSection } from './new-workspace/NewWorkspaceComposerNameSection'
-import { NewWorkspaceComposerProjectSection } from './new-workspace/NewWorkspaceComposerProjectSection'
+import { NewWorkspaceComposerAdvancedSection } from './new-workspace/composer/NewWorkspaceComposerAdvancedSection'
+import { NewWorkspaceComposerAgentSection } from './new-workspace/composer/NewWorkspaceComposerAgentSection'
+import { NewWorkspaceComposerAgentDraftSection } from './new-workspace/composer/NewWorkspaceComposerAgentDraftSection'
+import { NewWorkspaceComposerFooter } from './new-workspace/composer/NewWorkspaceComposerFooter'
+import { NewWorkspaceComposerNameSection } from './new-workspace/composer/NewWorkspaceComposerNameSection'
+import { NewWorkspaceComposerProjectSection } from './new-workspace/composer/NewWorkspaceComposerProjectSection'
 import {
   EMPTY_EPHEMERAL_VM_RECIPES,
   EMPTY_PROJECT_HOST_SETUP_OPTIONS,
   EMPTY_PROJECT_OPTIONS,
-  type NeedsProjectHostOption,
   type NewWorkspaceComposerCardProps
-} from './new-workspace/new-workspace-composer-card-props'
-import { getSshStatusLabel } from './new-workspace/new-workspace-composer-ssh-status'
-import { useNewWorkspaceComposerFileDrop } from './new-workspace/use-new-workspace-composer-file-drop'
-import { useComposerFileDragOver } from './new-workspace/use-composer-file-drag-over'
+} from './new-workspace/composer/new-workspace-composer-card-props'
+import type { NeedsSetupProjectHostOption } from '../lib/workspace/creation/project-host-setup-options'
+import { getSshStatusLabel } from './new-workspace/composer/new-workspace-composer-ssh-status'
+import { useNewWorkspaceComposerFileDrop } from './new-workspace/composer/use-new-workspace-composer-file-drop'
+import { useComposerFileDragOver } from './new-workspace/composer/use-composer-file-drag-over'
 import { PerforceCopyComposerOption } from './perforce-copies/PerforceCopyComposerOption'
-import { useComposerExistingWorkspace } from './new-workspace/use-composer-existing-workspace'
 import { buildDefaultAgentSettingsUpdate } from '../../../shared/agent-launch/choices/default-agent-settings'
 
 // Lazy-load the project-location browser outside boot; warming shares this module entry with the click.
 const loadSetProjectLocationDialog = (): Promise<typeof SetProjectLocationDialogModule> =>
-  import('@/components/new-workspace/SetProjectLocationDialog')
+  import('@/components/new-workspace/project-location/SetProjectLocationDialog')
 
 const SetProjectLocationDialog = lazyWithRetry(
   () =>
@@ -109,10 +108,6 @@ export default function NewWorkspaceComposerCard(
   const branchNameInputId = React.useId()
   const projectDescriptionId = React.useId()
   const [sparseEditing, setSparseEditing] = React.useState(false)
-  const { startsInExisting, sparseEditingActive, footerOverrides } = useComposerExistingWorkspace(
-    props,
-    sparseEditing
-  )
   const [addRemoteHostMode, setAddRemoteHostMode] = React.useState<AddRemoteHostMode | null>(null)
   const remoteHostDialogOpenRef = React.useRef(false)
   const handleRemoteHostModeChange = React.useCallback(
@@ -126,9 +121,8 @@ export default function NewWorkspaceComposerCard(
     },
     [onNestedDialogOpenChange]
   )
-  const [setLocationOption, setSetLocationOption] = React.useState<NeedsProjectHostOption | null>(
-    null
-  )
+  const [setLocationOption, setSetLocationOption] =
+    React.useState<NeedsSetupProjectHostOption | null>(null)
   // Retain the dialog while its cleared option drives the close animation.
   const [setLocationDialogMounted, setSetLocationDialogMounted] = React.useState(false)
 
@@ -224,7 +218,7 @@ export default function NewWorkspaceComposerCard(
     [onAddProjectEntryRequest, openModal]
   )
   const handleSetLocation = React.useCallback(
-    (option: NeedsProjectHostOption): void => {
+    (option: NeedsSetupProjectHostOption): void => {
       setSetLocationDialogMounted(true)
       setSetLocationOption(option)
       onNestedDialogOpenChange?.(true)
@@ -243,7 +237,7 @@ export default function NewWorkspaceComposerCard(
     [handleSetLocationClose, onProjectHostSetupChange]
   )
   const handleConnectRunTargetHost = React.useCallback(
-    async (option: NeedsProjectHostOption): Promise<void> => {
+    async (option: NeedsSetupProjectHostOption): Promise<void> => {
       const action = option.connectAction
       if (!action) {
         return
@@ -306,7 +300,7 @@ export default function NewWorkspaceComposerCard(
     <div
       ref={setComposerNode}
       data-workspace-composer-root="true"
-      data-sparse-preset-editing={sparseEditingActive ? 'true' : undefined}
+      data-sparse-preset-editing={sparseEditing ? 'true' : undefined}
       onDragEnter={dragHandlers.onDragEnter}
       onDragLeave={dragHandlers.onDragLeave}
       className={cn(
@@ -322,7 +316,7 @@ export default function NewWorkspaceComposerCard(
       <div className={cn('min-h-0 min-w-0 space-y-4 pt-3', contentClassName)}>
         <NewWorkspaceComposerProjectSection
           {...props}
-          disabled={sparseEditingActive}
+          disabled={sparseEditing}
           projectOptions={projectOptions}
           projectHostSetupOptions={projectHostSetupOptions}
           ephemeralVmRecipes={ephemeralVmRecipes}
@@ -341,50 +335,34 @@ export default function NewWorkspaceComposerCard(
           connectButtonLabel={connectButtonLabel}
           selectedProjectName={selectedProjectName}
         />
-        {startsInExisting ? null : (
-          <>
-            <NewWorkspaceComposerNameSection {...props} onNamePlainEnter={handleNamePlainEnter} />
-            <PerforceCopyComposerOption
-              repoId={props.repoId}
-              hostId={selectedRepoExecutionHostId}
-            />
-          </>
-        )}
+        <NewWorkspaceComposerNameSection {...props} onNamePlainEnter={handleNamePlainEnter} />
+        <PerforceCopyComposerOption repoId={props.repoId} hostId={selectedRepoExecutionHostId} />
         <NewWorkspaceComposerAgentSection
           {...props}
-          createDisabled={props.createDisabled || sparseEditingActive}
-          advancedLocked={sparseEditingActive}
-          showAdvancedToggle={!startsInExisting}
+          createDisabled={props.createDisabled || sparseEditing}
+          advancedLocked={sparseEditing}
           visibleQuickAgents={visibleQuickAgents}
           defaultTuiAgent={defaultTuiAgent}
           handleSetDefaultAgent={handleSetDefaultAgent}
-          agentDraftSection={
-            <>
-              <NewWorkspaceComposerAgentDraftSection {...props} />
-              {props.agentDraft != null ? props.existingWorkspaceField?.(props.quickAgent) : null}
-            </>
-          }
+          agentDraftSection={<NewWorkspaceComposerAgentDraftSection {...props} />}
         />
-        {startsInExisting ? null : (
-          <NewWorkspaceComposerAdvancedSection
-            {...props}
-            onSparseEditingChange={setSparseEditing}
-            sparseEditing={sparseEditing}
-            branchNameInputId={branchNameInputId}
-            showSetupAgentStartupPolicy={showSetupAgentStartupPolicy}
-            parentWorktreeId={parentWorktreeId}
-            onParentWorktreeIdChange={onParentWorktreeIdChange}
-            selectedRepoExecutionHostId={selectedRepoExecutionHostId}
-            selectedRepoProjectId={selectedRepoProjectId}
-            activeFolderWorkspaceId={activeFolderWorkspaceId}
-          />
-        )}
+        <NewWorkspaceComposerAdvancedSection
+          {...props}
+          onSparseEditingChange={setSparseEditing}
+          sparseEditing={sparseEditing}
+          branchNameInputId={branchNameInputId}
+          showSetupAgentStartupPolicy={showSetupAgentStartupPolicy}
+          parentWorktreeId={parentWorktreeId}
+          onParentWorktreeIdChange={onParentWorktreeIdChange}
+          selectedRepoExecutionHostId={selectedRepoExecutionHostId}
+          selectedRepoProjectId={selectedRepoProjectId}
+          activeFolderWorkspaceId={activeFolderWorkspaceId}
+        />
       </div>
-      {!sparseEditingActive ? (
+      {!sparseEditing ? (
         <div className="shrink-0 space-y-1">
           <NewWorkspaceComposerFooter
             {...props}
-            {...footerOverrides}
             submitShortcutModifierLabel={getScreenSubmitModifierLabel()}
           />
         </div>
