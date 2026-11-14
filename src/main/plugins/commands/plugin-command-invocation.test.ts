@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { parsePluginManifest } from '../../shared/plugins/manifest/plugin-manifest'
-import type { ValidDiscoveredPlugin } from './plugin-discovery'
+import { parsePluginManifest } from '../../../shared/plugins/manifest/plugin-manifest'
+import type { ValidDiscoveredPlugin } from '../discovery/plugin-discovery'
 import { assertPluginWorkerCommand, workerCommandArgs } from './plugin-command-invocation'
-import type { PluginWorkspaceCommandArgs } from '../../shared/plugins/contributions/plugin-workspace-command-args'
+import type { PluginWorkspaceCommandArgs } from '../../../shared/plugins/contributions/plugin-workspace-command-args'
 
 /** The Engine test plugin, granted `capabilities` (workspace:read by default). */
 function plugin(capabilities = [{ kind: 'workspace:read' }]): ValidDiscoveredPlugin {

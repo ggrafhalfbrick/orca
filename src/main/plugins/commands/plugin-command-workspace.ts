@@ -1,6 +1,6 @@
-import type { ExecutionHostId } from '../../shared/execution-host'
-import { shortPluginBranchName } from '../../shared/plugins/events/plugin-events'
-import { resolveFilesystemRouteForHost } from '../providers/execution-host-provider-dispatch'
+import type { ExecutionHostId } from '../../../shared/execution-host'
+import { shortPluginBranchName } from '../../../shared/plugins/events/plugin-events'
+import { resolveFilesystemRouteForHost } from '../../providers/execution-host-provider-dispatch'
 import type { PluginCommandWorkspaceResolver } from './plugin-command-invocation'
 
 export type PluginCommandWorkspaceSource = {

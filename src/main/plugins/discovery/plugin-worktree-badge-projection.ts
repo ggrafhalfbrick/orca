@@ -1,11 +1,11 @@
-import { readContainedPluginArtifactText } from './plugin-contained-artifact'
+import { readContainedPluginArtifactText } from '../artifacts/plugin-contained-artifact'
 import type { ValidDiscoveredPlugin } from './plugin-discovery'
 import {
   isPluginWorktreeBadgeSvgIcon,
   PLUGIN_WORKTREE_BADGE_SVG_MAX_BYTES,
   type PluginWorktreeBadgeEntry,
   type PluginWorktreeBadgeIcon
-} from '../../shared/plugins/contributions/plugin-worktree-badge-contribution'
+} from '../../../shared/plugins/contributions/plugin-worktree-badge-contribution'
 
 const FALLBACK_BADGE_ICON: PluginWorktreeBadgeIcon = { kind: 'named', name: 'puzzle' }
 
