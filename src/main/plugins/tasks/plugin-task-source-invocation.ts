@@ -3,9 +3,9 @@ import {
   pluginTaskSourceRequestSchema,
   type PluginTaskDetail,
   type PluginTaskListResult
-} from '../../shared/plugins/tasks/plugin-task-source'
-import type { ValidDiscoveredPlugin } from './plugin-discovery'
-import type { PluginEventDeliveryContext } from './plugin-event-delivery'
+} from '../../../shared/plugins/tasks/plugin-task-source'
+import type { ValidDiscoveredPlugin } from '../discovery/plugin-discovery'
+import type { PluginEventDeliveryContext } from '../events/plugin-event-delivery'
 
 /** What a task-source call needs from the plugin service. */
 export type PluginTaskSourceHost = {
