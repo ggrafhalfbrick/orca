@@ -1,4 +1,4 @@
-import { isExtraBundledPluginIdentity } from '../../shared/plugins/plugin-extra-bundles'
+import { isExtraBundledPluginIdentity } from '../../../shared/plugins/plugin-extra-bundles'
 import { readFile, realpath, stat } from 'node:fs/promises'
 import { isAbsolute, join, relative, sep } from 'node:path'
 import { z } from 'zod'

@@ -8,7 +8,7 @@ import {
   bootstrapLaunchAndExtraPlugins,
   resolveExtraBundledPluginRoot
 } from './plugin-extra-bundled-bootstrap'
-import { readPluginLockfile } from './installation/plugin-install'
+import { readPluginLockfile } from '../installation/plugin-install'
 import { BUNDLED_PLUGIN_INDEX_FILENAME, bootstrapBundledPlugins } from './plugin-bundled-bootstrap'
 
 const roots: string[] = []
@@ -153,7 +153,7 @@ describe('extra bundled plugin bootstrap', () => {
   })
 
   it('installs the plugins this build ships', async () => {
-    const repoRoot = fileURLToPath(new URL('../../../', import.meta.url))
+    const repoRoot = fileURLToPath(new URL('../../../../', import.meta.url))
     const { version } = JSON.parse(await readFile(join(repoRoot, 'package.json'), 'utf8'))
     const userDataPath = await tempRoot('orca-extra-user-data-')
 

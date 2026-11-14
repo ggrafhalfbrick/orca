@@ -1,16 +1,16 @@
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { isExtraBundledPluginIdentity } from '../../shared/plugins/plugin-extra-bundles'
+import { isExtraBundledPluginIdentity } from '../../../shared/plugins/plugin-extra-bundles'
 import {
   bootstrapBundledPlugins,
   bundledInstallIsIntact,
   type PluginBundledBootstrapResult
 } from './plugin-bundled-bootstrap'
-import { getPluginsDataDir, getUserPluginsDir } from './plugin-discovery'
-import { installBundledPlugin, readPluginLockfile } from './installation/plugin-install'
-import { inspectPluginInstallTree } from './installation/plugin-install-staging'
-import { retireBundledPlugin } from './installation/plugin-removal'
-import { readPluginManifestText } from './plugin-manifest-file'
+import { getPluginsDataDir, getUserPluginsDir } from '../discovery/plugin-discovery'
+import { installBundledPlugin, readPluginLockfile } from '../installation/plugin-install'
+import { inspectPluginInstallTree } from '../installation/plugin-install-staging'
+import { retireBundledPlugin } from '../installation/plugin-removal'
+import { readPluginManifestText } from '../artifacts/plugin-manifest-file'
 
 type BundledBootstrapRequest = Parameters<typeof bootstrapBundledPlugins>[0]
 
