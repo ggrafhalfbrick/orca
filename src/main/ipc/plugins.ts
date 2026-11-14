@@ -12,7 +12,7 @@ import { applyPluginConsent, applyPluginEnablement } from '../plugins/activation
 import { readApprovedPluginNewFileTemplate } from '../plugins/contributions/plugin-new-file-template'
 import { handlePluginPanelStateRequest } from '../plugins/panels/panel-lifetime/plugin-panel-state'
 import type { PluginService } from '../plugins/plugin-service'
-import { invokePluginTaskSource } from '../plugins/plugin-task-source-invocation'
+import { invokePluginTaskSource } from '../plugins/tasks/plugin-task-source-invocation'
 import { registerPluginFrameEntryHandlers, rendererPanelOwner } from './plugin-frame-entry-ipc'
 import { registerPluginPanelPushHandlers } from './plugin-panel-push-ipc'
 import { registerPluginSettingsHandlers } from './plugin-settings-ipc'

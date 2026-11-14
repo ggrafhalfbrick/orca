@@ -1,6 +1,6 @@
 import { defineMethod } from '../../core'
 import { PluginInvokeTaskSourceParams } from '../../../../../shared/rpc-contract/plugins/plugins-params'
-import { invokePluginTaskSource } from '../../../../plugins/plugin-task-source-invocation'
+import { invokePluginTaskSource } from '../../../../plugins/tasks/plugin-task-source-invocation'
 import { requirePluginService } from './plugins'
 
 export const PLUGIN_TASK_SOURCE_METHODS = [
