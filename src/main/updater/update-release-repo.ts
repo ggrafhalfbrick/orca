@@ -1,4 +1,4 @@
-import { MAIN_RELEASE_REPO } from '../../shared/release-channel'
+import { MAIN_RELEASE_REPO } from '../../shared/updater/release-channel'
 
 // Integration-only (AGENTS.md): a fork's release build bakes in its own repo so its installs never update onto upstream.
 export const UPDATE_RELEASE_REPO: string =

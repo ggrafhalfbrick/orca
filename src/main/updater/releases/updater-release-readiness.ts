@@ -1,8 +1,8 @@
 import { net } from 'electron'
 import { parse } from 'yaml'
-import { escapeRegex } from '../../../shared/string-utils'
+import { escapeRegex } from '../../../shared/text/regex-escaping'
 import { LATEST_RELEASE_DOWNLOAD_URL, UPDATE_RELEASE_REPO } from '../update-release-repo'
-import { MAIN_RELEASE_REPO } from '../../../shared/release-channel'
+import { MAIN_RELEASE_REPO } from '../../../shared/updater/release-channel'
 
 const RELEASES_DOWNLOAD_BASE = `https://github.com/${UPDATE_RELEASE_REPO}/releases/download`
 const RELEASE_ASSET_URL_RE = new RegExp(`^${escapeRegex(RELEASES_DOWNLOAD_BASE)}/`, 'i')

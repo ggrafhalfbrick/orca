@@ -1,7 +1,7 @@
 import { net } from 'electron'
 import type { ChangelogData } from '../../../shared/updater/update-status-types'
 import { compareVersions } from './updater-fallback'
-import { MAIN_RELEASE_REPO } from '../../../shared/release-channel'
+import { MAIN_RELEASE_REPO } from '../../../shared/updater/release-channel'
 import { UPDATE_RELEASE_REPO } from '../update-release-repo'
 
 type ChangelogEntry = {

@@ -1,5 +1,5 @@
 import { net } from 'electron'
-import { escapeRegex } from '../../../shared/string-utils'
+import { escapeRegex } from '../../../shared/text/regex-escaping'
 import { compareVersions, isPrereleaseVersion, isValidVersion } from './updater-fallback'
 import { UPDATE_RELEASE_REPO } from '../update-release-repo'
 import {
