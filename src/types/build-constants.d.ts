@@ -13,4 +13,4 @@ declare const ORCA_BUILD_COMMIT: string
 // Integration-only (AGENTS.md): `owner/repo` whose releases the in-app updater follows; null means stablyai/orca.
 declare const ORCA_UPDATE_RELEASE_REPO: string | null
 
-// ORCA_LAYOUT_OWNER is declared and read in one place: src/shared/layout-owner-switch.ts.
+// ORCA_LAYOUT_OWNER is declared and read in one place: src/shared/workspace-layout/layout-owner-switch.ts.

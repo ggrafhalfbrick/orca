@@ -1,7 +1,7 @@
 import {
   getReleaseNotesUrlForVersion,
   normalizeTagToVersion
-} from '../../../shared/release-channel'
+} from '../../../shared/updater/release-channel'
 
 // Integration-only (AGENTS.md): a fork's release build names the repo whose releases it updates from.
 const FORK_RELEASE_REPO =

@@ -1,5 +1,5 @@
 import { Minus } from 'lucide-react'
-import type { ChangelogData } from '../../../../../shared/update-status-types'
+import type { ChangelogData } from '../../../../../shared/updater/update-status-types'
 import { getUpdateReleaseNotesUrl } from '@/lib/update-release-notes-url'
 import { Button } from '../../ui/button'
 import { Progress } from '../../ui/progress'

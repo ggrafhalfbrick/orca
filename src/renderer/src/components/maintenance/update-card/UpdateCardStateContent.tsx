@@ -3,7 +3,7 @@ import type {
   ChangelogData,
   LinuxPackageInstallRecovery,
   UpdateStatus
-} from '../../../../../shared/update-status-types'
+} from '../../../../../shared/updater/update-status-types'
 import { getUpdateReleaseNotesUrl } from '@/lib/update-release-notes-url'
 import { UpdateErrorCardContent, type UpdateErrorCardModel } from '../../UpdateErrorCardContent'
 import { LinuxPackageInstallRecoveryCard } from '../../LinuxPackageInstallRecoveryCard'

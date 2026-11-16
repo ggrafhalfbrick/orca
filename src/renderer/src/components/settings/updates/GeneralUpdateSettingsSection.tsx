@@ -18,7 +18,7 @@ import { ReleaseChannelSection } from './ReleaseChannelSection'
 import { UpdateDelaySetting } from './UpdateDelaySetting'
 import { formatUpdateDelayDate } from './update-delay-copy'
 import { useNow } from '@/hooks/use-now'
-import { isDelayedUpdatePending } from '../../../../../shared/update-delay'
+import { isDelayedUpdatePending } from '../../../../../shared/updater/update-delay'
 import { getUpdateReleaseNotesUrl } from '@/lib/update-release-notes-url'
 import { openAppHttpLinkFromAnchor } from '@/lib/browser/navigation/app-http-link-open'
 

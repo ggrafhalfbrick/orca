@@ -16,7 +16,7 @@ import { usePluginTaskSources } from '@/store/plugin-task-sources'
 import { useRepoMap } from '@/store/repos/use-repository-catalog'
 import { resolvePluginPanelIcon } from '@/components/right-sidebar/plugin-panels/plugin-panel-activity-items'
 import { useTranslate } from '@/i18n/use-translate'
-import { isGitRepoKind } from '../../../../shared/repo-kind'
+import { isGitRepoKind } from '../../../../shared/repository/repo-kind'
 import { getTaskPresetQuery } from '../../../../shared/work-items/task-preset-query'
 import {
   normalizeVisibleTaskProviders,

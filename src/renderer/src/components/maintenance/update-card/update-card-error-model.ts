@@ -1,11 +1,11 @@
 // @protected-copy: update signature and publisher warnings.
 import { getUpdateInstallBlockGuidance } from './update-install-block-guidance'
-import type { UpdateStatus } from '../../../../../shared/update-status-types'
+import type { UpdateStatus } from '../../../../../shared/updater/update-status-types'
 import type { UpdateErrorCardModel } from '../../UpdateErrorCardContent'
 import {
   isWindowsSignatureCheckUnavailableFailure,
   isWindowsSignatureMismatchFailure
-} from '../../../../../shared/updater-windows-signature-check'
+} from '../../../../../shared/updater/updater-windows-signature-check'
 import { getUpdateReleaseNotesUrl } from '@/lib/update-release-notes-url'
 import { translate } from '@/i18n/i18n'
 import type { Translate } from '@/i18n/use-translate'
