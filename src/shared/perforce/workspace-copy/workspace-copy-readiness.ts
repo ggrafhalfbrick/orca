@@ -21,9 +21,12 @@ const PROBE_CHUNK_BYTES = 1024 * 1024
 // open. 'unknown' is never kept, so a skewed measurement is retried.
 const NOT_CLONING_TTL_MS = 5 * 60_000
 const probedVolumes = new Map<string, { state: 'verified' | 'not-cloning'; at: number }>()
+// Why: two probes on one volume skew each other's free-space readings.
+const pendingProbes = new Map<string, Promise<BlockCloningState>>()
 
 export function resetBlockCloningProbeCacheForTests(): void {
   probedVolumes.clear()
+  pendingProbes.clear()
 }
 
 async function writeProbeFile(path: string, size: number): Promise<void> {
@@ -44,15 +47,13 @@ async function measureClone(host: WorkspaceCopyHost, dir: string): Promise<Block
   const from = join(probe, 'from')
   try {
     await mkdir(from, { recursive: true })
-    // Why a small probe on macOS: a forced clone either succeeds or fails, free space is not needed.
-    const size = host.platform === 'macos' ? PROBE_CHUNK_BYTES : PROBE_BYTES
     const beforeWrite = await host.freeBytes(dir)
-    await writeProbeFile(join(from, 'probe.bin'), size)
+    await writeProbeFile(join(from, 'probe.bin'), PROBE_BYTES)
     const afterWrite = await host.freeBytes(dir)
     const copied = await host.copyTree(from, join(probe, 'to'), { folders: [], files: [] })
     const afterCopy = await host.freeBytes(dir)
     if (!copied.ok) {
-      return copied.notCloning ? 'not-cloning' : 'unknown'
+      return 'unknown'
     }
     if (copied.cloned) {
       return 'verified'
@@ -70,7 +71,8 @@ async function measureClone(host: WorkspaceCopyHost, dir: string): Promise<Block
 /**
  * Copies a 64 MB file next to the workspace and checks that free space did not drop by its size: the
  * one property copies rely on, measured directly because asking Windows whether a volume is a Dev
- * Drive (`fsutil devdrv query`) needs an elevated shell. On macOS a forced clone answers directly.
+ * Drive (`fsutil devdrv query`) needs an elevated shell, and macOS's `cp -c` silently copies bytes
+ * where it cannot clone.
  */
 export async function probeBlockCloning(
   host: WorkspaceCopyHost,
@@ -82,6 +84,20 @@ export async function probeBlockCloning(
   if (known && (known.state === 'verified' || Date.now() - known.at < NOT_CLONING_TTL_MS)) {
     return known.state
   }
+  const pending = pendingProbes.get(volume)
+  if (pending) {
+    return pending
+  }
+  const probe = measureVolume(host, dir, volume).finally(() => pendingProbes.delete(volume))
+  pendingProbes.set(volume, probe)
+  return probe
+}
+
+async function measureVolume(
+  host: WorkspaceCopyHost,
+  dir: string,
+  volume: string
+): Promise<BlockCloningState> {
   let state = await measureClone(host, dir)
   if (state !== 'verified') {
     // A second try rules out another writer on the drive skewing one measurement.
@@ -189,7 +205,7 @@ export async function checkCopyReadiness(
     if (result.blockCloning === 'not-cloning') {
       result.problems.push(
         platform === 'macos'
-          ? `The volume holding ${result.source?.root} does not clone files (it is not APFS), so every copy would duplicate the whole workspace. Keep the workspace on an APFS volume.`
+          ? `The volume holding ${result.source?.root} did not clone a test file (copying it used its full size), so every copy would duplicate the whole workspace. Keep the workspace on an APFS volume.`
           : `The drive holding ${result.source?.root} does not block-clone files (it is not a ReFS Dev Drive), so every copy would duplicate the whole workspace. Move the workspace onto a Dev Drive first.`
       )
     } else if (result.blockCloning === 'unknown') {

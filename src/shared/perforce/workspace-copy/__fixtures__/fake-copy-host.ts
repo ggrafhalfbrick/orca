@@ -1,7 +1,7 @@
 import { cpSync, readdirSync, statSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { join, resolve, sep } from 'node:path'
-import type { TreeCopyResult } from '../workspace-copy-clone-tree'
+import type { TreeCopyResult } from '../workspace-copy-types'
 import type { HostProcess, WorkspaceCopyHost } from '../workspace-copy-host'
 import type { FakePerforceServer } from './fake-perforce-server'
 
@@ -20,6 +20,8 @@ export type FakeHostOptions = {
   processes?: HostProcess[]
   /** Pid to the folder it has open, as the kernel's per-file list reports it. */
   folderHolders?: Map<number, string>
+  /** Pids that ignore the request to end and keep running. */
+  unendable?: number[]
 }
 
 /** A copy host over a fake Perforce server and a tree copier that can pretend to block-clone. */
@@ -73,6 +75,9 @@ export function createFakeCopyHost(
     listProcesses: async () => options.processes ?? [],
     listFolderHolders: async () => options.folderHolders ?? null,
     endProcess: async (target) => {
+      if (options.unendable?.includes(target.pid)) {
+        return false
+      }
       const running = options.processes ?? []
       const index = running.findIndex((p) => p.pid === target.pid)
       if (index !== -1) {

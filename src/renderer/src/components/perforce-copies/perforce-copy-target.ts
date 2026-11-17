@@ -1,6 +1,7 @@
-import { findRepoForHost } from '@/store/repos/repo-host-identity'
+import { findRepoForHost, repoMatchesHostIdentity } from '@/store/repos/repo-host-identity'
 import {
   getRepoExecutionHostId,
+  LOCAL_EXECUTION_HOST_ID,
   type ExecutionHostId
 } from '../../../../shared/execution-host/execution-host'
 import type { GlobalSettings } from '../../../../shared/settings/global-settings-types'
@@ -28,7 +29,7 @@ function copyTargetForRepo(
   if (!repo || !isFolderRepo(repo) || !isPerforceCopyWorktreeIdForRepo(repo, worktree.id)) {
     return null
   }
-  const copyName = getPerforceCopyName(worktree.path)
+  const copyName = getPerforceCopyName(worktree.path, repo.path)
   return copyName
     ? { repoId: repo.id, hostId: getRepoExecutionHostId(repo), sourcePath: repo.path, copyName }
     : null
@@ -51,12 +52,17 @@ export function getPerforceCopyDeleteTarget(
 
 export type PerforceCopyUpTarget = PerforceCopyDeleteTarget & { stream: string; parent: string }
 
-/** The copy-up target when `worktree` is a Perforce copy of `repo` on a stream of its own, else null. */
+/** The copy-up target when `worktree` is a Perforce copy on a stream of its own, else null. */
 export function getPerforceCopyUpTarget(
-  repo: Repo | null | undefined,
-  worktree: Pick<Worktree, 'id' | 'path' | 'perforceStream'>
+  repos: readonly Repo[],
+  worktree: Pick<Worktree, 'id' | 'repoId' | 'path' | 'hostId' | 'perforceStream'>
 ): PerforceCopyUpTarget | null {
-  const copy = copyTargetForRepo(repo, worktree)
+  // Why the copy's host: a same-id project on another host would aim the copy-up at the wrong machine.
+  const hostId = worktree.hostId ?? LOCAL_EXECUTION_HOST_ID
+  const copy = copyTargetForRepo(
+    repos.find((repo) => repoMatchesHostIdentity(repo, worktree.repoId, hostId)),
+    worktree
+  )
   const stream = worktree.perforceStream
   const parent = copy && stream ? copyOwnStreamParent(stream, copy.copyName) : null
   return copy && stream && parent ? { ...copy, stream, parent } : null

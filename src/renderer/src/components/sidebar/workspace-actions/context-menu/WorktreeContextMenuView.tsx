@@ -209,7 +209,7 @@ export default function WorktreeContextMenuView({ model }: { model: WorktreeCont
                 connectionId={repo?.connectionId ?? null}
                 disabled={isDeleting}
               />
-              <PerforceCopyUpMenuItem repo={repo} worktree={worktree} disabled={isDeleting} />
+              <PerforceCopyUpMenuItem worktree={worktree} disabled={isDeleting} />
               <WorktreePluginBadgeMenuItems worktree={worktree} repo={repo} disabled={isDeleting} />
               <WorktreeCopySubMenu model={model} />
               <WorktreeLineageSubMenu model={model} />

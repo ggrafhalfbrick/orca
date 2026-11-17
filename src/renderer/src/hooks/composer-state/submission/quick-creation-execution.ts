@@ -179,7 +179,10 @@ export function useQuickCreationExecution(input: QuickCreationExecutionInput) {
       }
       const request = buildQuickCreationRequest({
         repoId,
-        perforceCopy: await resolvePerforceCopyComposerChoice(repoId, selectedRepoExecutionHostId),
+        perforceCopy: await resolvePerforceCopyComposerChoice(
+          repoId,
+          workspaceRunContext?.hostId ?? selectedRepoExecutionHostId
+        ),
         ephemeralVmRecipe,
         indeterminateProgress:
           Boolean(activeEphemeralVmRecipeId) || selectedRepoTarget?.kind === 'environment',

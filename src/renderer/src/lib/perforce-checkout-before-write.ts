@@ -12,8 +12,8 @@ export const PERFORCE_EDIT_DECLINED_MESSAGE =
 /**
  * Perforce leaves synced files read-only until they are opened for edit, so saving one would fail.
  * Before a write into a Perforce workspace, on whichever host it lives, this opens the file for edit
- * as Settings > Perforce says (asking first by default); declining cancels the save. Probe failures
- * fall through to the normal write, which reports the error.
+ * as Settings > Perforce says (asking first by default); declining, or p4 refusing the edit, cancels
+ * the save. Probe failures fall through to the normal write, which reports the error.
  */
 export async function checkoutPerforceFileBeforeWrite(
   context: RuntimeFileOperationArgs,
@@ -44,11 +44,21 @@ export async function checkoutPerforceFileBeforeWrite(
   if (!readOnly) {
     return
   }
-  if (behavior === 'ask' && !(await askToOpenForEdit(relativePath))) {
+  const workspace = JSON.stringify([
+    target.target,
+    target.connectionId ?? null,
+    target.worktreePath
+  ])
+  if (behavior === 'ask' && !(await askToOpenForEdit(relativePath, workspace))) {
     throw new Error(PERFORCE_EDIT_DECLINED_MESSAGE)
   }
-  // The write reports the failure if the file stayed read-only.
-  await runPerforceOperation(target, 'checkoutIfReadOnly', { filePath: relativePath }).catch(
-    () => undefined
-  )
+  // Why: a failed call (or an older host's empty answer) leaves the write to report a read-only file.
+  const checkout = await runPerforceOperation(target, 'checkoutIfReadOnly', {
+    filePath: relativePath
+  }).catch(() => undefined)
+  if (checkout && !checkout.success) {
+    throw new Error(
+      `Save cancelled: Perforce could not open the file for edit. ${checkout.error ?? ''}`
+    )
+  }
 }

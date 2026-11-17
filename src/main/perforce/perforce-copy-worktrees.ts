@@ -17,17 +17,19 @@ import type {
 import { splitWorktreeId } from '../../shared/worktree/id'
 import {
   getPerforceCopyName,
-  getPerforceCopySourcePath,
+  getPerforceCopySourcePaths,
   getPerforceCopyWorktreeId,
   isPerforceCopyWorktreeIdForRepo
 } from '../../shared/worktree/perforce-copy-worktree'
 import type { Store } from '../persistence/loading-store/store'
-import { hostWorktreeTargetForRepo } from '../persistence/host-qualified-worktree-meta'
+import {
+  hostWorktreeTargetForRepo,
+  readAllWorktreeMetaForRepo
+} from '../persistence/host-qualified-worktree-meta'
 
-export type CopyWorktreeStore = Pick<
-  Store,
-  'getWorktreeMeta' | 'setWorktreeMeta' | 'getAllWorktreeMeta'
->
+// Why host-scoped reads: hosts sharing a repo id and copy path keep separate metadata rows.
+export type CopyWorktreeStore = Pick<Store, 'setWorktreeMeta' | 'getAllWorktreeMeta'> &
+  Partial<Pick<Store, 'getAllWorktreeMetaForHost'>>
 
 /**
  * The copy's counterpart of the project folder: the copy root itself, or the same subfolder inside it
@@ -49,15 +51,13 @@ function recordCopyWorktree(
   createdAt: number
 ): void {
   const worktreeId = getPerforceCopyWorktreeId(repo, worktreePath)
-  if (!store.getWorktreeMeta(worktreeId)) {
-    store.setWorktreeMeta(hostWorktreeTargetForRepo(worktreeId, repo), {
-      displayName: name,
-      createdAt,
-      orcaCreatedAt: createdAt,
-      orcaCreationSource: getRepoSshConnectionId(repo) ? 'ssh' : 'desktop',
-      lastActivityAt: createdAt
-    })
-  }
+  store.setWorktreeMeta(hostWorktreeTargetForRepo(worktreeId, repo), {
+    displayName: name,
+    createdAt,
+    orcaCreatedAt: createdAt,
+    orcaCreationSource: getRepoSshConnectionId(repo) ? 'ssh' : 'desktop',
+    lastActivityAt: createdAt
+  })
 }
 
 function createdAtOf(copy: WorkspaceCopyListEntry): number {
@@ -82,6 +82,7 @@ export function syncCopyWorktrees(
   forgetWorktree: (worktreeId: string) => void
 ): boolean {
   let changed = false
+  const known = readAllWorktreeMetaForRepo(store, repo)
   const live = new Set<string>()
   for (const copy of listing.copies) {
     if (!isUsableCopy(copy, listing)) {
@@ -90,7 +91,7 @@ export function syncCopyWorktrees(
     const path = copyWorktreePath(repo, listing.source.root, copy.copyRoot)
     const worktreeId = getPerforceCopyWorktreeId(repo, path)
     live.add(worktreeId)
-    const existing = store.getWorktreeMeta(worktreeId)
+    const existing = known[worktreeId]
     if (!existing) {
       recordCopyWorktree(store, repo, path, copy.name, createdAtOf(copy))
       changed = true
@@ -102,7 +103,7 @@ export function syncCopyWorktrees(
       changed = true
     }
   }
-  for (const worktreeId of Object.keys(store.getAllWorktreeMeta())) {
+  for (const worktreeId of Object.keys(known)) {
     if (isPerforceCopyWorktreeIdForRepo(repo, worktreeId) && !live.has(worktreeId)) {
       const copyRootGone = !listing.copies.some(
         (copy) =>
@@ -131,17 +132,17 @@ export async function adoptCopyAtPath(
     syncCopies: (repo: Repo) => Promise<WorkspaceCopyListResult>
   }
 ): Promise<boolean> {
-  const source = getPerforceCopySourcePath(path)
+  const key = normalizeRuntimePathForComparison
+  const sources = new Set(getPerforceCopySourcePaths(path).map(key))
   // Why: a mistyped or deleted copy would otherwise pay a full p4 listing on every lookup.
-  if (!source || !host.folderExists(path)) {
+  if (sources.size === 0 || !host.folderExists(path)) {
     return false
   }
-  const key = normalizeRuntimePathForComparison
   let adopted = false
   for (const repo of repos) {
     const onHost =
       host.requiredHostId === undefined || getRepoExecutionHostId(repo) === host.requiredHostId
-    if (!onHost || !isFolderRepo(repo) || key(repo.path) !== key(source)) {
+    if (!onHost || !isFolderRepo(repo) || !sources.has(key(repo.path))) {
       continue
     }
     try {
@@ -183,12 +184,12 @@ export function copyWorktreeIdForName(
   repo: Repo,
   name: string
 ): { worktreeId: string; path: string } | null {
-  for (const worktreeId of Object.keys(store.getAllWorktreeMeta())) {
+  for (const worktreeId of Object.keys(readAllWorktreeMetaForRepo(store, repo))) {
     const path = splitWorktreeId(worktreeId)?.worktreePath
     if (
       path &&
       isPerforceCopyWorktreeIdForRepo(repo, worktreeId) &&
-      getPerforceCopyName(path)?.toLowerCase() === name.toLowerCase()
+      getPerforceCopyName(path, repo.path)?.toLowerCase() === name.toLowerCase()
     ) {
       return { worktreeId, path }
     }
