@@ -5,8 +5,8 @@ import type {
   UpdateStatus
 } from '../../../../../shared/updater/update-status-types'
 import { getUpdateReleaseNotesUrl } from '@/lib/update-release-notes-url'
-import { UpdateErrorCardContent, type UpdateErrorCardModel } from '../../UpdateErrorCardContent'
-import { LinuxPackageInstallRecoveryCard } from '../../LinuxPackageInstallRecoveryCard'
+import { UpdateErrorCardContent, type UpdateErrorCardModel } from './UpdateErrorCardContent'
+import { LinuxPackageInstallRecoveryCard } from './LinuxPackageInstallRecoveryCard'
 import { useTranslate } from '@/i18n/use-translate'
 import { UpdateCheckFeedback } from './UpdateCheckFeedback'
 import {
