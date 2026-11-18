@@ -29,10 +29,12 @@ import { useComposerHostedAddProject } from '../project-selection/use-composer-h
 import { usePluginTaskWorkspaceComposerState } from './use-plugin-task-existing-workspace'
 import {
   composerLaunchWorkspace,
-  quickWorkspacePickerInputs,
+  quickWorkspacePickerInputs
+} from '@/lib/workspace/creation/quick-workspace-agent-selection'
+import {
   pickQuickWorkspaceAgent,
   resolveQuickWorkspaceAgentSelection
-} from '@/lib/workspace/creation/quick-workspace-agent-selection'
+} from '../../../../../shared/agent-launch/catalog/quick-workspace-agent-selection'
 import { useAgentsOfferedForLaunch } from '@/lib/agent-session/launch/inventory/host-chat-program-acquisition'
 import { shouldAllowComposerEnterSubmitTarget } from '@/lib/workspace/creation/new-workspace-enter-guard'
 import { isScreenSubmitShortcut } from '@/lib/keyboard/screen-submit-shortcut'
