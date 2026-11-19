@@ -88,7 +88,8 @@ import {
   AntigravityAccountMutationParams,
   AntigravityAccountTargetParams,
   AntigravityChatSignInCompleteParams,
-  AntigravityChatSignInFlowParams
+  AntigravityChatSignInFlowParams,
+  AntigravityChatSignInStartParams
 } from './accounts/antigravity-accounts-params'
 import {
   UsageCredentialApiKeyParams,
@@ -231,7 +232,7 @@ import {
   BotToolsList
 } from './bots-tools-params'
 import { BotWorkForget, BotWorkList } from './bots-work-params'
-import { CertificateProceed } from './browser/browser-core-params'
+import { CertificateProceed, PageZoom, Reload } from './browser/browser-core-params'
 import { ExtensionList, ExtensionReload } from './browser/browser-extension-params'
 import { MouseClick } from './browser/browser-extras-params'
 import { BrowserIdentitySet, ProfileCreate } from './browser/browser-identity-params'
@@ -514,6 +515,7 @@ import {
   GmailModifyParams,
   GmailSendParams
 } from './google-write-params'
+import { AgentCliUpdateRunParams } from './host-management/agent-cli-update-params'
 import { EnvironmentDoctorParams } from './host-management/environment-doctor-params'
 import {
   ManagedRuntimeAgentParams,
@@ -973,7 +975,9 @@ import {
   WebhooksList
 } from './webhooks-params'
 import {
+  WorkspaceCleanupCodexHistoryDiskUsageParams,
   WorkspaceCleanupPreviewParams,
+  WorkspaceCleanupReleaseCodexHistoryDiskUsageParams,
   WorkspaceCleanupReportUnsavedEditorsParams,
   WorkspaceCleanupRunNowParams
 } from './workspace-cleanup/workspace-cleanup-runner-params'
@@ -1054,7 +1058,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'accounts.antigravityChatAuthGet': null,
   'accounts.antigravityChatSignInCancel': AntigravityChatSignInFlowParams,
   'accounts.antigravityChatSignInComplete': AntigravityChatSignInCompleteParams,
-  'accounts.antigravityChatSignInStart': null,
+  'accounts.antigravityChatSignInStart': AntigravityChatSignInStartParams,
   'accounts.antigravityChatSignInSubscribe': null,
   'accounts.antigravityList': AntigravityAccountTargetParams,
   'accounts.antigravityRemove': AntigravityAccountMutationParams,
@@ -1096,6 +1100,8 @@ export const RPC_PARAMS_BY_METHOD = {
   'agent.show': AgentShowParams,
   'agentActivity.clear': AgentActivityClearParams,
   'agentActivity.setRead': AgentActivitySetReadParams,
+  'agentCliUpdate.check': null,
+  'agentCliUpdate.run': AgentCliUpdateRunParams,
   'agentHooks.prepareCodexForWslPane': PrepareCodexForWslPaneParams,
   'agentSession.accountUsage': OptionsParams,
   'agentSession.acknowledgeAttention': AcknowledgeAttentionParams,
@@ -1381,7 +1387,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'browser.profileDetectBrowsers': null,
   'browser.profileImportFromBrowser': ProfileImportFromBrowser,
   'browser.profileList': null,
-  'browser.reload': ExpectUrlBrowserTarget,
+  'browser.reload': Reload,
   'browser.screencast': Screencast,
   'browser.screencast.ack': ScreencastAck,
   'browser.screencast.unsubscribe': ScreencastUnsubscribe,
@@ -1396,6 +1402,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'browser.setMedia': SetMedia,
   'browser.setOffline': SetOffline,
   'browser.snapshot': Snapshot,
+  'browser.stop': BrowserTarget,
   'browser.storage.local.clear': ExpectUrlBrowserTarget,
   'browser.storage.local.get': StorageKey,
   'browser.storage.local.set': StorageKeyValue,
@@ -1416,6 +1423,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'browser.upload': Upload,
   'browser.viewport': Viewport,
   'browser.wait': Wait,
+  'browser.zoom': PageZoom,
   'clipboard.abortImageUpload': AbortImageUpload,
   'clipboard.appendImageUploadChunk': AppendImageUploadChunk,
   'clipboard.commitImageUpload': CommitImageUpload,
@@ -2011,6 +2019,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'session.tabs.setTabProps': SetTabProps,
   'session.tabs.subscribe': WorktreeTabSelector,
   'session.tabs.subscribeAll': null,
+  'session.tabs.terminalShellChoices': WorktreeTabSelector,
   'session.tabs.unsubscribe': SessionTabsUnsubscribe,
   'session.tabs.unsubscribeAll': SessionTabsUnsubscribeAllParams,
   'session.tabs.updatePaneLayout': UpdatePaneLayout,
@@ -2149,7 +2158,10 @@ export const RPC_PARAMS_BY_METHOD = {
   'webhooks.rotate': WebhookRotate,
   'webhooks.sample': WebhookSample,
   'webhooks.secret': WebhookSecret,
+  'workspaceCleanup.codexHistoryDiskUsage': WorkspaceCleanupCodexHistoryDiskUsageParams,
   'workspaceCleanup.preview': WorkspaceCleanupPreviewParams,
+  'workspaceCleanup.releaseCodexHistoryDiskUsage':
+    WorkspaceCleanupReleaseCodexHistoryDiskUsageParams,
   'workspaceCleanup.report': null,
   'workspaceCleanup.reportUnsavedEditors': WorkspaceCleanupReportUnsavedEditorsParams,
   'workspaceCleanup.runNow': WorkspaceCleanupRunNowParams,
