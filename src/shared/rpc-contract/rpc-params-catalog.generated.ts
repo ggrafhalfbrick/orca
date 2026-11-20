@@ -44,7 +44,8 @@ import { OrcadMigrationBlobChunkRequestSchema } from '../orcad-migration/orcad-m
 import { OrcadMigrationSnapshotChunkRequestSchema } from '../orcad-migration/orcad-migration-scrollback'
 import {
   CrewSubscribeParams,
-  WorkerApprovalsSubscribeParams
+  WorkerApprovalsSubscribeParams,
+  WorkerApprovalsUnsubscribeParams
 } from '../orchestration/orchestration-crew'
 import { PeerRunCancelParams } from '../orchestration/remote-owned-wire'
 import {
@@ -87,6 +88,7 @@ import { PrepareCodexForWslPaneParams } from './accounts/agent-hooks-params'
 import {
   AntigravityAccountMutationParams,
   AntigravityAccountTargetParams,
+  AntigravityChatApiKeySaveParams,
   AntigravityChatSignInCompleteParams,
   AntigravityChatSignInFlowParams,
   AntigravityChatSignInStartParams
@@ -515,7 +517,10 @@ import {
   GmailModifyParams,
   GmailSendParams
 } from './google-write-params'
-import { AgentCliUpdateRunParams } from './host-management/agent-cli-update-params'
+import {
+  AgentCliUpdateCheckParams,
+  AgentCliUpdateRunParams
+} from './host-management/agent-cli-update-params'
 import { EnvironmentDoctorParams } from './host-management/environment-doctor-params'
 import {
   ManagedRuntimeAgentParams,
@@ -704,6 +709,7 @@ import {
   PluginsPanelActionParams
 } from './plugins/plugins-params'
 import {
+  PreflightAgentDetection,
   PreflightAgentRefresh,
   PreflightCheck,
   PreflightDetectRemoteAgents,
@@ -894,6 +900,7 @@ import {
   QueuedMessageActionParams,
   QueuedMessagesResumeParams,
   RespondParams,
+  RestartLaunchSettledParams,
   RestartResumableParams,
   RestartResumeParams,
   RevealParams,
@@ -1054,7 +1061,11 @@ export const RPC_PARAMS_BY_METHOD = {
   'accounts.addCodexFromHome': AddCodexFromHomeParams,
   'accounts.addDataFromHome': AddDataAccountParams,
   'accounts.antigravityAddCurrent': AntigravityAccountTargetParams,
+  'accounts.antigravityChatApiKeyClear': null,
+  'accounts.antigravityChatApiKeySave': AntigravityChatApiKeySaveParams,
+  'accounts.antigravityChatApiKeyStatus': null,
   'accounts.antigravityChatAuthApply': AntigravityChatAuthConfigSchema,
+  'accounts.antigravityChatAuthDetect': null,
   'accounts.antigravityChatAuthGet': null,
   'accounts.antigravityChatSignInCancel': AntigravityChatSignInFlowParams,
   'accounts.antigravityChatSignInComplete': AntigravityChatSignInCompleteParams,
@@ -1100,7 +1111,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'agent.show': AgentShowParams,
   'agentActivity.clear': AgentActivityClearParams,
   'agentActivity.setRead': AgentActivitySetReadParams,
-  'agentCliUpdate.check': null,
+  'agentCliUpdate.check': AgentCliUpdateCheckParams,
   'agentCliUpdate.run': AgentCliUpdateRunParams,
   'agentHooks.prepareCodexForWslPane': PrepareCodexForWslPaneParams,
   'agentSession.accountUsage': OptionsParams,
@@ -1139,6 +1150,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'agentSession.respondToApproval': RespondParams,
   'agentSession.respondToQuestion': RespondToQuestionParams,
   'agentSession.restartContinue': RestartResumeParams,
+  'agentSession.restartLaunchSettled': RestartLaunchSettledParams,
   'agentSession.restartResumable': RestartResumableParams,
   'agentSession.restartResumableDismiss': RestartResumableParams,
   'agentSession.restartResume': RestartResumeParams,
@@ -1472,6 +1484,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'emulator.permissions': PermissionsParams,
   'emulator.rotate': RotateParams,
   'emulator.shutdown': ShutdownParams,
+  'emulator.syncKeyboardLayout': ListParams,
   'emulator.tap': TapParams,
   'emulator.type': TypeParams,
   'emulator.unregisterActive': EmulatorUnregisterActiveParams,
@@ -1872,6 +1885,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'orchestration.taskList': TaskListParams,
   'orchestration.workerAbandon': WorkerDispatchParams,
   'orchestration.workerApprovalsSubscribe': WorkerApprovalsSubscribeParams,
+  'orchestration.workerApprovalsUnsubscribe': WorkerApprovalsUnsubscribeParams,
   'orchestration.workerAutoClose': OrchestrationWorkerSubjectParams,
   'orchestration.workerChatTouch': OrchestrationWorkerSubjectParams,
   'orchestration.workerKeepOpen': OrchestrationWorkerKeepOpenParams,
@@ -1957,6 +1971,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'preflight.detectRemoteAgents': PreflightDetectRemoteAgents,
   'preflight.detectRemoteWindowsTerminalCapabilities':
     PreflightDetectRemoteWindowsTerminalCapabilities,
+  'preflight.installedAgents': PreflightAgentDetection,
   'preflight.refreshAgents': PreflightAgentRefresh,
   'project.list': null,
   'project.update': ProjectUpdate,

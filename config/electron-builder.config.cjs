@@ -207,6 +207,8 @@ const commonExtraResources = [
 const debElectronRuntimeDependencies = [
   'libgtk-3-0',
   'libnotify4',
+  'dbus-bin | dbus',
+  'libglib2.0-bin',
   'libnss3',
   'libxss1',
   'libxtst6',
@@ -221,6 +223,7 @@ const debElectronRuntimeDependencies = [
 const rpmElectronRuntimeDependencies = [
   'gtk3',
   'libnotify',
+  '/usr/bin/dbus-send',
   'nss',
   'libXScrnSaver',
   '(libXtst or libXtst6)',
@@ -569,10 +572,16 @@ module.exports = {
     assertPackagedWebClient(resourcesDir)
     assertPackagedServeSelectionEntry(resourcesDir)
     finalizePackagedRipgrep(resourcesDir)
-    for (const filename of readdirSync(resourcesDir)) {
-      if (!filename.startsWith('agent-browser-')) {
-        continue
-      }
+    const agentBrowserDrivers = readdirSync(resourcesDir).filter((filename) =>
+      filename.startsWith('agent-browser-')
+    )
+    // Each driver now comes from its own optional package, which a host-only install skips.
+    if (agentBrowserDrivers.length === 0) {
+      throw new Error(
+        `No agent-browser driver in ${resourcesDir}; install with --cpu/--os for the target`
+      )
+    }
+    for (const filename of agentBrowserDrivers) {
       // Upstream executable bits vary (notably darwin-x64); restore them so packaged execFile works.
       chmodSync(join(resourcesDir, filename), 0o755)
       // The orcad template hashes this exact file next, so app signing must not rewrite it later.
@@ -653,7 +662,7 @@ module.exports = {
         to: 'bin/orca-agent-hook.exe'
       },
       {
-        from: 'node_modules/agent-browser/bin/agent-browser-win32-x64.exe',
+        from: 'node_modules/@agent-browser/cli-win32-x64-msvc/bin/agent-browser.exe',
         to: 'agent-browser-win32-x64.exe'
       },
       {
@@ -719,7 +728,7 @@ module.exports = {
         to: 'bin/orca'
       },
       {
-        from: 'node_modules/agent-browser/bin/agent-browser-darwin-${arch}',
+        from: 'node_modules/@agent-browser/cli-darwin-${arch}/bin/agent-browser',
         to: 'agent-browser-darwin-${arch}'
       },
       {
@@ -796,7 +805,7 @@ module.exports = {
         to: 'bin/orca-ide'
       },
       {
-        from: 'node_modules/agent-browser/bin/agent-browser-linux-${arch}',
+        from: 'node_modules/@agent-browser/cli-linux-${arch}-gnu/bin/agent-browser',
         to: 'agent-browser-linux-${arch}'
       },
       {
