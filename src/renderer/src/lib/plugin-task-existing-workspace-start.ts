@@ -2,6 +2,7 @@ import { toast } from 'sonner'
 import { translate } from '@/i18n/i18n'
 import { useAppStore } from '@/store'
 import { resolveRepoWorktreeLaunchPlatform } from '@/runtime/hosts/platform/execution-host-facts'
+import { readRuntimeStatuses } from '@/store/slices/runtime-status/views/runtime-status-owner'
 import { focusTerminalTabSurface } from '@/components/terminal-pane/input/focus/focus-terminal-tab-surface'
 import { launchAgentInNewTabWithOutcome } from '@/lib/agent-session/launch/new-tab/launch-agent-in-new-tab'
 import { createNonSecureContextUuid } from '../../../shared/identifiers/non-secure-context-uuid'
@@ -43,7 +44,9 @@ export function startTaskInExistingWorkspace(args: StartTaskInExistingWorkspaceA
   }
   const repo = store.repos.find((candidate) => candidate.id === worktree.repoId)
   // Why: undefined lets the launch resolve the host itself and tell the user why it stopped.
-  const launchPlatform = repo ? resolveRepoWorktreeLaunchPlatform(store, repo, worktree) : undefined
+  const launchPlatform = repo
+    ? resolveRepoWorktreeLaunchPlatform(store, readRuntimeStatuses(), repo, worktree)
+    : undefined
   let revealFailed = false
   const result = launchAgentInNewTabWithOutcome({
     requestId: createNonSecureContextUuid(),
