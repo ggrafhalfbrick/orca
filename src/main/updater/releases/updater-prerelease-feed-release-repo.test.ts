@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { installNetRequestFetchAdapter } from '../testing/updater-net-request.fixture'
+import { installNetRequestFetchAdapter } from './updater-release-repo-net-request.fixture'
 
 const { netFetchMock, netRequestMock } = vi.hoisted(() => ({
   netFetchMock: vi.fn(),
