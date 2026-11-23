@@ -232,7 +232,7 @@ export abstract class UpdaterReleaseFeed extends UpdaterInstallExecution {
       )
       return 'not-available'
     }
-    if (pinForkReleaseFeed(autoUpdater, currentVersion, includePrerelease)) {
+    if (pinForkReleaseFeed(this.getAutoUpdater(), currentVersion, includePrerelease)) {
       return 'ready'
     }
     const stableTag = await fetchLatestStableReleaseTag()
