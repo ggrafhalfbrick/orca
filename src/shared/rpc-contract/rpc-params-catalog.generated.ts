@@ -896,6 +896,7 @@ import {
   PerforceProject,
   PerforceRemoveCopy,
   PerforceShelvedFiles,
+  PerforceStatus,
   PerforceSubmit,
   PerforceUnshelveFrom,
   PerforceWorktree
@@ -2024,7 +2025,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'perforce.removeCopy': PerforceRemoveCopy,
   'perforce.shelve': PerforceChangelist,
   'perforce.shelveAndRevertFiles': PerforceChangelistFiles,
-  'perforce.status': PerforceWorktree,
+  'perforce.status': PerforceStatus,
   'perforce.submit': PerforceSubmit,
   'perforce.sync': PerforceWorktree,
   'perforce.syncCopies': PerforceProject,
