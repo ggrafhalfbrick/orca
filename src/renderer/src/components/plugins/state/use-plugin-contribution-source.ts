@@ -53,6 +53,7 @@ function useInstalledPluginContributionSource(
       vmRecipes: plugin.vmRecipes?.map((recipe) => recipe.name) ?? [],
       newFiles: plugin.newFiles ?? [],
       statusBarItems: statusBarItemTitles(plugin.statusBarItems),
+      mcpServers: plugin.mcpServers ?? [],
       taskSources: plugin.taskSources?.map((source) => source.title) ?? [],
       worktreeBadges: plugin.worktreeBadges?.map((badge) => badge.title) ?? []
     }

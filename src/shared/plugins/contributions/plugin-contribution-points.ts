@@ -50,6 +50,11 @@ import {
   PLUGIN_SCHEMA_SINCE_V1
 } from '../manifest/plugin-schema-field-docs'
 import {
+  PLUGIN_MCP_SERVER_LIMIT,
+  PLUGIN_MCP_SERVERS_SINCE,
+  pluginMcpServerContributionSchema
+} from './plugin-mcp-server-contribution'
+import {
   PLUGIN_STATUS_BAR_ITEM_LIMIT,
   PLUGIN_STATUS_BAR_SINCE,
   pluginStatusBarItemContributionSchema
@@ -82,6 +87,7 @@ export const PLUGIN_CONTRIBUTION_POINTS = [
   'newFiles',
   'settings',
   'statusBarItems',
+  'mcpServers',
   'taskSources',
   'worktreeBadges'
 ] as const
@@ -90,12 +96,11 @@ export type PluginContributionPoint = (typeof PLUGIN_CONTRIBUTION_POINTS)[number
 
 /** `contributes` keys held for planned points, so each can ship later as an additive minor
  *  instead of a new manifest format. Each must stay empty until its format is defined.
- *  `skills` and `mcpServers` keep the meaning agent-plugin formats such as Claude Code's give them;
- *  `agents` is left unclaimed because those formats use it for subagent files. */
+ *  `skills` keeps the meaning agent-plugin formats such as Claude Code's give it; `agents` is left
+ *  unclaimed because those formats use it for subagent files. */
 export const PLUGIN_RESERVED_CONTRIBUTION_POINTS = {
   agentHarnesses: 'coding-agent harness definitions',
   skills: 'agent skills',
-  mcpServers: 'MCP server definitions',
   connections: 'account connections',
   sidebarCards: 'sidebar cards'
 } as const
@@ -111,7 +116,6 @@ export const PLUGIN_PLANNED_CONTRIBUTION_POINTS: Readonly<
   agentHarnesses:
     'New coding-agent harnesses described as data: how to launch them and read their status.',
   sidebarCards: 'Declarative left-sidebar cards with fixed layouts whose values a worker updates.',
-  mcpServers: 'MCP server definitions that Orca offers to the agents it launches.',
   skills: 'Agent skills shipped as files that Orca installs for the agents it launches.'
 }
 
@@ -243,6 +247,12 @@ export const pluginContributesFields = {
     'Items in the status bar; pressing one runs its `command`, and a worker changes them with `statusBar.update`. With `main`, the worker runs for as long as the plugin is enabled.',
     PLUGIN_STATUS_BAR_SINCE
   ),
+  mcpServers: contributionList(
+    pluginMcpServerContributionSchema,
+    PLUGIN_MCP_SERVER_LIMIT,
+    'MCP servers Orca offers to the agents it launches on this host, listed under From plugins in Settings → MCP servers.',
+    PLUGIN_MCP_SERVERS_SINCE
+  ),
   taskSources: contributionList(
     pluginTaskSourceContributionSchema,
     PLUGIN_TASK_SOURCE_LIMIT,
@@ -260,7 +270,6 @@ export const pluginContributesFields = {
 export const pluginReservedContributesFields = {
   agentHarnesses: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.agentHarnesses),
   skills: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.skills),
-  mcpServers: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.mcpServers),
   connections: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.connections),
   sidebarCards: reservedList(PLUGIN_RESERVED_CONTRIBUTION_POINTS.sidebarCards)
 } satisfies Record<PluginReservedContributionPoint, z.ZodType>
@@ -303,6 +312,8 @@ export const PLUGIN_CONTRIBUTION_POINT_POLICY: Record<
   settings: { execution: 'sandboxed-ui', catalogType: null, bindsContent: false },
   // Why declarative: a static item only names its own command; updating it needs a worker.
   statusBarItems: { execution: 'declarative', catalogType: null, bindsContent: false },
+  // Why bound: a command server runs on the host for every agent session, so approval names it.
+  mcpServers: { execution: 'declarative', catalogType: 'instructions', bindsContent: true },
   // Why no catalog type: a task source needs a worker, which `main` already declares.
   taskSources: { execution: 'trusted-worker', catalogType: null, bindsContent: false },
   // Why declarative: a badge only names the plugin's own workspace commands, which need a worker.

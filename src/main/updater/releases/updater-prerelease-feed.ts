@@ -5,7 +5,7 @@ import { UPDATE_RELEASE_REPO } from '../update-release-repo'
 import {
   FETCH_TIMEOUT_MS,
   getPlatformManifestReadiness,
-  requestGitHubReleaseHead
+  requestReleaseHead
 } from './updater-release-readiness'
 
 import {
@@ -84,7 +84,7 @@ export async function fetchLatestStableReleaseTag(): Promise<string | null> {
   try {
     // Resolve only the release-page redirect; installer redirects continue on to signed storage URLs.
     const latestUrl = 'https://github.com/stablyai/orca/releases/latest'
-    const response = await requestGitHubReleaseHead(latestUrl)
+    const response = await requestReleaseHead(latestUrl)
     if (!response?.redirectUrl || response.statusCode < 300 || response.statusCode >= 400) {
       return null
     }

@@ -114,6 +114,7 @@ export default function NewWorkspaceComposerCard(
     sparseEditing
   )
   const [addRemoteHostMode, setAddRemoteHostMode] = React.useState<AddRemoteHostMode | null>(null)
+  const [addWslDistro, setAddWslDistro] = React.useState<string>()
   const remoteHostDialogOpenRef = React.useRef(false)
   const handleRemoteHostModeChange = React.useCallback(
     (nextMode: AddRemoteHostMode | null): void => {
@@ -335,6 +336,10 @@ export default function NewWorkspaceComposerCard(
           handleProjectHostSetupChange={(setupId) => onProjectHostSetupChange?.(setupId)}
           handleAddSshHost={() => handleRemoteHostModeChange('ssh')}
           handleAddRemoteServer={() => handleRemoteHostModeChange('server')}
+          handleAddWslDistro={(distro) => {
+            setAddWslDistro(distro)
+            handleRemoteHostModeChange('wsl')
+          }}
           handleConnectRunTargetHost={handleConnectRunTargetHost}
           handleSetLocation={handleSetLocation}
           sshStatusLabel={sshStatusLabel}
@@ -389,7 +394,11 @@ export default function NewWorkspaceComposerCard(
           />
         </div>
       ) : null}
-      <AddRemoteHostDialog mode={addRemoteHostMode} onOpenChange={handleRemoteHostModeChange} />
+      <AddRemoteHostDialog
+        mode={addRemoteHostMode}
+        onOpenChange={handleRemoteHostModeChange}
+        wslDistro={addWslDistro}
+      />
       {setLocationDialogMounted ? (
         <React.Suspense fallback={null}>
           <SetProjectLocationDialog
