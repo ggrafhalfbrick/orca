@@ -27,7 +27,7 @@ import type { AddRepoDialogEntryRequest } from '@/components/sidebar/project-adm
 import type { TuiAgent } from '../../../../../shared/agent-launch/catalog/tui-agent'
 import { NewWorkspaceComposerAdvancedSection } from './NewWorkspaceComposerAdvancedSection'
 import { NewWorkspaceComposerAgentSection } from './NewWorkspaceComposerAgentSection'
-import { NewWorkspaceComposerAgentDraftSection } from './NewWorkspaceComposerAgentDraftSection'
+import { NewWorkspaceComposerAgentDraftSlot } from './NewWorkspaceComposerAgentDraftSlot'
 import { NewWorkspaceComposerFooter } from './NewWorkspaceComposerFooter'
 import { NewWorkspaceComposerNameSection } from './NewWorkspaceComposerNameSection'
 import { NewWorkspaceComposerProjectSection } from './NewWorkspaceComposerProjectSection'
@@ -347,13 +347,10 @@ export default function NewWorkspaceComposerCard(
           selectedProjectName={selectedProjectName}
         />
         {startsInExisting ? null : (
-          <>
-            <NewWorkspaceComposerNameSection {...props} onNamePlainEnter={handleNamePlainEnter} />
-            <PerforceCopyComposerOption
-              repoId={props.repoId}
-              hostId={selectedRepoExecutionHostId}
-            />
-          </>
+          <NewWorkspaceComposerNameSection {...props} onNamePlainEnter={handleNamePlainEnter} />
+        )}
+        {startsInExisting ? null : (
+          <PerforceCopyComposerOption repoId={props.repoId} hostId={selectedRepoExecutionHostId} />
         )}
         <NewWorkspaceComposerAgentSection
           {...props}
@@ -363,12 +360,7 @@ export default function NewWorkspaceComposerCard(
           visibleQuickAgents={visibleQuickAgents}
           defaultTuiAgent={defaultTuiAgent}
           handleSetDefaultAgent={handleSetDefaultAgent}
-          agentDraftSection={
-            <>
-              <NewWorkspaceComposerAgentDraftSection {...props} />
-              {props.agentDraft != null ? props.existingWorkspaceField?.(props.quickAgent) : null}
-            </>
-          }
+          agentDraftSection={<NewWorkspaceComposerAgentDraftSlot {...props} />}
         />
         {startsInExisting ? null : (
           <NewWorkspaceComposerAdvancedSection
